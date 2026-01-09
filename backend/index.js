@@ -2,12 +2,12 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-// Importamos la conexión a la BD como 'pool'
+// Importamos la conexión a la BD
 const pool = require('./config/db');
 
 const app = express();
 
-// IMPORTANTE: Asegúrate de que este puerto coincida con el de Nginx (3100)
+// Usamos el puerto 3100 para coincidir con Nginx
 const PORT = process.env.PORT || 3100;
 
 // Middleware
@@ -25,16 +25,17 @@ app.get('/api/pantalla/:id', async (req, res) => {
     
     try {
         // 1. OBTENER CONFIGURACIÓN DE LA TERMINAL
-		const sqlTerminal = `
+        // Usamos COALESCE para elegir el logo de sucursal si existe, si no, el de marca.
+        const sqlTerminal = `
             SELECT 
                 t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.tema_color, t.idAreaAsignada,
                 t.idSucursal,
                 a.nombre as nombre_area,
-                COALESCE(s.logo_url, m.logo_url) as final_logo,  -- <--- AQUÍ LA MAGIA
+                COALESCE(s.logo_url, m.logo_url) as final_logo,
                 m.color_primario, m.color_secundario
             FROM cat_terminales t
             LEFT JOIN cat_areas a ON t.idAreaAsignada = a.idArea
-            LEFT JOIN cat_sucursales s ON t.idSucursal = s.idSucursal -- JOIN con sucursal
+            LEFT JOIN cat_sucursales s ON t.idSucursal = s.idSucursal
             LEFT JOIN cat_marcas m ON t.idMarca = m.idMarca
             WHERE t.idTerminal = ?
         `;
@@ -54,7 +55,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
                 nombre_interno: terminal.nombre_interno,
                 tipo_pantalla: terminal.tipo_pantalla,
                 tema_color: terminal.tema_color || 'dark',
-				logo: terminal.final_logo,
+                logo: terminal.final_logo, // Usamos la variable calculada por SQL
                 colores: {
                     primario: terminal.color_primario,
                     secundario: terminal.color_secundario
@@ -122,7 +123,6 @@ app.get('/api/pantalla/:id', async (req, res) => {
 // --- RUTA: TEST DE BASE DE DATOS ---
 app.get('/api/test-db', async (req, res) => {
     try {
-        // Usamos pool (no db) para mantener consistencia
         const [rows] = await pool.query('SELECT * FROM cat_propiedades LIMIT 1');
         res.json({
             mensaje: 'Conexión exitosa',
