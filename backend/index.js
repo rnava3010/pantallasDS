@@ -89,13 +89,23 @@ app.get('/api/pantalla/:id', async (req, res) => {
         // 2. BUSCAR DATOS SEGÚN EL TIPO DE PANTALLA (ESTO SIGUE IGUAL)
         
         // --- CASO A: PANTALLA DE SALÓN ---
-        if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
+if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
             const sqlEvento = `
-                SELECT nombre_evento, cliente_nombre, fecha_inicio, fecha_fin, mensaje_personalizado
-                FROM tbl_eventos
-                WHERE idArea = ? 
-                AND estatus = 'ACTIVO'
-                AND NOW() BETWEEN fecha_inicio AND fecha_fin
+                SELECT 
+                    e.idEvento,
+                    e.nombre_evento, 
+                    e.cliente_nombre, 
+                    e.fecha_inicio, 
+                    e.fecha_fin, 
+                    e.mensaje_personalizado,
+                    em.url_archivo as imagen_evento  -- <--- TRAEMOS LA IMAGEN
+                FROM tbl_eventos e
+                -- Unimos con la tabla de media para buscar la primera imagen disponible
+                LEFT JOIN tbl_eventos_media em ON e.idEvento = em.idEvento AND em.tipo = 'IMAGEN'
+                WHERE e.idArea = ? 
+                AND e.estatus = 'ACTIVO'
+                AND NOW() BETWEEN e.fecha_inicio AND e.fecha_fin
+                ORDER BY em.orden ASC -- Traemos la primera imagen según orden
                 LIMIT 1
             `;
             
@@ -108,7 +118,8 @@ app.get('/api/pantalla/:id', async (req, res) => {
                     cliente: evento.cliente_nombre,
                     horario: `${new Date(evento.fecha_inicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(evento.fecha_fin).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
                     mensaje: evento.mensaje_personalizado,
-                    nombre_salon: terminal.nombre_area
+                    nombre_salon: terminal.nombre_area,
+                    imagen: evento.imagen_evento // <--- AGREGAMOS ESTO A LA RESPUESTA
                 };
             } else {
                 respuesta.data = {

@@ -55,46 +55,69 @@ export default function PlayerSalon({ data, config }) {
                 </div>
             </header>
 
-            {/* --- CONTENIDO PRINCIPAL --- */}
-            <main className="flex-1 flex flex-col items-center justify-center p-10 text-center relative z-10">
-                {/* Fondo sutil (Gradiente) */}
-                <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-black to-blue-900/30 z-0"></div>
+ {/* --- CONTENIDO PRINCIPAL --- */}
+            {/* Si hay imagen, usamos Grid de 2 columnas. Si no, Flex centrado. */}
+            <main className={`flex-1 w-full relative z-10 ${data.imagen ? 'grid grid-cols-2' : 'flex items-center justify-center'}`}>
+                
+                {/* FONDO (Solo visible si NO hay imagen para llenar huecos) */}
+                <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-black to-blue-900/30 z-0 pointer-events-none"></div>
 
-                <div className="z-10 animate-fade-in-up max-w-6xl w-full">
-                    
-                    {/* Nombre del Salón (Pequeño arriba) */}
-                    <div className="mb-6">
-                        <span className="bg-zinc-800 text-gray-300 px-4 py-1 rounded text-sm uppercase tracking-[0.3em]">
-                            {data.nombre_salon || config.nombre_interno}
-                        </span>
+                {/* --- COLUMNA IZQUIERDA: IMAGEN DEL EVENTO --- */}
+                {data.imagen && (
+                    <div className="relative h-full w-full overflow-hidden border-r border-zinc-800">
+                        <img 
+                            src={data.imagen} 
+                            alt="Imagen del Evento" 
+                            className="absolute inset-0 w-full h-full object-cover animate-fade-in"
+                        />
+                        {/* Overlay degradado para que el texto resalte si se encimara algo */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent"></div>
                     </div>
+                )}
 
-                    {/* TÍTULO DEL EVENTO */}
-                    <h1 className="text-6xl md:text-8xl font-black text-white mb-8 leading-tight drop-shadow-2xl">
-                        {data.titulo}
-                    </h1>
-
-                    {/* CLIENTE */}
-                    {data.cliente && (
-                        <div className="mb-12">
-                            <span className="inline-block border border-yellow-500/30 bg-yellow-500/10 text-yellow-400 px-8 py-3 rounded-full text-2xl font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(234,179,8,0.2)]">
-                                {data.cliente}
+                {/* --- COLUMNA DERECHA: INFORMACIÓN --- */}
+                {/* Si hay imagen, centramos el contenido en su columna. Si no, usa todo el ancho. */}
+                <div className={`flex flex-col items-center justify-center p-10 text-center z-10 ${data.imagen ? 'bg-zinc-900/50 backdrop-blur-sm' : 'max-w-6xl'}`}>
+                    
+                    <div className="animate-fade-in-up w-full">
+                        {/* Nombre del Salón */}
+                        <div className="mb-6">
+                            <span className="bg-zinc-800 text-gray-300 px-4 py-1 rounded text-sm uppercase tracking-[0.3em] shadow-lg">
+                                {data.nombre_salon || config.nombre_interno}
                             </span>
                         </div>
-                    )}
 
-                    {/* DURACIÓN DEL EVENTO */}
-                    <div className="flex items-center justify-center gap-4 text-zinc-400 text-xl font-light">
-                        <span>Horario del evento:</span>
-                        <span className="text-white font-mono font-bold text-2xl">{data.horario}</span>
+                        {/* TÍTULO */}
+                        <h1 className={`font-black text-white mb-8 leading-tight drop-shadow-2xl ${data.imagen ? 'text-5xl lg:text-7xl' : 'text-6xl md:text-8xl'}`}>
+                            {data.titulo}
+                        </h1>
+
+                        {/* CLIENTE */}
+                        {data.cliente && (
+                            <div className="mb-12">
+                                <span className="inline-block border border-yellow-500/30 bg-yellow-500/10 text-yellow-400 px-8 py-3 rounded-full text-xl lg:text-2xl font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(234,179,8,0.2)]">
+                                    {data.cliente}
+                                </span>
+                            </div>
+                        )}
+
+                        {/* HORARIO */}
+                        <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-zinc-400 text-xl font-light">
+                            <span>Horario del evento:</span>
+                            <span className="text-white font-mono font-bold text-2xl bg-black/40 px-4 py-1 rounded border border-zinc-700">
+                                {data.horario}
+                            </span>
+                        </div>
+
+                        {/* MENSAJE EXTRA */}
+                        {data.mensaje && (
+                            <div className="mt-16 border-t border-zinc-700/50 pt-8 w-3/4 mx-auto">
+                                <p className="text-2xl text-gray-300 font-serif italic">
+                                    "{data.mensaje}"
+                                </p>
+                            </div>
+                        )}
                     </div>
-
-                    {/* MENSAJE EXTRA */}
-                    {data.mensaje && (
-                        <p className="mt-16 text-3xl text-gray-300 font-serif italic max-w-4xl mx-auto border-t border-zinc-800 pt-8">
-                            "{data.mensaje}"
-                        </p>
-                    )}
                 </div>
             </main>
 
