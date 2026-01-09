@@ -25,13 +25,12 @@ app.get('/api/pantalla/:id', async (req, res) => {
     
     try {
         // 1. OBTENER CONFIGURACIÓN DE LA TERMINAL
-        // Usamos COALESCE para elegir el logo de sucursal si existe, si no, el de marca.
         const sqlTerminal = `
             SELECT 
                 t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.tema_color, t.idAreaAsignada,
                 t.idSucursal,
                 a.nombre as nombre_area,
-                COALESCE(s.logo_url, m.logo_url) as final_logo,
+                COALESCE(s.logo_url, m.logo_url) as final_logo_name, -- Nombre base (ej: 001logo_prop1)
                 m.color_primario, m.color_secundario
             FROM cat_terminales t
             LEFT JOIN cat_areas a ON t.idAreaAsignada = a.idArea
@@ -48,6 +47,25 @@ app.get('/api/pantalla/:id', async (req, res) => {
 
         const terminal = rows[0];
 
+        // --- LÓGICA DE IMÁGENES (NUEVO) ---
+        // Asumimos que en la BD solo está el nombre base (sin ruta ni extensión)
+        let logoPngUrl = null;
+        let faviconIcoUrl = null;
+
+        if (terminal.final_logo_name) {
+            // Limpiamos por si acaso ya traía ruta o extensión
+            const cleanName = terminal.final_logo_name
+                .replace('/logos/', '')
+                .replace('.png', '')
+                .replace('.ico', '')
+                .replace('.jpg', '');
+            
+            // Construimos las URLs finales
+            logoPngUrl = `/logos/${cleanName}.png`;
+            faviconIcoUrl = `/logos/${cleanName}.ico`;
+        }
+        // -----------------------------------
+
         // Objeto base de respuesta (Configuración)
         let respuesta = {
             config: {
@@ -55,7 +73,11 @@ app.get('/api/pantalla/:id', async (req, res) => {
                 nombre_interno: terminal.nombre_interno,
                 tipo_pantalla: terminal.tipo_pantalla,
                 tema_color: terminal.tema_color || 'dark',
-                logo: terminal.final_logo, // Usamos la variable calculada por SQL
+                
+                // Ahora enviamos DOS propiedades separadas
+                logo: logoPngUrl,         // Para la imagen grande (.png)
+                favicon: faviconIcoUrl,   // Para el icono del navegador (.ico)
+
                 colores: {
                     primario: terminal.color_primario,
                     secundario: terminal.color_secundario
@@ -64,7 +86,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
             data: null
         };
 
-        // 2. BUSCAR DATOS SEGÚN EL TIPO DE PANTALLA
+        // 2. BUSCAR DATOS SEGÚN EL TIPO DE PANTALLA (ESTO SIGUE IGUAL)
         
         // --- CASO A: PANTALLA DE SALÓN ---
         if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
