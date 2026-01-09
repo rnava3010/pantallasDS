@@ -25,14 +25,16 @@ app.get('/api/pantalla/:id', async (req, res) => {
     
     try {
         // 1. OBTENER CONFIGURACIÓN DE LA TERMINAL
-        const sqlTerminal = `
+		const sqlTerminal = `
             SELECT 
                 t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.tema_color, t.idAreaAsignada,
                 t.idSucursal,
                 a.nombre as nombre_area,
-                m.logo_url, m.color_primario, m.color_secundario
+                COALESCE(s.logo_url, m.logo_url) as final_logo,  -- <--- AQUÍ LA MAGIA
+                m.color_primario, m.color_secundario
             FROM cat_terminales t
             LEFT JOIN cat_areas a ON t.idAreaAsignada = a.idArea
+            LEFT JOIN cat_sucursales s ON t.idSucursal = s.idSucursal -- JOIN con sucursal
             LEFT JOIN cat_marcas m ON t.idMarca = m.idMarca
             WHERE t.idTerminal = ?
         `;
@@ -52,7 +54,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
                 nombre_interno: terminal.nombre_interno,
                 tipo_pantalla: terminal.tipo_pantalla,
                 tema_color: terminal.tema_color || 'dark',
-                logo: terminal.logo_url,
+				logo: terminal.final_logo,
                 colores: {
                     primario: terminal.color_primario,
                     secundario: terminal.color_secundario
