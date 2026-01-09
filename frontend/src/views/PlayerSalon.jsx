@@ -1,0 +1,1 @@
+export default function PlayerSalon({data}) { return <div className="p-10 text-5xl text-green-500">📺 Soy el Player de Salón</div> }

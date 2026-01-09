@@ -1,0 +1,1 @@
+export default function VistaAdmin() { return <h1>Panel de Administración (Próximamente)</h1> }

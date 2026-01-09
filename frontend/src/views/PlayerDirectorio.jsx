@@ -1,0 +1,1 @@
+export default function PlayerDirectorio() { return <h1>Soy el Directorio</h1> }

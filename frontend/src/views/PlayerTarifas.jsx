@@ -1,0 +1,1 @@
+export default function PlayerTarifas() { return <h1>Soy el Tarifario</h1> }

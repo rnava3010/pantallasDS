@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilo base para pantalla completa negra */
+body {
+  @apply bg-black text-white overflow-hidden m-0 p-0;
+}
