@@ -98,14 +98,14 @@ if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
                     e.fecha_inicio, 
                     e.fecha_fin, 
                     e.mensaje_personalizado,
-                    em.url_archivo as imagen_evento  -- <--- TRAEMOS LA IMAGEN
+                    -- TRUCO: Unimos todas las URLs en un solo texto separado por comas
+                    GROUP_CONCAT(em.url_archivo ORDER BY em.orden ASC SEPARATOR ',') as lista_imagenes
                 FROM tbl_eventos e
-                -- Unimos con la tabla de media para buscar la primera imagen disponible
                 LEFT JOIN tbl_eventos_media em ON e.idEvento = em.idEvento AND em.tipo = 'IMAGEN'
                 WHERE e.idArea = ? 
                 AND e.estatus = 'ACTIVO'
                 AND NOW() BETWEEN e.fecha_inicio AND e.fecha_fin
-                ORDER BY em.orden ASC -- Traemos la primera imagen según orden
+                GROUP BY e.idEvento -- Necesario para que funcione el GROUP_CONCAT
                 LIMIT 1
             `;
             
@@ -113,13 +113,18 @@ if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
             
             if (eventos.length > 0) {
                 const evento = eventos[0];
+                
+                // Convertimos el texto "img1.jpg,img2.jpg" en un Array real ['img1.jpg', 'img2.jpg']
+                const arrayImagenes = evento.lista_imagenes ? evento.lista_imagenes.split(',') : [];
+
                 respuesta.data = {
                     titulo: evento.nombre_evento,
                     cliente: evento.cliente_nombre,
                     horario: `${new Date(evento.fecha_inicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(evento.fecha_fin).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
                     mensaje: evento.mensaje_personalizado,
                     nombre_salon: terminal.nombre_area,
-                    imagen: evento.imagen_evento // <--- AGREGAMOS ESTO A LA RESPUESTA
+                    
+                    imagenes: arrayImagenes // <--- ENVIAMOS EL ARRAY AHORA
                 };
             } else {
                 respuesta.data = {
