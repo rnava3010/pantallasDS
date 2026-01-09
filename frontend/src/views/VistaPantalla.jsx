@@ -1,49 +1,51 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { usePantalla } from '../hooks/usePantalla';
-
-// Componentes (Los crearemos en el siguiente paso)
+import { usePantalla } from '../hooks/usePantalla'; // Asegúrate de la ruta correcta
 import PlayerSalon from '../components/PlayerSalon';
-import PlayerDirectorio from '../components/PlayerDirectorio';
-import PlayerTarifas from '../components/PlayerTarifas';
+// import PlayerDirectorio from '../components/PlayerDirectorio'; // Si lo tienes
 
-const VistaPantalla = () => {
-    const { id } = useParams(); // Obtiene el ID de la URL
-    const { info, isLoading, isError } = usePantalla(id);
-
-    if (isLoading) return <div className="flex h-screen items-center justify-center bg-black text-4xl text-gray-500 animate-pulse">Cargando Sistema...</div>;
+export default function VistaPantalla() {
+    const { id } = useParams();
     
-    if (isError) return <div className="flex h-screen items-center justify-center bg-red-900 text-white text-2xl">⚠️ Sin Conexión / Error de Servidor</div>;
+    // IMPORTANTE: El hook nuevo devuelve 'config', 'loading' y 'isOnline'.
+    // Ya no devuelve 'data' genérico aquí, porque cada Player gestiona sus datos.
+    const { config, loading, isOnline } = usePantalla(id);
 
-    if (!info || !info.config) return <div className="text-white">Pantalla no configurada</div>;
+    // 1. Cargando
+    if (loading && !config) {
+        return (
+            <div className="h-screen w-screen bg-black flex items-center justify-center text-white">
+                <div className="animate-pulse">Conectando con Narabyte DS...</div>
+            </div>
+        );
+    }
 
-    const { config, data } = info;
+    // 2. Si falló la carga y no hay configuración (ID incorrecto o error fatal)
+    if (!config) {
+        return (
+            <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-white">
+                <h1 className="text-3xl font-bold text-red-500 mb-4">Pantalla no configurada</h1>
+                <p className="text-gray-400">ID de Terminal: {id}</p>
+                {!isOnline && <p className="text-yellow-500 mt-2 text-sm">(Sin conexión a internet)</p>}
+            </div>
+        );
+    }
 
-    // --- RENDERIZADO CONDICIONAL SEGÚN TIPO ---
-    return (
-        <div className={`w-screen h-screen overflow-hidden ${config.tema_color === 'light' ? 'bg-white text-black' : 'bg-black text-white'}`}>
+    // 3. Renderizar el Player correcto según el tipo
+    // Nota: No pasamos props de datos porque PlayerSalon ya usa el hook internamente
+    switch (config.tipo_pantalla) {
+        case 'SALON':
+            return <PlayerSalon />;
             
-            {/* Si es una pantalla de SALÓN */}
-            {config.tipo_pantalla === 'SALON' && (
-                <PlayerSalon data={data} config={config} />
-            )}
+        case 'DIRECTORIO':
+            // return <PlayerDirectorio />; // Descomenta cuando tengas este componente
+            return <div className="text-white">Componente Directorio en construcción</div>;
 
-            {/* Si es DIRECTORIO */}
-            {config.tipo_pantalla === 'DIRECTORIO' && (
-                <PlayerDirectorio eventos={data} config={config} />
-            )}
-
-             {/* Si es TARIFAS */}
-             {config.tipo_pantalla === 'TARIFAS' && (
-                <PlayerTarifas tarifas={data} config={config} />
-            )}
-
-            {/* Debug (Quitar en producción) */}
-            {/* <div className="fixed bottom-0 right-0 bg-gray-800 text-xs p-1 opacity-50">
-                ID: {config.nombre_interno} | Tipo: {config.tipo_pantalla}
-            </div> */}
-        </div>
-    );
-};
-
-export default VistaPantalla;
+        default:
+            return (
+                <div className="h-screen w-screen bg-black flex items-center justify-center text-white">
+                    Tipo de pantalla desconocido: {config.tipo_pantalla}
+                </div>
+            );
+    }
+}
