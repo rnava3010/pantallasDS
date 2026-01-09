@@ -1,19 +1,31 @@
 import React, { useState, useEffect } from 'react';
+import { usePantalla } from '../hooks/usePantalla'; 
+import { useParams } from 'react-router-dom';
 
-export default function PlayerSalon({ data, config }) {
-    const [horaActual, setHoraActual] = useState(new Date());
+export default function PlayerSalon() {
+    const { id } = useParams();
     
-    // ESTADO PARA EL CARRUSEL
+    // 1. OBTENEMOS TODO DEL HOOK INTELIGENTE
+    // eventoActual: Es el evento que toca AHORA (calculado por la agenda)
+    // timeOffset: La diferencia de hora con el servidor
+    const { eventoActual, config, loading, isOnline, timeOffset } = usePantalla(id);
+
+    // 2. ESTADOS LOCALES
+    // Inicializamos la hora sumando el ajuste del servidor
+    const [horaActual, setHoraActual] = useState(new Date(Date.now() + (timeOffset || 0)));
     const [indiceImagen, setIndiceImagen] = useState(0);
-    const [animacionFade, setAnimacionFade] = useState(true); // Para reiniciar la animación CSS
 
-    // 1. Reloj
+    // 3. EFECTO: RELOJ SINCRONIZADO
     useEffect(() => {
-        const timer = setInterval(() => setHoraActual(new Date()), 1000);
+        const timer = setInterval(() => {
+            // Cada segundo calculamos la hora real del servidor
+            const horaServidor = new Date(Date.now() + (timeOffset || 0));
+            setHoraActual(horaServidor);
+        }, 1000);
         return () => clearInterval(timer);
-    }, []);
+    }, [timeOffset]); // Si cambia el ajuste, se recalcula
 
-    // 2. Favicon
+    // 4. EFECTO: FAVICON DINÁMICO
     useEffect(() => {
         if (config?.favicon) {
             let link = document.querySelector("link[rel~='icon']") || document.createElement('link');
@@ -24,26 +36,75 @@ export default function PlayerSalon({ data, config }) {
         }
     }, [config?.favicon]);
 
-    // 3. LÓGICA DEL SLIDESHOW (Solo si hay más de 1 imagen)
+    // 5. EFECTO: SLIDESHOW (Rotación de imágenes)
     useEffect(() => {
-        if (data?.imagenes && data.imagenes.length > 1) {
-            const intervalo = setInterval(() => {
-                // Truco visual: Quitamos la clase 'fade-in', esperamos un poco y la ponemos, o cambiamos el índice
-                setIndiceImagen((prevIndex) => (prevIndex + 1) % data.imagenes.length);
-            }, 8000); // Cambia cada 8 segundos
+        // Reiniciamos índice si cambia el evento
+        setIndiceImagen(0);
+    }, [eventoActual]);
 
+    useEffect(() => {
+        const totalImagenes = eventoActual?.imagenes?.length || 0;
+        if (totalImagenes > 1) {
+            const intervalo = setInterval(() => {
+                setIndiceImagen((prev) => (prev + 1) % totalImagenes);
+            }, 8000); // 8 segundos por foto
             return () => clearInterval(intervalo);
         }
-    }, [data?.imagenes]);
+    }, [eventoActual]); // Depende del evento actual
 
-    if (!data) return <div className="text-white text-center mt-20">Cargando...</div>;
+    // --- PANTALLA DE CARGA ---
+    // Solo si está cargando Y no tenemos configuración (ni cacheada)
+    if (loading && !config) {
+        return <div className="bg-black h-screen flex items-center justify-center text-white animate-pulse">Iniciando Narabyte DS...</div>;
+    }
 
-    // Determinamos si hay imágenes para mostrar split screen
-    const tieneImagenes = data.imagenes && data.imagenes.length > 0;
-    const imagenActual = tieneImagenes ? data.imagenes[indiceImagen] : null;
+    // --- MODO SCREENSAVER / GALERÍA ---
+    // Si ya cargó, pero NO hay evento activo en este momento
+    if (!eventoActual) {
+        return (
+            <div className="flex flex-col h-screen w-screen bg-black text-white overflow-hidden relative font-sans">
+                {/* Indicador Offline */}
+                <div 
+                    className={`absolute bottom-2 right-2 z-50 w-3 h-3 rounded-full shadow-lg border border-black/50 transition-colors duration-500 ${isOnline ? 'bg-green-500/30' : 'bg-red-600 animate-pulse'}`}
+                    title={isOnline ? "Conectado" : "Modo Offline"}
+                ></div>
+
+                {/* Header Simplificado */}
+                <header className="h-24 flex items-center justify-between px-8 absolute top-0 w-full z-20">
+                    {config?.logo && <img src={config.logo} alt="Logo" className="h-16 object-contain drop-shadow-md" onError={(e) => e.target.style.display = 'none'} />}
+                    <div className="text-right">
+                         <span className="text-4xl font-mono font-bold text-white drop-shadow-md">
+                            {horaActual.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                    </div>
+                </header>
+
+                {/* Contenido Galería Default */}
+                <div className="flex-1 flex flex-col items-center justify-center relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black z-0"></div>
+                    {/* Aquí puedes poner una imagen de fondo genérica del hotel si quisieras */}
+                    
+                    <div className="z-10 text-center animate-fade-in-up">
+                        <h1 className="text-6xl font-light tracking-[0.2em] uppercase mb-6 text-gray-300">Bienvenidos</h1>
+                        <h2 className="text-4xl text-yellow-500 font-serif italic">{config?.nombre_interno || "Narabyte DS"}</h2>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // --- MODO EVENTO ACTIVO ---
+    const tieneImagenes = eventoActual.imagenes && eventoActual.imagenes.length > 0;
+    const imagenActual = tieneImagenes ? eventoActual.imagenes[indiceImagen] : null;
 
     return (
-        <div className="flex flex-col h-screen w-screen bg-black text-white overflow-hidden font-sans selection:bg-yellow-500 selection:text-black">
+        <div className="flex flex-col h-screen w-screen bg-black text-white overflow-hidden font-sans selection:bg-yellow-500 selection:text-black relative">
+            
+            {/* Indicador Offline */}
+            <div 
+                className={`absolute bottom-2 right-2 z-50 w-3 h-3 rounded-full shadow-lg border border-black/50 transition-colors duration-500 ${isOnline ? 'bg-green-500/30' : 'bg-red-600 animate-pulse'}`}
+                title={isOnline ? "Conectado" : "Modo Offline"}
+            ></div>
             
             {/* --- HEADER --- */}
             <header className="h-24 bg-zinc-900/90 backdrop-blur flex items-center justify-between px-8 border-b border-zinc-700 shadow-lg relative z-20">
@@ -69,20 +130,19 @@ export default function PlayerSalon({ data, config }) {
                 {/* --- IZQUIERDA: SLIDESHOW --- */}
                 {tieneImagenes && (
                     <div className="relative h-full w-full overflow-hidden border-r border-zinc-800 bg-black">
-                        {/* Iteramos sobre todas las imágenes pero solo mostramos la activa para hacer crossfade si quisieramos, 
-                            pero por simplicidad renderizamos una sola con key para reiniciar animación */}
+                        {/* Key = indiceImagen fuerza el re-render para la animación fade-in */}
                         <img 
-                            key={indiceImagen} // Al cambiar el key, React reinicia la animación fade-in
+                            key={indiceImagen} 
                             src={imagenActual} 
                             alt="Evento Slide" 
                             className="absolute inset-0 w-full h-full object-cover animate-fade-in"
                         />
                         <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent"></div>
                         
-                        {/* Indicadores de puntitos (Opcional, se ve pro) */}
-                        {data.imagenes.length > 1 && (
+                        {/* Indicadores de puntitos */}
+                        {eventoActual.imagenes.length > 1 && (
                             <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2 z-20">
-                                {data.imagenes.map((_, idx) => (
+                                {eventoActual.imagenes.map((_, idx) => (
                                     <div 
                                         key={idx} 
                                         className={`h-2 w-2 rounded-full transition-all duration-300 ${idx === indiceImagen ? 'bg-white w-6' : 'bg-white/40'}`}
@@ -98,18 +158,18 @@ export default function PlayerSalon({ data, config }) {
                     <div className="animate-fade-in-up w-full">
                         <div className="mb-6">
                             <span className="bg-zinc-800 text-gray-300 px-4 py-1 rounded text-sm uppercase tracking-[0.3em] shadow-lg">
-                                {data.nombre_salon || config.nombre_interno}
+                                {eventoActual.nombre_salon || config.nombre_interno}
                             </span>
                         </div>
 
                         <h1 className={`font-black text-white mb-8 leading-tight drop-shadow-2xl ${tieneImagenes ? 'text-5xl lg:text-7xl' : 'text-6xl md:text-8xl'}`}>
-                            {data.titulo}
+                            {eventoActual.titulo}
                         </h1>
 
-                        {data.cliente && (
+                        {eventoActual.cliente && (
                             <div className="mb-12">
                                 <span className="inline-block border border-yellow-500/30 bg-yellow-500/10 text-yellow-400 px-8 py-3 rounded-full text-xl lg:text-2xl font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(234,179,8,0.2)]">
-                                    {data.cliente}
+                                    {eventoActual.cliente}
                                 </span>
                             </div>
                         )}
@@ -117,14 +177,14 @@ export default function PlayerSalon({ data, config }) {
                         <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-zinc-400 text-xl font-light">
                             <span>Horario del evento:</span>
                             <span className="text-white font-mono font-bold text-2xl bg-black/40 px-4 py-1 rounded border border-zinc-700">
-                                {data.horario}
+                                {eventoActual.horario}
                             </span>
                         </div>
 
-                        {data.mensaje && (
+                        {eventoActual.mensaje && (
                             <div className="mt-16 border-t border-zinc-700/50 pt-8 w-3/4 mx-auto">
                                 <p className="text-2xl text-gray-300 font-serif italic">
-                                    "{data.mensaje}"
+                                    "{eventoActual.mensaje}"
                                 </p>
                             </div>
                         )}
@@ -134,7 +194,7 @@ export default function PlayerSalon({ data, config }) {
 
             {/* --- FOOTER --- */}
             <footer className="h-12 bg-black flex items-center justify-center border-t border-zinc-900 z-20">
-                <p className="text-zinc-600 text-xs tracking-widest">DIGITAL SIGNAGE SYSTEM</p>
+                <p className="text-zinc-600 text-xs tracking-widest">NARABYTE DS SYSTEM</p>
             </footer>
         </div>
     );

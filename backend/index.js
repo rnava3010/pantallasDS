@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-// Importamos la conexi贸n a la BD
+// Importamos la conexión a la BD
 const pool = require('./config/db');
 
 const app = express();
@@ -16,7 +16,7 @@ app.use(express.json());
 
 // --- RUTA: ESTADO DEL SERVIDOR ---
 app.get('/', (req, res) => {
-    res.send('馃殌 Servidor Digital Signage: ACTIVO');
+    res.send('?? Servidor Digital Signage: ACTIVO');
 });
 
 // --- RUTA: OBTENER DATOS DE PANTALLA ---
@@ -24,7 +24,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
     const { id } = req.params;
     
     try {
-        // 1. OBTENER CONFIGURACI脫N DE LA TERMINAL
+        // 1. OBTENER CONFIGURACIóN DE LA TERMINAL
         const sqlTerminal = `
             SELECT 
                 t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.tema_color, t.idAreaAsignada,
@@ -47,13 +47,13 @@ app.get('/api/pantalla/:id', async (req, res) => {
 
         const terminal = rows[0];
 
-        // --- L脫GICA DE IM脕GENES (NUEVO) ---
-        // Asumimos que en la BD solo est谩 el nombre base (sin ruta ni extensi贸n)
+        // --- LóGICA DE IMáGENES (PNG / ICO) ---
+        // Asumimos que en la BD solo está el nombre base (sin ruta ni extensión)
         let logoPngUrl = null;
         let faviconIcoUrl = null;
 
         if (terminal.final_logo_name) {
-            // Limpiamos por si acaso ya tra铆a ruta o extensi贸n
+            // Limpiamos por si acaso ya traía ruta o extensión
             const cleanName = terminal.final_logo_name
                 .replace('/logos/', '')
                 .replace('.png', '')
@@ -64,9 +64,8 @@ app.get('/api/pantalla/:id', async (req, res) => {
             logoPngUrl = `/logos/${cleanName}.png`;
             faviconIcoUrl = `/logos/${cleanName}.ico`;
         }
-        // -----------------------------------
 
-        // Objeto base de respuesta (Configuraci贸n)
+        // Objeto base de respuesta (Configuración)
         let respuesta = {
             config: {
                 id: terminal.idTerminal,
@@ -74,7 +73,6 @@ app.get('/api/pantalla/:id', async (req, res) => {
                 tipo_pantalla: terminal.tipo_pantalla,
                 tema_color: terminal.tema_color || 'dark',
                 
-                // Ahora enviamos DOS propiedades separadas
                 logo: logoPngUrl,         // Para la imagen grande (.png)
                 favicon: faviconIcoUrl,   // Para el icono del navegador (.ico)
 
@@ -83,14 +81,15 @@ app.get('/api/pantalla/:id', async (req, res) => {
                     secundario: terminal.color_secundario
                 }
             },
-            data: null
+            data: null,
+            // IMPORTANTE: Enviamos la hora del servidor para sincronizar relojes
+            server_time: new Date() 
         };
 
-        // 2. BUSCAR DATOS SEG脷N EL TIPO DE PANTALLA (ESTO SIGUE IGUAL)
-        
-        // --- CASO A: PANTALLA DE SAL脫N ---
-if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
-            const sqlEvento = `
+        // --- CASO A: PANTALLA DE SALóN (Agenda) ---
+        if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
+            // Traemos todo lo que termine DESPUéS de ahora (eventos futuros o actuales).
+            const sqlAgenda = `
                 SELECT 
                     e.idEvento,
                     e.nombre_evento, 
@@ -98,41 +97,37 @@ if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
                     e.fecha_inicio, 
                     e.fecha_fin, 
                     e.mensaje_personalizado,
-                    -- TRUCO: Unimos todas las URLs en un solo texto separado por comas
                     GROUP_CONCAT(em.url_archivo ORDER BY em.orden ASC SEPARATOR ',') as lista_imagenes
                 FROM tbl_eventos e
                 LEFT JOIN tbl_eventos_media em ON e.idEvento = em.idEvento AND em.tipo = 'IMAGEN'
                 WHERE e.idArea = ? 
                 AND e.estatus = 'ACTIVO'
-                AND NOW() BETWEEN e.fecha_inicio AND e.fecha_fin
-                GROUP BY e.idEvento -- Necesario para que funcione el GROUP_CONCAT
-                LIMIT 1
+                AND e.fecha_fin >= NOW() -- Trae lo actual y lo futuro
+                GROUP BY e.idEvento
+                ORDER BY e.fecha_inicio ASC -- Ordenado por fecha
             `;
             
-            const [eventos] = await pool.query(sqlEvento, [terminal.idAreaAsignada]);
+            const [agenda] = await pool.query(sqlAgenda, [terminal.idAreaAsignada]);
             
-            if (eventos.length > 0) {
-                const evento = eventos[0];
-                
-                // Convertimos el texto "img1.jpg,img2.jpg" en un Array real ['img1.jpg', 'img2.jpg']
-                const arrayImagenes = evento.lista_imagenes ? evento.lista_imagenes.split(',') : [];
+            // Procesamos la lista para que las imagenes sean Arrays y fechas legibles
+            const agendaProcesada = agenda.map(evento => ({
+                titulo: evento.nombre_evento,
+                cliente: evento.cliente_nombre,
+                // Importante: Mandamos las fechas ISO crudas para compararlas en el frontend
+                inicio_iso: evento.fecha_inicio, 
+                fin_iso: evento.fecha_fin,
+                // Formato bonito para mostrar en pantalla
+                horario: `${new Date(evento.fecha_inicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(evento.fecha_fin).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
+                mensaje: evento.mensaje_personalizado,
+                nombre_salon: terminal.nombre_area,
+                imagenes: evento.lista_imagenes ? evento.lista_imagenes.split(',') : []
+            }));
 
-                respuesta.data = {
-                    titulo: evento.nombre_evento,
-                    cliente: evento.cliente_nombre,
-                    horario: `${new Date(evento.fecha_inicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(evento.fecha_fin).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
-                    mensaje: evento.mensaje_personalizado,
-                    nombre_salon: terminal.nombre_area,
-                    
-                    imagenes: arrayImagenes // <--- ENVIAMOS EL ARRAY AHORA
-                };
-            } else {
-                respuesta.data = {
-                    titulo: "Sala Disponible",
-                    mensaje: "Bienvenido a " + terminal.nombre_area,
-                    nombre_salon: terminal.nombre_area
-                };
-            }
+            // Enviamos LA LISTA COMPLETA (Agenda)
+            respuesta.data = {
+                tipo_datos: 'AGENDA', // Bandera para saber que es una lista
+                eventos: agendaProcesada
+            };
         }
 
         // --- CASO B: DIRECTORIO ---
@@ -163,7 +158,7 @@ app.get('/api/test-db', async (req, res) => {
     try {
         const [rows] = await pool.query('SELECT * FROM cat_propiedades LIMIT 1');
         res.json({
-            mensaje: 'Conexi贸n exitosa',
+            mensaje: 'Conexión exitosa',
             datos: rows
         });
     } catch (error) {
@@ -175,6 +170,6 @@ app.get('/api/test-db', async (req, res) => {
 // --- INICIAR SERVIDOR ---
 app.listen(PORT, () => {
     console.log(`\n=============================================`);
-    console.log(`馃摗 Servidor corriendo en: http://localhost:${PORT}`);
+    console.log(`?? Servidor corriendo en: http://localhost:${PORT}`);
     console.log(`=============================================`);
 });
