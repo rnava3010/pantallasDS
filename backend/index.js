@@ -1,25 +1,23 @@
-// backend/index.js
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-const db = require('./config/db');
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+// Importamos la conexión a la BD como 'pool'
 const pool = require('./config/db');
 
-app.use(cors());
+const app = express();
 
+// IMPORTANTE: Asegúrate de que este puerto coincida con el de Nginx (3100)
+const PORT = process.env.PORT || 3100;
+
+// Middleware
+app.use(cors());
 app.use(express.json());
 
+// --- RUTA: ESTADO DEL SERVIDOR ---
 app.get('/', (req, res) => {
     res.send('🚀 Servidor Digital Signage: ACTIVO');
 });
-
 
 // --- RUTA: OBTENER DATOS DE PANTALLA ---
 app.get('/api/pantalla/:id', async (req, res) => {
@@ -27,7 +25,6 @@ app.get('/api/pantalla/:id', async (req, res) => {
     
     try {
         // 1. OBTENER CONFIGURACIÓN DE LA TERMINAL
-        // Hacemos JOIN con cat_areas para saber el nombre del salón y cat_marcas para el logo/colores
         const sqlTerminal = `
             SELECT 
                 t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.tema_color, t.idAreaAsignada,
@@ -53,7 +50,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
             config: {
                 id: terminal.idTerminal,
                 nombre_interno: terminal.nombre_interno,
-                tipo_pantalla: terminal.tipo_pantalla, // 'SALON', 'DIRECTORIO', etc.
+                tipo_pantalla: terminal.tipo_pantalla,
                 tema_color: terminal.tema_color || 'dark',
                 logo: terminal.logo_url,
                 colores: {
@@ -66,7 +63,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
 
         // 2. BUSCAR DATOS SEGÚN EL TIPO DE PANTALLA
         
-        // --- CASO A: PANTALLA DE SALÓN (Busca evento actual en esa área) ---
+        // --- CASO A: PANTALLA DE SALÓN ---
         if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
             const sqlEvento = `
                 SELECT nombre_evento, cliente_nombre, fecha_inicio, fecha_fin, mensaje_personalizado
@@ -86,10 +83,9 @@ app.get('/api/pantalla/:id', async (req, res) => {
                     cliente: evento.cliente_nombre,
                     horario: `${new Date(evento.fecha_inicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(evento.fecha_fin).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
                     mensaje: evento.mensaje_personalizado,
-                    nombre_salon: terminal.nombre_area // "Salón Maya"
+                    nombre_salon: terminal.nombre_area
                 };
             } else {
-                // Si no hay evento ahorita, mandamos datos vacíos o "Sala Disponible"
                 respuesta.data = {
                     titulo: "Sala Disponible",
                     mensaje: "Bienvenido a " + terminal.nombre_area,
@@ -98,7 +94,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
             }
         }
 
-        // --- CASO B: DIRECTORIO (Busca todos los eventos del día en la sucursal) ---
+        // --- CASO B: DIRECTORIO ---
         else if (terminal.tipo_pantalla === 'DIRECTORIO') {
             const sqlDirectorio = `
                 SELECT e.nombre_evento, e.fecha_inicio, a.nombre as nombre_salon
@@ -121,11 +117,11 @@ app.get('/api/pantalla/:id', async (req, res) => {
     }
 });
 
-
+// --- RUTA: TEST DE BASE DE DATOS ---
 app.get('/api/test-db', async (req, res) => {
     try {
-        // Hacemos una consulta simple a la tabla de propiedades
-        const [rows] = await db.query('SELECT * FROM cat_propiedades LIMIT 1');
+        // Usamos pool (no db) para mantener consistencia
+        const [rows] = await pool.query('SELECT * FROM cat_propiedades LIMIT 1');
         res.json({
             mensaje: 'Conexión exitosa',
             datos: rows
