@@ -1,13 +1,10 @@
 {
-  "name": "digital-signage-system",
+  "name": "sistema-deploy",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Script de despliegue automatico",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-	"deploy": "git pull origin main && echo '🚀 1. ACTUALIZANDO BACKEND...' && cd backend && npm install && pm2 restart ds-backend && cd .. && echo '🚀 2. RECONSTRUYENDO FRONTEND...' && cd frontend && npm install && npm run build && cd .. && echo '✅ ¡DESPLIEGUE COMPLETADO CON EXITO!'"
+    "deploy": "git pull origin main && echo '🚀 1. ACTUALIZANDO BACKEND...' && cd backend && npm install && npx pm2 restart ds-backend && cd .. && echo '🚀 2. RECONSTRUYENDO FRONTEND...' && cd frontend && npm install && npm run build && cd .. && echo '✅ DESPLIEGUE COMPLETADO CON EXITO!'"
   },
-  "keywords": [],
-  "author": "",
+  "author": "Narabyte",
   "license": "ISC"
 }
