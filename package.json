@@ -1,0 +1,13 @@
+{
+  "name": "digital-signage-system",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+	"deploy": "git pull origin main && echo '🚀 1. ACTUALIZANDO BACKEND...' && cd backend && npm install && pm2 restart ds-backend && cd .. && echo '🚀 2. RECONSTRUYENDO FRONTEND...' && cd frontend && npm install && npm run build && cd .. && echo '✅ ¡DESPLIEGUE COMPLETADO CON EXITO!'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
