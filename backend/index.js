@@ -7,7 +7,6 @@ const pool = require('./config/db');
 
 const app = express();
 
-// Usamos el puerto 3100 para coincidir con Nginx
 const PORT = process.env.PORT || 3100;
 
 // Middleware

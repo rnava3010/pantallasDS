@@ -10,7 +10,6 @@ export default function PlayerSalon() {
     const [horaActual, setHoraActual] = useState(new Date(Date.now() + (timeOffset || 0)));
     const [indiceImagen, setIndiceImagen] = useState(0);
 
-    // --- EFECTOS ---
     useEffect(() => {
         const timer = setInterval(() => {
             setHoraActual(new Date(Date.now() + (timeOffset || 0)));
