@@ -104,7 +104,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
         };
 
         // --- CASO A: PANTALLA DE SALÓN (Agenda) ---
-        if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
+		if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
             const sqlAgenda = `
                 SELECT 
                     e.idEvento,
@@ -113,12 +113,13 @@ app.get('/api/pantalla/:id', async (req, res) => {
                     e.fecha_inicio, 
                     e.fecha_fin, 
                     e.mensaje_personalizado,
+                    e.mensaje_ticker,  -- <--- AGREGAMOS ESTA LÍNEA
                     GROUP_CONCAT(em.url_archivo ORDER BY em.orden ASC SEPARATOR ',') as lista_imagenes
                 FROM tbl_eventos e
                 LEFT JOIN tbl_eventos_media em ON e.idEvento = em.idEvento AND em.tipo = 'IMAGEN'
                 WHERE e.idArea = ? 
                 AND e.estatus = 'ACTIVO'
-                AND e.fecha_fin >= NOW() -- Trae eventos actuales y futuros
+                AND e.fecha_fin >= NOW()
                 GROUP BY e.idEvento
                 ORDER BY e.fecha_inicio ASC
             `;
@@ -132,6 +133,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
                 fin_iso: evento.fecha_fin,
                 horario: `${new Date(evento.fecha_inicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(evento.fecha_fin).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
                 mensaje: evento.mensaje_personalizado,
+                ticker: evento.mensaje_ticker, // <--- MAPEA EL CAMPO AQUÍ
                 nombre_salon: terminal.nombre_area,
                 imagenes: evento.lista_imagenes ? evento.lista_imagenes.split(',') : []
             }));
