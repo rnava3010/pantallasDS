@@ -77,6 +77,16 @@ export default function PlayerSalon() {
     } else if (eventoActual?.full_width) { 
         layoutMode = 1; 
     }
+	
+	useEffect(() => {
+        if (config?.screensaver) {
+            config.screensaver.forEach(url => {
+                if (url.endsWith('.mp4')) {
+                    fetch(url).then(res => res.blob()); // Descarga silenciosa al disco
+                }
+            });
+        }
+    }, [config]);
 
     return (
         <div className="flex flex-col h-screen w-screen bg-black text-white overflow-hidden font-sans relative">
@@ -202,7 +212,15 @@ export default function PlayerSalon() {
                                     {imagenVisual && !imagenError ? (
                                         <>
                                             {esVideo(imagenVisual) ? (
-                                                <video key={indiceImagen} src={imagenVisual} className="absolute inset-0 w-full h-full object-contain z-10" autoPlay loop muted playsInline onError={() => setImagenError(true)} />
+                                                <video key={indiceImagen}
+												src={imagenVisual}
+												className="absolute inset-0 w-full h-full object-contain z-10"
+												autoPlay
+												loop
+												muted
+												playsInline
+												preload="auto"
+												onError={() => setImagenError(true)} />
                                             ) : (
                                                 <img key={indiceImagen} src={imagenVisual} alt="Evento" className="absolute inset-0 w-full h-full object-contain animate-fade-in z-10" onError={() => setImagenError(true)} />
                                             )}
