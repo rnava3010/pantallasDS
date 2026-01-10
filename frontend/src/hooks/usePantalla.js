@@ -15,11 +15,25 @@ export const usePantalla = (idPantalla) => {
 
     const determinarEventoActual = (agendaEventos, offset = 0) => {
         if (!agendaEventos || !Array.isArray(agendaEventos)) return null;
+        
         const ahora = new Date(Date.now() + offset);
+        
         return agendaEventos.find(evt => {
             const inicio = new Date(evt.inicio_iso);
             const fin = new Date(evt.fin_iso);
-            return ahora >= inicio && ahora <= fin;
+            if (ahora < inicio || ahora > fin) return false;
+
+            if (evt.recurrente) {
+                const minutosAhora = ahora.getHours() * 60 + ahora.getMinutes();
+                const minutosInicio = inicio.getHours() * 60 + inicio.getMinutes();
+                const minutosFin = fin.getHours() * 60 + fin.getMinutes();
+
+                if (minutosAhora < minutosInicio || minutosAhora > minutosFin) {
+                    return false; 
+                }
+            }
+
+            return true;
         }) || null;
     };
 

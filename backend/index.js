@@ -115,8 +115,8 @@ app.get('/api/pantalla/:id', async (req, res) => {
                     e.fecha_inicio, 
                     e.fecha_fin, 
                     e.mensaje_personalizado,
-                    e.mensaje_ticker,     -- <--- NUEVO CAMPO (TICKER)
-                    e.imagen_full_width,  -- <--- NUEVO CAMPO (MODO CINE)
+                    e.mensaje_ticker,
+                    e.imagen_full_width,
                     GROUP_CONCAT(em.url_archivo ORDER BY em.orden ASC SEPARATOR ',') as lista_imagenes
                 FROM tbl_eventos e
                 LEFT JOIN tbl_eventos_media em ON e.idEvento = em.idEvento AND em.tipo = 'IMAGEN'
@@ -138,6 +138,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
                 mensaje: evento.mensaje_personalizado,
                 ticker: evento.mensaje_ticker,
                 layout_mode: evento.imagen_full_width || 0,
+				recurrente: evento.es_recurrente === 1,
                 nombre_salon: terminal.nombre_area,
                 imagenes: evento.lista_imagenes ? evento.lista_imagenes.split(',') : []
             }));
