@@ -23,7 +23,6 @@ app.get('/api/pantalla/:id', async (req, res) => {
     const { id } = req.params;
     
     try {
-        // 1. OBTENER CONFIGURACIÓN DE LA TERMINAL (INCLUYENDO UBICACIÓN)
         const sqlTerminal = `
             SELECT 
                 t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.tema_color, t.idAreaAsignada,

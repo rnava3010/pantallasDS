@@ -82,23 +82,31 @@ export default function PlayerSalon() {
             {/* --- CONTENIDO PRINCIPAL --- */}
             <div className="flex-1 p-8 pt-2 relative z-10 w-full h-full">
                 
-                {/* MODO SCREENSAVER (Solo imagen limpia) */}
-                {!eventoActual && (
-                    <div className="w-full h-full rounded-[3rem] overflow-hidden relative bg-black border border-zinc-800/50 shadow-2xl">
-                         {imagenVisual ? (
-                            <img
-                                key={indiceImagen}
-                                src={imagenVisual}
-                                // CAMBIO CLAVE: object-contain asegura que NUNCA se deforme ni recorte
-                                className="absolute inset-0 w-full h-full object-contain animate-fade-in"
-                                alt="Screensaver"
-                            />
-                        ) : (
-                            <div className="absolute inset-0 flex items-center justify-center text-zinc-600">Sin imágenes configuradas</div>
-                        )}
-                        {/* YA NO HAY TEXTO ENCIMA DE LA IMAGEN */}
-                    </div>
-                )}
+			{/* MODO SCREENSAVER */}
+			{!eventoActual && (
+				<div className="w-full h-full rounded-[3rem] overflow-hidden relative bg-black border border-zinc-800/50 shadow-2xl">
+					{imagenVisual ? (
+						<img
+							key={indiceImagen}
+							src={imagenVisual}
+							className="absolute inset-0 w-full h-full object-contain animate-fade-in"
+							alt="Screensaver"
+							// AGREGAMOS ESTO: Si falla, oculta la imagen rota para que no salga el texto
+							onError={(e) => {
+								console.error("Fallo al cargar imagen:", imagenVisual);
+								e.target.style.display = 'none'; 
+								// Opcional: poner una imagen de fallback
+								// e.target.src = '/logos/default_bg.jpg'; 
+							}}
+						/>
+					) : (
+						// Si no hay imagen configurada o todas fallaron
+						<div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
+							<span className="text-zinc-700 font-light tracking-[0.5em] uppercase">Narabyte View</span>
+						</div>
+					)}
+				</div>
+			)}
 
 
                 {/* MODO EVENTO (Dos Tarjetas) */}
