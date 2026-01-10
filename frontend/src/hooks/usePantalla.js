@@ -19,8 +19,9 @@ export const usePantalla = (idPantalla) => {
         const ahora = new Date(Date.now() + offset);
         
         return agendaEventos.find(evt => {
-            const inicio = new Date(evt.inicio_iso);
-            const fin = new Date(evt.fin_iso);
+            const inicio = new Date(evt.mostrar_inicio_iso || evt.inicio_iso);
+            const fin = new Date(evt.mostrar_fin_iso || evt.fin_iso);
+
             if (ahora < inicio || ahora > fin) return false;
 
             if (evt.recurrente) {

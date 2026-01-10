@@ -140,6 +140,8 @@ app.get('/api/pantalla/:id', async (req, res) => {
                 layout_mode: evento.imagen_full_width || 0,
 				recurrente: evento.es_recurrente === 1,
                 nombre_salon: terminal.nombre_area,
+				mostrar_inicio_iso: evento.fecha_visualizacion_inicio || evento.fecha_inicio,
+				mostrar_fin_iso: evento.fecha_visualizacion_fin || evento.fecha_fin,
                 imagenes: evento.lista_imagenes ? evento.lista_imagenes.split(',') : []
             }));
 
