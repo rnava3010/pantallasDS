@@ -107,7 +107,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
 
         // --- CASO A: PANTALLA DE SALÓN (Agenda) ---
         if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
-            const sqlAgenda = `
+const sqlAgenda = `
                 SELECT 
                     e.idEvento,
                     e.nombre_evento, 
@@ -117,6 +117,9 @@ app.get('/api/pantalla/:id', async (req, res) => {
                     e.mensaje_personalizado,
                     e.mensaje_ticker,
                     e.imagen_full_width,
+                    e.fecha_visualizacion_inicio,
+                    e.fecha_visualizacion_fin,
+                    e.es_recurrente,
                     GROUP_CONCAT(em.url_archivo ORDER BY em.orden ASC SEPARATOR ',') as lista_imagenes
                 FROM tbl_eventos e
                 LEFT JOIN tbl_eventos_media em ON e.idEvento = em.idEvento AND em.tipo = 'IMAGEN'
