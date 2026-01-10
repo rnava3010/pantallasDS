@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 
-import { log } from '../utils/logger'; 
+// Si usas el logger, descomenta:
+// import { log, logError } from '../utils/logger'; 
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3100';
 
 export const usePantalla = (idPantalla) => {
@@ -11,7 +13,7 @@ export const usePantalla = (idPantalla) => {
     const [timeOffset, setTimeOffset] = useState(0);
     const [clima, setClima] = useState({ tempC: 0, tempF: 0, codigo: 0 });
 
-    // ... (determinarEventoActual sigue igual) ...
+    // --- 1. FUNCIÓN DE AGENDA ---
     const determinarEventoActual = (agendaEventos, offset = 0) => {
         if (!agendaEventos || !Array.isArray(agendaEventos)) return null;
         const ahora = new Date(Date.now() + offset);
@@ -22,25 +24,12 @@ export const usePantalla = (idPantalla) => {
         }) || null;
     };
 
+    // --- 2. CLIMA ---
     const fetchClima = async (lat, lon) => {
-        console.log(`🌦️ [CLIMA] Solicitando para Lat: ${lat}, Lon: ${lon}`);
-
-        if (!lat || !lon) {
-            console.warn("⚠️ [CLIMA] Faltan coordenadas. Abortando.");
-            return;
-        }
-
+        if (!lat || !lon) return;
         try {
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
-            const res = await fetch(url);
-            
-            if (!res.ok) throw new Error(`Error HTTP: ${res.status}`);
-
+            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
             const data = await res.json();
-            
-            // LOG 2: Ver qué respondió la API
-            console.log("🌦️ [CLIMA] Respuesta API:", data);
-
             if (data.current_weather) {
                 const c = data.current_weather.temperature;
                 setClima({
@@ -50,22 +39,60 @@ export const usePantalla = (idPantalla) => {
                 });
             }
         } catch (e) {
-            console.error("❌ [CLIMA] Error al obtener datos:", e);
+            console.warn("⚠️ Error clima:", e);
         }
     };
 
-    // --- FETCH PRINCIPAL ---
+    // --- 3. [NUEVO] CONVERTIDOR DE IMÁGENES A BASE64 ---
+    // Esto descarga la imagen y la convierte en una cadena de texto gigante
+    const cachearImagen = async (url) => {
+        if (!url) return null;
+        // Si ya es base64 (empieza con data:), la devolvemos tal cual
+        if (url.startsWith('data:')) return url;
+
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+            });
+        } catch (error) {
+            console.warn("No se pudo cachear imagen:", url);
+            return url; // Si falla, devolvemos la URL original como respaldo
+        }
+    };
+
+    // --- 4. FETCH PRINCIPAL ---
     const fetchData = async () => {
         try {
             const response = await fetch(`${API_URL}/api/pantalla/${idPantalla}`);
             if (!response.ok) throw new Error('Error Server');
-            const result = await response.json();
+            
+            // 1. Obtenemos el JSON crudo del servidor
+            let result = await response.json();
 
-            // LOG 3: Ver si el backend manda la ubicación
-            console.log("📡 [API] Config recibida:", result.config); 
-            console.log("📡 [API] Ubicación en config:", result.config?.ubicacion);
+            // -----------------------------------------------------------
+            // [NUEVO] PROCESO DE CACHÉ DE IMÁGENES (SÓLO SI HAY INTERNET)
+            // -----------------------------------------------------------
+            if (result.config) {
+                // A) Cachear Logo
+                if (result.config.logo) {
+                    const logoBase64 = await cachearImagen(result.config.logo);
+                    result.config.logo = logoBase64; // Reemplazamos URL por Base64
+                }
 
-            // Hora
+                // B) Cachear Screensaver (Galería)
+                if (result.config.screensaver && result.config.screensaver.length > 0) {
+                    const screensaverPromesas = result.config.screensaver.map(url => cachearImagen(url));
+                    const screensaverBase64 = await Promise.all(screensaverPromesas);
+                    result.config.screensaver = screensaverBase64; // Reemplazamos URLs por Base64
+                }
+            }
+            // -----------------------------------------------------------
+
+            // Sincronización Hora
             let currentOffset = 0;
             if (result.server_time) {
                 currentOffset = new Date(result.server_time).getTime() - new Date().getTime();
@@ -73,15 +100,18 @@ export const usePantalla = (idPantalla) => {
                 localStorage.setItem('narabyte_time_offset', currentOffset);
             }
 
-            // Cache
-            localStorage.setItem(`narabyte_cache_${idPantalla}`, JSON.stringify(result));
+            // GUARDAR EN CACHÉ (Ahora incluye las fotos reales codificadas)
+            try {
+                localStorage.setItem(`narabyte_cache_${idPantalla}`, JSON.stringify(result));
+            } catch (e) {
+                console.error("⚠️ Memoria llena (QuotaExceeded). No se pudo guardar caché offline.", e);
+            }
+            
             setConfig(result.config);
 
-            // ---> AQUI ESTA LA CLAVE DEL CLIMA <---
+            // Clima
             if (result.config?.ubicacion) {
                 fetchClima(result.config.ubicacion.lat, result.config.ubicacion.lon);
-            } else {
-                console.warn("⚠️ [CLIMA] El backend NO envió el objeto 'ubicacion'");
             }
 
             // Agenda
@@ -90,13 +120,14 @@ export const usePantalla = (idPantalla) => {
             } else {
                 setEventoActual(result.data);
             }
+            
             setIsOnline(true);
 
         } catch (err) {
             console.warn("⚠️ Modo Offline Activo");
             setIsOnline(false);
 
-            // Recuperación Offline
+            // RECUPERACIÓN OFFLINE
             let savedOffset = 0;
             const cachedOffset = localStorage.getItem('narabyte_time_offset');
             if (cachedOffset) savedOffset = parseInt(cachedOffset, 10);
@@ -107,7 +138,6 @@ export const usePantalla = (idPantalla) => {
                 const cachedResult = JSON.parse(cachedRaw);
                 setConfig(cachedResult.config);
                 
-                // Intentar cargar clima cacheado si existiera lógica para ello (por ahora reintenta fetch)
                 if (cachedResult.config?.ubicacion) {
                      fetchClima(cachedResult.config.ubicacion.lat, cachedResult.config.ubicacion.lon);
                 }
@@ -122,8 +152,10 @@ export const usePantalla = (idPantalla) => {
     };
 
     useEffect(() => {
-        fetchData();
+        fetchData(); 
+
         const intervalDescarga = setInterval(fetchData, 300000); 
+
         const intervalReloj = setInterval(() => {
             const cachedRaw = localStorage.getItem(`narabyte_cache_${idPantalla}`);
             const cachedOffset = localStorage.getItem('narabyte_time_offset');
