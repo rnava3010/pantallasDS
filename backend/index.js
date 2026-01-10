@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-// Importamos la conexion a la BD
+// Importamos la conexión a la BD
 const pool = require('./config/db');
 
 const app = express();
@@ -16,7 +16,7 @@ app.use(express.json());
 
 // --- RUTA: ESTADO DEL SERVIDOR ---
 app.get('/', (req, res) => {
-    res.send('?? Servidor Digital Signage: ACTIVO');
+    res.send('🚀 Servidor Digital Signage: ACTIVO');
 });
 
 // --- RUTA: OBTENER DATOS DE PANTALLA ---
@@ -24,14 +24,15 @@ app.get('/api/pantalla/:id', async (req, res) => {
     const { id } = req.params;
     
     try {
-        // 1. OBTENER CONFIGURACION DE LA TERMINAL
+        // 1. OBTENER CONFIGURACIÓN DE LA TERMINAL (INCLUYENDO UBICACIÓN)
         const sqlTerminal = `
             SELECT 
                 t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.tema_color, t.idAreaAsignada,
                 t.idSucursal,
                 a.nombre as nombre_area,
                 COALESCE(s.logo_url, m.logo_url) as final_logo_name, -- Nombre base (ej: 001logo_prop1)
-                m.color_primario, m.color_secundario
+                m.color_primario, m.color_secundario,
+                s.latitud, s.longitud -- <--- NECESARIO PARA EL CLIMA
             FROM cat_terminales t
             LEFT JOIN cat_areas a ON t.idAreaAsignada = a.idArea
             LEFT JOIN cat_sucursales s ON t.idSucursal = s.idSucursal
@@ -47,7 +48,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
 
         const terminal = rows[0];
 
-        // --- LOGICA DE LOGOS (PNG / ICO) ---
+        // --- LÓGICA DE LOGOS (PNG / ICO) ---
         let logoPngUrl = null;
         let faviconIcoUrl = null;
 
@@ -62,7 +63,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
             faviconIcoUrl = `/logos/${cleanName}.ico`;
         }
 
-        // --- LOGICA DE SCREENSAVER (GALERIA) ---
+        // --- LÓGICA DE SCREENSAVER (GALERÍA) ---
         // Buscamos las imagenes configuradas en tbl_galeria_terminal
         const sqlScreensaver = `
             SELECT url_archivo 
@@ -92,13 +93,19 @@ app.get('/api/pantalla/:id', async (req, res) => {
                     secundario: terminal.color_secundario
                 },
                 
-                screensaver: listaScreensaver // Lista de fotos de respaldo
+                screensaver: listaScreensaver, // Lista de fotos de respaldo
+
+                // UBICACIÓN PARA EL CLIMA (Default CDMX si viene vacío)
+                ubicacion: {
+                    lat: terminal.latitud || '19.43',
+                    lon: terminal.longitud || '-99.13'
+                }
             },
             data: null,
-            server_time: new Date() // Hora del servidor para sincronizacion
+            server_time: new Date() // Hora del servidor para sincronización
         };
 
-        // --- CASO A: PANTALLA DE SALON (Agenda) ---
+        // --- CASO A: PANTALLA DE SALÓN (Agenda) ---
         if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
             const sqlAgenda = `
                 SELECT 
@@ -165,7 +172,7 @@ app.get('/api/test-db', async (req, res) => {
     try {
         const [rows] = await pool.query('SELECT * FROM cat_propiedades LIMIT 1');
         res.json({
-            mensaje: 'Conexion exitosa',
+            mensaje: 'Conexión exitosa',
             datos: rows
         });
     } catch (error) {
@@ -177,6 +184,6 @@ app.get('/api/test-db', async (req, res) => {
 // --- INICIAR SERVIDOR ---
 app.listen(PORT, () => {
     console.log(`\n=============================================`);
-    console.log(`?? Servidor corriendo en: http://localhost:${PORT}`);
+    console.log(`🚀 Servidor corriendo en: http://localhost:${PORT}`);
     console.log(`=============================================`);
 });
