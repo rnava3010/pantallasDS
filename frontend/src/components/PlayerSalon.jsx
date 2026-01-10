@@ -1,215 +1,186 @@
 import React, { useState, useEffect } from 'react';
 import { usePantalla } from '../hooks/usePantalla'; 
 import { useParams } from 'react-router-dom';
-import { log } from '../utils/logger'; // <--- IMPORTANTE: El logger que creamos
+import { log } from '../utils/logger';
 
 export default function PlayerSalon() {
     const { id } = useParams();
-    
-    // 1. OBTENEMOS TODO DEL HOOK
     const { eventoActual, config, loading, isOnline, timeOffset } = usePantalla(id);
 
-    // 2. ESTADOS LOCALES
     const [horaActual, setHoraActual] = useState(new Date(Date.now() + (timeOffset || 0)));
     const [indiceImagen, setIndiceImagen] = useState(0);
 
-    // 3. EFECTO: RELOJ SINCRONIZADO
+    // --- EFECTOS (Reloj, Favicon, Slideshow) ---
     useEffect(() => {
         const timer = setInterval(() => {
-            const horaServidor = new Date(Date.now() + (timeOffset || 0));
-            setHoraActual(horaServidor);
+            setHoraActual(new Date(Date.now() + (timeOffset || 0)));
         }, 1000);
         return () => clearInterval(timer);
     }, [timeOffset]);
 
-    // 4. EFECTO: FAVICON DINÁMICO
     useEffect(() => {
         if (config?.favicon) {
             let link = document.querySelector("link[rel~='icon']") || document.createElement('link');
-            link.type = 'image/x-icon';
-            link.rel = 'icon';
-            link.href = config.favicon;
+            link.type = 'image/x-icon'; link.rel = 'icon'; link.href = config.favicon;
             document.getElementsByTagName('head')[0].appendChild(link);
         }
     }, [config?.favicon]);
 
-    // --- LÓGICA DE IMÁGENES (UNIFICADA PARA QUE EL SLIDESHOW FUNCIONE SIEMPRE) ---
-    
-    // Definimos qué lista de fotos "manda" en este momento:
-    // A) Si hay Evento Y tiene fotos -> Fotos del Evento
-    // B) Si NO hay Evento (o el evento no tiene fotos) -> Fotos del Screensaver (BD)
-    const fotosActivas = (eventoActual?.imagenes?.length > 0) 
-        ? eventoActual.imagenes 
-        : (config?.screensaver || []);
+    const fotosActivas = (eventoActual?.imagenes?.length > 0) ? eventoActual.imagenes : (config?.screensaver || []);
 
-    // Reiniciar índice si cambia la "fuente" de las fotos (de evento a screensaver o viceversa)
-    useEffect(() => {
-        setIndiceImagen(0);
-    }, [!!eventoActual]); // Se dispara cuando pasamos de "Sin Evento" a "Con Evento"
+    useEffect(() => { setIndiceImagen(0); }, [!!eventoActual]);
 
-    // Rotación automática (Slideshow)
     useEffect(() => {
         if (fotosActivas.length > 1) {
             const intervalo = setInterval(() => {
                 setIndiceImagen((prev) => (prev + 1) % fotosActivas.length);
-            }, 8000); // 8 segundos por foto
+            }, 8000);
             return () => clearInterval(intervalo);
         }
     }, [fotosActivas, eventoActual]);
 
-
-    // --- 🔍 DIAGNÓSTICO DE LOGS (SOLO PARA VER EN CONSOLA) ---
-    useEffect(() => {
-        if (!loading && config) {
-            log("--- 📊 DIAGNÓSTICO PLAYER SALON ---");
-            log("1. Estado Online:", isOnline ? "SI" : "NO");
-            log("2. ¿Hay Evento Activo?:", eventoActual ? "SÍ" : "NO");
-            if (eventoActual) {
-                log("   > Título:", eventoActual.titulo);
-                log("   > Fotos Evento:", eventoActual.imagenes);
-            }
-            log("3. Fotos Screensaver (BD):", config.screensaver);
-            log("4. FOTOS ACTIVAS AHORA:", fotosActivas);
-            log("-------------------------------------");
-        }
-    }, [config, eventoActual, loading, isOnline, fotosActivas]);
-
-
     // --- RENDERIZADO ---
+    if (loading && !config) return <div className="bg-black h-screen flex items-center justify-center text-white animate-pulse">Iniciando Narabyte DS...</div>;
 
-    // Pantalla de carga inicial
-    if (loading && !config) {
-        return <div className="bg-black h-screen flex items-center justify-center text-white animate-pulse">Iniciando Narabyte DS...</div>;
-    }
-
-    // Imagen visual actual (sea de boda o de hotel)
     const imagenVisual = fotosActivas.length > 0 ? fotosActivas[indiceImagen] : null;
+    
+    // Determinamos el nombre a mostrar en el Header
+    const nombreSalon = eventoActual?.nombre_salon || config?.nombre_interno || "Sala de Eventos";
 
     return (
-        <div className="flex flex-col h-screen w-screen bg-black text-white overflow-hidden font-sans relative">
+        <div className="flex flex-col h-screen w-screen bg-neutral-950 text-white overflow-hidden font-sans relative">
             
-            {/* Indicador Offline */}
-            <div 
-                className={`absolute bottom-2 right-2 z-50 w-3 h-3 rounded-full shadow-lg border border-black/50 transition-colors duration-500 ${isOnline ? 'bg-green-500/30' : 'bg-red-600 animate-pulse'}`}
-                title={isOnline ? "Conectado" : "Modo Offline"}
-            ></div>
+            {/* Fondo Base (Un degradado sutil para que no sea negro plano) */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-800 via-black to-black z-0"></div>
 
-            {/* --- HEADER (Siempre visible) --- */}
-            <header className="h-24 bg-zinc-900/90 backdrop-blur flex items-center justify-between px-8 border-b border-zinc-700 shadow-lg relative z-20">
-                <div className="flex items-center">
-                    {config?.logo && <img src={config.logo} alt="Logo" className="h-16 w-auto object-contain drop-shadow-md" onError={(e) => e.target.style.display = 'none'} />}
+            {/* Indicador Offline Discreto */}
+            <div className={`absolute bottom-4 right-4 z-50 w-3 h-3 rounded-full shadow-[0_0_10px_currentColor] transition-colors duration-500 ${isOnline ? 'bg-green-500/50 text-green-500' : 'bg-red-600 text-red-600 animate-pulse'}`}></div>
+
+            {/* --- HEADER MEJORADO --- */}
+            <header className="h-28 flex items-center justify-between px-10 relative z-20">
+                {/* 1. Logo (Izquierda) */}
+                <div className="w-1/4 flex justify-start">
+                    {config?.logo && <img src={config.logo} alt="Logo" className="h-20 w-auto object-contain drop-shadow-xl" />}
                 </div>
-                <div className="text-right flex flex-col items-end">
-                    <span className="text-4xl font-mono font-bold text-white leading-none">
+
+                {/* 2. NOMBRE DEL SALÓN (Centro - Animado) */}
+                <div className="flex-1 flex justify-center">
+                    <div className="px-8 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl">
+                        <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-200 tracking-widest uppercase animate-pulse-slow">
+                            {nombreSalon}
+                        </h1>
+                    </div>
+                </div>
+
+                {/* 3. Reloj (Derecha) */}
+                <div className="w-1/4 flex flex-col items-end">
+                    <span className="text-5xl font-mono font-bold text-white drop-shadow-lg tracking-tighter">
                         {horaActual.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <span className="text-sm text-yellow-500 font-medium uppercase tracking-widest">
+                    <span className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-1">
                         {horaActual.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}
                     </span>
                 </div>
             </header>
 
-            {/* === ESCENARIO 1: MODO SCREENSAVER (Sin Evento) === */}
-            {!eventoActual && (
-                <div className="flex-1 relative w-full h-full bg-black">
-                    {/* Imagen de Fondo Full Screen */}
-                    {imagenVisual && (
-                        <img 
-                            key={indiceImagen} 
-                            src={imagenVisual} 
-                            className="absolute inset-0 w-full h-full object-cover animate-fade-in"
-                            alt="Galería Hotel"
-                        />
-                    )}
-                    
-                    {/* Gradiente si no hay imagen o sobre la imagen */}
-                    <div className={`absolute inset-0 ${imagenVisual ? 'bg-black/30' : 'bg-gradient-to-br from-gray-900 to-black'}`}></div>
 
-                    {/* Texto de Bienvenida */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 text-center drop-shadow-2xl animate-fade-in-up">
-                        <h1 className="text-7xl font-light tracking-[0.2em] uppercase mb-4 text-white">Bienvenidos</h1>
-                        <h2 className="text-5xl text-yellow-400 font-serif italic">{config?.nombre_interno || "Narabyte DS"}</h2>
+            {/* --- CONTENIDO PRINCIPAL (Con Diseño de Tarjetas Redondeadas) --- */}
+            <div className="flex-1 p-8 pt-2 relative z-10 w-full h-full">
+                
+                {/* MODO SCREENSAVER (Una sola tarjeta grande) */}
+                {!eventoActual && (
+                    <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/10">
+                         {imagenVisual && (
+                            <img 
+                                key={indiceImagen} 
+                                src={imagenVisual} 
+                                className="absolute inset-0 w-full h-full object-cover animate-scale-in" // Efecto zoom suave
+                                alt="Screensaver"
+                            />
+                        )}
+                        {/* Texto de Bienvenida Flotante */}
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/10 backdrop-blur-[2px]">
+                            <h2 className="text-8xl font-thin tracking-[0.3em] uppercase text-white drop-shadow-2xl mb-4">Bienvenidos</h2>
+                            <div className="h-1 w-32 bg-yellow-500 rounded-full mb-4"></div>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* === ESCENARIO 2: MODO EVENTO ACTIVO === */}
-            {eventoActual && (
-                <main className={`flex-1 w-full relative z-10 ${eventoActual.imagenes?.length > 0 ? 'grid grid-cols-2' : 'flex items-center justify-center'}`}>
-                    
-                    {/* Columna Izquierda: FOTO DEL EVENTO */}
-                    {eventoActual.imagenes?.length > 0 && (
-                        <div className="relative h-full w-full overflow-hidden border-r border-zinc-800 bg-black">
-                            {imagenVisual && (
-                                <img 
-                                    key={indiceImagen} 
-                                    src={imagenVisual} 
-                                    alt="Evento Slide" 
-                                    className="absolute inset-0 w-full h-full object-cover animate-fade-in"
-                                />
-                            )}
-                            <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent"></div>
 
-                            {/* Puntitos indicadores */}
-                            {eventoActual.imagenes.length > 1 && (
-                                <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2 z-20">
-                                    {eventoActual.imagenes.map((_, idx) => (
-                                        <div key={idx} className={`h-2 w-2 rounded-full transition-all duration-300 ${idx === indiceImagen ? 'bg-white w-6' : 'bg-white/40'}`} />
-                                    ))}
+                {/* MODO EVENTO (Dos Tarjetas Flotantes) */}
+                {eventoActual && (
+                    <div className="flex w-full h-full gap-8">
+                        
+                        {/* TARJETA 1: IMAGEN (Izquierda) - 50% */}
+                        <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-white/10 bg-black">
+                            {imagenVisual ? (
+                                <>
+                                    <img 
+                                        key={indiceImagen} 
+                                        src={imagenVisual} 
+                                        alt="Evento" 
+                                        className="absolute inset-0 w-full h-full object-cover animate-fade-in"
+                                    />
+                                    {/* Indicadores de fotos */}
+                                    {eventoActual.imagenes.length > 1 && (
+                                        <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2">
+                                            {eventoActual.imagenes.map((_, idx) => (
+                                                <div key={idx} className={`h-2 rounded-full transition-all duration-500 shadow-lg ${idx === indiceImagen ? 'bg-white w-8' : 'bg-white/30 w-2'}`} />
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                // Si hay evento pero no fotos, mostramos un placeholder elegante
+                                <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-black flex items-center justify-center">
+                                    <img src={config?.logo} className="w-1/3 opacity-20 grayscale" alt="Logo Fondo" />
                                 </div>
                             )}
                         </div>
-                    )}
 
-                    {/* Columna Derecha / Central: INFORMACIÓN */}
-                    <div className={`flex flex-col items-center justify-center p-10 text-center z-10 ${eventoActual.imagenes?.length > 0 ? 'bg-zinc-900/50 backdrop-blur-sm' : 'max-w-6xl'}`}>
-                        <div className="animate-fade-in-up w-full">
+                        {/* TARJETA 2: INFORMACIÓN (Derecha) - 50% */}
+                        <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-white/5 bg-zinc-900/60 backdrop-blur-xl flex flex-col items-center justify-center p-12 text-center">
                             
-                            {/* Nombre del Salón */}
-                            <div className="mb-6">
-                                <span className="bg-zinc-800 text-gray-300 px-4 py-1 rounded text-sm uppercase tracking-[0.3em] shadow-lg">
-                                    {eventoActual.nombre_salon || config.nombre_interno}
-                                </span>
-                            </div>
+                            <div className="animate-fade-in-up w-full">
+                                {/* Título */}
+                                <h1 className="text-6xl lg:text-7xl font-black text-white mb-10 leading-tight drop-shadow-2xl">
+                                    {eventoActual.titulo}
+                                </h1>
 
-                            {/* Título del Evento */}
-                            <h1 className={`font-black text-white mb-8 leading-tight drop-shadow-2xl ${eventoActual.imagenes?.length > 0 ? 'text-5xl lg:text-7xl' : 'text-6xl md:text-8xl'}`}>
-                                {eventoActual.titulo}
-                            </h1>
+                                {/* Cliente (Píldora brillante) */}
+                                {eventoActual.cliente && (
+                                    <div className="mb-14">
+                                        <span className="inline-block px-10 py-4 rounded-full border border-yellow-500/50 bg-gradient-to-r from-yellow-500/10 to-yellow-500/20 text-yellow-300 text-2xl font-bold uppercase tracking-wider shadow-[0_0_30px_rgba(234,179,8,0.15)]">
+                                            {eventoActual.cliente}
+                                        </span>
+                                    </div>
+                                )}
 
-                            {/* Cliente */}
-                            {eventoActual.cliente && (
-                                <div className="mb-12">
-                                    <span className="inline-block border border-yellow-500/30 bg-yellow-500/10 text-yellow-400 px-8 py-3 rounded-full text-xl lg:text-2xl font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(234,179,8,0.2)]">
-                                        {eventoActual.cliente}
+                                {/* Horario */}
+                                <div className="flex flex-col items-center gap-2 mb-12">
+                                    <span className="text-zinc-400 text-lg uppercase tracking-widest">Horario</span>
+                                    <span className="text-4xl font-mono font-bold text-white border-b-2 border-zinc-700 pb-1">
+                                        {eventoActual.horario}
                                     </span>
                                 </div>
-                            )}
 
-                            {/* Horario */}
-                            <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-zinc-400 text-xl font-light">
-                                <span>Horario del evento:</span>
-                                <span className="text-white font-mono font-bold text-2xl bg-black/40 px-4 py-1 rounded border border-zinc-700">
-                                    {eventoActual.horario}
-                                </span>
+                                {/* Mensaje */}
+                                {eventoActual.mensaje && (
+                                    <div className="w-3/4 mx-auto bg-white/5 p-6 rounded-2xl border border-white/5">
+                                        <p className="text-2xl text-gray-200 font-serif italic leading-relaxed">
+                                            "{eventoActual.mensaje}"
+                                        </p>
+                                    </div>
+                                )}
                             </div>
-
-                            {/* Mensaje Personalizado */}
-                            {eventoActual.mensaje && (
-                                <div className="mt-16 border-t border-zinc-700/50 pt-8 w-3/4 mx-auto">
-                                    <p className="text-2xl text-gray-300 font-serif italic">
-                                        "{eventoActual.mensaje}"
-                                    </p>
-                                </div>
-                            )}
                         </div>
-                    </div>
-                </main>
-            )}
 
-            {/* FOOTER */}
-            <footer className="h-12 bg-black flex items-center justify-center border-t border-zinc-900 z-20">
-                <p className="text-zinc-600 text-xs tracking-widest">NARABYTE DS SYSTEM</p>
+                    </div>
+                )}
+            </div>
+
+            <footer className="h-8 flex items-center justify-center z-20 opacity-40">
+                <p className="text-[10px] tracking-[0.5em] text-white">NARABYTE DS</p>
             </footer>
         </div>
     );
