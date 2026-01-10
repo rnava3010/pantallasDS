@@ -122,7 +122,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
                 LEFT JOIN tbl_eventos_media em ON e.idEvento = em.idEvento AND em.tipo = 'IMAGEN'
                 WHERE e.idArea = ? 
                 AND e.estatus = 'ACTIVO'
-                AND e.fecha_fin >= NOW() -- Trae eventos actuales y futuros
+                AND COALESCE(e.fecha_visualizacion_fin, e.fecha_fin) >= NOW()
                 GROUP BY e.idEvento
                 ORDER BY e.fecha_inicio ASC
             `;
