@@ -63,6 +63,15 @@ export default function PlayerSalon() {
     const imagenVisual = fotosActivas.length > 0 ? fotosActivas[indiceImagen] : null;
     const nombreSalon = eventoActual?.nombre_salon || config?.nombre_interno || "Sala de Eventos";
     const tickerText = eventoActual?.ticker || null;
+    
+    // Obtenemos el modo de diseño (0=Split, 1=Cine Texto, 2=Cine Limpio)
+    // Si viene del backend anterior (booleano), lo convertimos
+    let layoutMode = 0;
+    if (eventoActual?.layout_mode !== undefined) {
+        layoutMode = eventoActual.layout_mode;
+    } else if (eventoActual?.full_width) { 
+        layoutMode = 1; // Compatibilidad por si no actualizaste backend aún
+    }
 
     return (
         <div className="flex flex-col h-screen w-screen bg-black text-white overflow-hidden font-sans relative">
@@ -112,13 +121,7 @@ export default function PlayerSalon() {
                 {!eventoActual && (
                     <div className="w-full h-full rounded-[3rem] overflow-hidden relative bg-black border border-zinc-800/50 shadow-2xl">
                         {imagenVisual && !imagenError && (
-                            <img
-                                key={indiceImagen}
-                                src={imagenVisual}
-                                className="absolute inset-0 w-full h-full object-contain animate-fade-in z-10"
-                                alt="Screensaver"
-                                onError={() => setImagenError(true)}
-                            />
+                            <img key={indiceImagen} src={imagenVisual} className="absolute inset-0 w-full h-full object-contain animate-fade-in z-10" alt="Screensaver" onError={() => setImagenError(true)} />
                         )}
                         <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-slate-950 to-black flex flex-col items-center justify-center z-0">
                              <div className="text-zinc-800 opacity-20 mb-4 scale-150">
@@ -130,98 +133,81 @@ export default function PlayerSalon() {
 
                 {/* 2. MODO EVENTO */}
                 {eventoActual && (
-                    // Aquí decidimos el layout: Si es full_width usamos un div contenedor único, si no, usamos flex gap-8
-                    eventoActual.full_width ? (
-                        /* === DISEÑO FULL WIDTH (IMAGEN COMPLETA) === */
-                        <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-zinc-800/50 bg-black">
-                            {/* Imagen de Fondo Gigante */}
-                            {imagenVisual && !imagenError ? (
-                                <img 
-                                    key={indiceImagen} 
-                                    src={imagenVisual} 
-                                    alt="Evento Full" 
-                                    className="absolute inset-0 w-full h-full object-cover animate-fade-in z-0 opacity-90" // object-cover para llenar todo
-                                    onError={() => setImagenError(true)} 
-                                />
-                            ) : (
-                                <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
-                                    <img src={config?.logo} className="w-1/3 opacity-10 grayscale" alt="Logo" />
-                                </div>
-                            )}
-
-                            {/* Gradiente oscuro abajo para que el texto se lea */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 z-10"></div>
-
-                            {/* Tarjeta de Información Flotante (Abajo a la izquierda) */}
-                            <div className="absolute bottom-10 left-10 z-20 max-w-4xl p-10">
-                                <h1 className="text-7xl lg:text-9xl font-black text-white mb-4 leading-none drop-shadow-2xl">
-                                    {eventoActual.titulo}
-                                </h1>
-                                {eventoActual.cliente && (
-                                    <div className="mb-6">
-                                        <span className="inline-block px-6 py-2 rounded-full bg-yellow-500 text-black text-2xl font-bold uppercase tracking-wider shadow-lg">
-                                            {eventoActual.cliente}
-                                        </span>
-                                    </div>
-                                )}
-                                <div className="flex items-center gap-4 text-zinc-300">
-                                     <span className="text-3xl font-mono font-bold text-white border-l-4 border-yellow-500 pl-4">
-                                        {eventoActual.horario}
-                                    </span>
-                                </div>
-                                {eventoActual.mensaje && (
-                                    <p className="mt-6 text-2xl text-gray-200 font-serif italic max-w-2xl drop-shadow-md">
-                                        "{eventoActual.mensaje}"
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-
-                    ) : (
-                        /* === DISEÑO SPLIT (PARTIDO A LA MITAD - EL ANTERIOR) === */
-                        <div className="flex w-full h-full gap-8">
-                            <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-zinc-800/50 bg-black">
+                    <div className="w-full h-full h-full">
+                        
+                        {/* === OPCIÓN A: MODO POSTER / LIMPIO (layout_mode === 2) === */}
+                        {layoutMode === 2 && (
+                            <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-zinc-800/50 bg-black">
                                 {imagenVisual && !imagenError ? (
-                                    <>
-                                        <img key={indiceImagen} src={imagenVisual} alt="Evento" className="absolute inset-0 w-full h-full object-contain animate-fade-in z-10" onError={() => setImagenError(true)} />
-                                        {eventoActual.imagenes.length > 1 && (
-                                            <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
-                                                {eventoActual.imagenes.map((_, idx) => (
-                                                    <div key={idx} className={`h-1.5 rounded-full transition-all duration-500 shadow-sm ${idx === indiceImagen ? 'bg-yellow-500 w-6' : 'bg-white/30 w-1.5'}`} />
-                                                ))}
-                                            </div>
-                                        )}
-                                    </>
+                                    <img key={indiceImagen} src={imagenVisual} alt="Evento Full Clean" className="absolute inset-0 w-full h-full object-contain animate-fade-in z-10" onError={() => setImagenError(true)} />
                                 ) : (
-                                    <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
-                                        <img src={config?.logo} className="w-1/3 opacity-10 grayscale" alt="Logo Fondo" />
-                                    </div>
+                                    <div className="absolute inset-0 flex items-center justify-center text-zinc-600">Sin Imagen</div>
                                 )}
+                                {/* ¡AQUÍ NO HAY TEXTO! Solo la imagen limpia. */}
                             </div>
+                        )}
 
-                            <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-white/5 bg-zinc-900/80 backdrop-blur-xl flex flex-col items-center justify-center p-12 text-center">
-                                <div className="animate-fade-in-up w-full">
-                                    <h1 className="text-5xl lg:text-7xl font-black text-white mb-10 leading-tight drop-shadow-2xl">{eventoActual.titulo}</h1>
+                        {/* === OPCIÓN B: MODO CINE / TEXTO (layout_mode === 1) === */}
+                        {layoutMode === 1 && (
+                            <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-zinc-800/50 bg-black">
+                                {imagenVisual && !imagenError ? (
+                                    <img key={indiceImagen} src={imagenVisual} alt="Evento Full" className="absolute inset-0 w-full h-full object-cover animate-fade-in z-0 opacity-90" onError={() => setImagenError(true)} />
+                                ) : (
+                                    <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center"><img src={config?.logo} className="w-1/3 opacity-10 grayscale" alt="Logo" /></div>
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 z-10"></div>
+                                <div className="absolute bottom-10 left-10 z-20 max-w-4xl p-10">
+                                    <h1 className="text-7xl lg:text-9xl font-black text-white mb-4 leading-none drop-shadow-2xl">{eventoActual.titulo}</h1>
                                     {eventoActual.cliente && (
-                                        <div className="mb-14">
-                                            <span className="inline-block px-8 py-3 rounded-full border border-yellow-500/50 bg-yellow-500/10 text-yellow-300 text-xl font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(234,179,8,0.15)]">
-                                                {eventoActual.cliente}
-                                            </span>
-                                        </div>
+                                        <div className="mb-6"><span className="inline-block px-6 py-2 rounded-full bg-yellow-500 text-black text-2xl font-bold uppercase tracking-wider shadow-lg">{eventoActual.cliente}</span></div>
                                     )}
-                                    <div className="flex flex-col items-center gap-2 mb-10">
-                                        <span className="text-zinc-400 text-base uppercase tracking-widest">Horario</span>
-                                        <span className="text-3xl font-mono font-bold text-white border-b border-zinc-700 pb-1">{eventoActual.horario}</span>
+                                    <div className="flex items-center gap-4 text-zinc-300">
+                                         <span className="text-3xl font-mono font-bold text-white border-l-4 border-yellow-500 pl-4">{eventoActual.horario}</span>
                                     </div>
                                     {eventoActual.mensaje && (
-                                        <div className="w-4/5 mx-auto bg-white/5 p-6 rounded-2xl border border-white/5">
-                                            <p className="text-xl text-gray-300 font-serif italic leading-relaxed">"{eventoActual.mensaje}"</p>
-                                        </div>
+                                        <p className="mt-6 text-2xl text-gray-200 font-serif italic max-w-2xl drop-shadow-md">"{eventoActual.mensaje}"</p>
                                     )}
                                 </div>
                             </div>
-                        </div>
-                    )
+                        )}
+
+                        {/* === OPCIÓN C: MODO SPLIT / NORMAL (layout_mode === 0) === */}
+                        {layoutMode === 0 && (
+                            <div className="flex w-full h-full gap-8">
+                                <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-zinc-800/50 bg-black">
+                                    {imagenVisual && !imagenError ? (
+                                        <>
+                                            <img key={indiceImagen} src={imagenVisual} alt="Evento" className="absolute inset-0 w-full h-full object-contain animate-fade-in z-10" onError={() => setImagenError(true)} />
+                                            {eventoActual.imagenes.length > 1 && (
+                                                <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
+                                                    {eventoActual.imagenes.map((_, idx) => (
+                                                        <div key={idx} className={`h-1.5 rounded-full transition-all duration-500 shadow-sm ${idx === indiceImagen ? 'bg-yellow-500 w-6' : 'bg-white/30 w-1.5'}`} />
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center"><img src={config?.logo} className="w-1/3 opacity-10 grayscale" alt="Logo Fondo" /></div>
+                                    )}
+                                </div>
+                                <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-white/5 bg-zinc-900/80 backdrop-blur-xl flex flex-col items-center justify-center p-12 text-center">
+                                    <div className="animate-fade-in-up w-full">
+                                        <h1 className="text-5xl lg:text-7xl font-black text-white mb-10 leading-tight drop-shadow-2xl">{eventoActual.titulo}</h1>
+                                        {eventoActual.cliente && (
+                                            <div className="mb-14"><span className="inline-block px-8 py-3 rounded-full border border-yellow-500/50 bg-yellow-500/10 text-yellow-300 text-xl font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(234,179,8,0.15)]">{eventoActual.cliente}</span></div>
+                                        )}
+                                        <div className="flex flex-col items-center gap-2 mb-10">
+                                            <span className="text-zinc-400 text-base uppercase tracking-widest">Horario</span>
+                                            <span className="text-3xl font-mono font-bold text-white border-b border-zinc-700 pb-1">{eventoActual.horario}</span>
+                                        </div>
+                                        {eventoActual.mensaje && (
+                                            <div className="w-4/5 mx-auto bg-white/5 p-6 rounded-2xl border border-white/5"><p className="text-xl text-gray-300 font-serif italic leading-relaxed">"{eventoActual.mensaje}"</p></div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
 
@@ -234,25 +220,15 @@ export default function PlayerSalon() {
                 </div>
                 <div className="flex justify-center">
                     {!eventoActual && (
-                        <h2 className="text-4xl font-light tracking-[0.3em] uppercase text-white drop-shadow-lg animate-fade-in-up font-sans">
-                            BIENVENIDOS
-                        </h2>
+                        <h2 className="text-4xl font-light tracking-[0.3em] uppercase text-white drop-shadow-lg animate-fade-in-up font-sans">BIENVENIDOS</h2>
                     )}
                 </div>
                 <div className="flex justify-end items-center gap-6">
-                    <div className="text-5xl drop-shadow-lg filter pb-2">
-                        {getIconoClima(clima.codigo)}
-                    </div>
+                    <div className="text-5xl drop-shadow-lg filter pb-2">{getIconoClima(clima.codigo)}</div>
                     <div className="flex items-baseline gap-3">
-                        <div className="flex items-start">
-                            <span className="text-4xl font-bold text-white tracking-tighter">{clima.tempC}</span>
-                            <span className="text-lg text-yellow-500 font-bold mt-1 ml-0.5">°C</span>
-                        </div>
+                        <div className="flex items-start"><span className="text-4xl font-bold text-white tracking-tighter">{clima.tempC}</span><span className="text-lg text-yellow-500 font-bold mt-1 ml-0.5">°C</span></div>
                         <div className="h-6 w-px bg-zinc-700"></div>
-                        <div className="flex items-start opacity-60">
-                            <span className="text-2xl font-medium text-gray-300 tracking-tighter">{clima.tempF}</span>
-                            <span className="text-xs text-gray-400 mt-1 ml-0.5">°F</span>
-                        </div>
+                        <div className="flex items-start opacity-60"><span className="text-2xl font-medium text-gray-300 tracking-tighter">{clima.tempF}</span><span className="text-xs text-gray-400 mt-1 ml-0.5">°F</span></div>
                     </div>
                 </div>
             </footer>
@@ -261,13 +237,9 @@ export default function PlayerSalon() {
             {tickerText && (
                 <div className="absolute bottom-0 left-0 w-full h-12 bg-yellow-500 z-50 overflow-hidden flex items-center shadow-[0_-5px_20px_rgba(0,0,0,0.5)] border-t border-yellow-300">
                     <div className="flex w-full">
-                         <div className="bg-black text-yellow-500 px-6 h-12 flex items-center justify-center font-black uppercase tracking-widest text-sm relative z-20 shrink-0">
-                            Aviso
-                        </div>
+                         <div className="bg-black text-yellow-500 px-6 h-12 flex items-center justify-center font-black uppercase tracking-widest text-sm relative z-20 shrink-0">Aviso</div>
                         <div className="flex-1 overflow-hidden relative flex items-center bg-yellow-500">
-                             <div className="animate-marquee whitespace-nowrap text-black text-2xl font-bold uppercase tracking-wide">
-                                {tickerText}
-                            </div>
+                             <div className="animate-marquee whitespace-nowrap text-black text-2xl font-bold uppercase tracking-wide">{tickerText}</div>
                         </div>
                     </div>
                 </div>

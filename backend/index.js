@@ -136,10 +136,8 @@ app.get('/api/pantalla/:id', async (req, res) => {
                 fin_iso: evento.fecha_fin,
                 horario: `${new Date(evento.fecha_inicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(evento.fecha_fin).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
                 mensaje: evento.mensaje_personalizado,
-                
-                ticker: evento.mensaje_ticker,            // Mapeamos el ticker
-                full_width: evento.imagen_full_width === 1, // Convertimos a booleano (true/false)
-                
+                ticker: evento.mensaje_ticker,
+                layout_mode: evento.imagen_full_width || 0,
                 nombre_salon: terminal.nombre_area,
                 imagenes: evento.lista_imagenes ? evento.lista_imagenes.split(',') : []
             }));
