@@ -7,6 +7,7 @@ const pool = require('./config/db');
 
 const app = express();
 
+// Usamos el puerto 3100 para coincidir con Nginx
 const PORT = process.env.PORT || 3100;
 
 // Middleware
@@ -23,6 +24,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
     const { id } = req.params;
     
     try {
+        // 1. OBTENER CONFIGURACIÓN DE LA TERMINAL (INCLUYENDO UBICACIÓN)
         const sqlTerminal = `
             SELECT 
                 t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.tema_color, t.idAreaAsignada,
@@ -104,7 +106,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
         };
 
         // --- CASO A: PANTALLA DE SALÓN (Agenda) ---
-		if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
+        if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
             const sqlAgenda = `
                 SELECT 
                     e.idEvento,
@@ -113,13 +115,14 @@ app.get('/api/pantalla/:id', async (req, res) => {
                     e.fecha_inicio, 
                     e.fecha_fin, 
                     e.mensaje_personalizado,
-                    e.mensaje_ticker,  -- <--- AGREGAMOS ESTA LÍNEA
+                    e.mensaje_ticker,     -- <--- NUEVO CAMPO (TICKER)
+                    e.imagen_full_width,  -- <--- NUEVO CAMPO (MODO CINE)
                     GROUP_CONCAT(em.url_archivo ORDER BY em.orden ASC SEPARATOR ',') as lista_imagenes
                 FROM tbl_eventos e
                 LEFT JOIN tbl_eventos_media em ON e.idEvento = em.idEvento AND em.tipo = 'IMAGEN'
                 WHERE e.idArea = ? 
                 AND e.estatus = 'ACTIVO'
-                AND e.fecha_fin >= NOW()
+                AND e.fecha_fin >= NOW() -- Trae eventos actuales y futuros
                 GROUP BY e.idEvento
                 ORDER BY e.fecha_inicio ASC
             `;
@@ -133,7 +136,10 @@ app.get('/api/pantalla/:id', async (req, res) => {
                 fin_iso: evento.fecha_fin,
                 horario: `${new Date(evento.fecha_inicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(evento.fecha_fin).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
                 mensaje: evento.mensaje_personalizado,
-                ticker: evento.mensaje_ticker, // <--- MAPEA EL CAMPO AQUÍ
+                
+                ticker: evento.mensaje_ticker,            // Mapeamos el ticker
+                full_width: evento.imagen_full_width === 1, // Convertimos a booleano (true/false)
+                
                 nombre_salon: terminal.nombre_area,
                 imagenes: evento.lista_imagenes ? evento.lista_imagenes.split(',') : []
             }));

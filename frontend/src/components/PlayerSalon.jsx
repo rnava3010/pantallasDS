@@ -62,14 +62,11 @@ export default function PlayerSalon() {
 
     const imagenVisual = fotosActivas.length > 0 ? fotosActivas[indiceImagen] : null;
     const nombreSalon = eventoActual?.nombre_salon || config?.nombre_interno || "Sala de Eventos";
-    
-    // Obtenemos el texto del ticker (si existe)
     const tickerText = eventoActual?.ticker || null;
 
     return (
         <div className="flex flex-col h-screen w-screen bg-black text-white overflow-hidden font-sans relative">
 
-            {/* ESTILOS CSS PARA LA ANIMACIÓN (Incrustados aquí para facilitar el copy-paste) */}
             <style>{`
                 @keyframes marquee {
                     0% { transform: translateX(100%); }
@@ -79,7 +76,7 @@ export default function PlayerSalon() {
                     animation: marquee 30s linear infinite;
                     white-space: nowrap;
                     display: inline-block;
-                    padding-left: 100%; /* Empieza fuera de pantalla */
+                    padding-left: 100%;
                 }
             `}</style>
 
@@ -91,7 +88,6 @@ export default function PlayerSalon() {
                 <div className="w-1/4 flex justify-start">
                     {config?.logo && <img src={config.logo} alt="Logo" className="h-20 w-auto object-contain drop-shadow-xl" />}
                 </div>
-
                 <div className="flex-1 flex justify-center">
                     <div className="px-12 py-3 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl">
                         <h1 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-200 tracking-widest uppercase drop-shadow-sm whitespace-nowrap text-ellipsis overflow-hidden">
@@ -99,7 +95,6 @@ export default function PlayerSalon() {
                         </h1>
                     </div>
                 </div>
-
                 <div className="w-1/4 flex flex-col items-end">
                     <span className="text-5xl font-mono font-bold text-white drop-shadow-lg tracking-tighter">
                         {horaActual.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -110,12 +105,10 @@ export default function PlayerSalon() {
                 </div>
             </header>
 
-
             {/* --- CONTENIDO PRINCIPAL --- */}
-            {/* Agregamos pb-12 si hay ticker para que no se tape el contenido */}
             <div className={`flex-1 p-8 pt-2 relative z-10 w-full h-full ${tickerText ? 'pb-14' : ''}`}>
                 
-                {/* 1. MODO SCREENSAVER */}
+                {/* 1. MODO SCREENSAVER (Sin Evento) */}
                 {!eventoActual && (
                     <div className="w-full h-full rounded-[3rem] overflow-hidden relative bg-black border border-zinc-800/50 shadow-2xl">
                         {imagenVisual && !imagenError && (
@@ -137,60 +130,108 @@ export default function PlayerSalon() {
 
                 {/* 2. MODO EVENTO */}
                 {eventoActual && (
-                    <div className="flex w-full h-full gap-8">
-                        <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-zinc-800/50 bg-black">
+                    // Aquí decidimos el layout: Si es full_width usamos un div contenedor único, si no, usamos flex gap-8
+                    eventoActual.full_width ? (
+                        /* === DISEÑO FULL WIDTH (IMAGEN COMPLETA) === */
+                        <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-zinc-800/50 bg-black">
+                            {/* Imagen de Fondo Gigante */}
                             {imagenVisual && !imagenError ? (
-                                <>
-                                    <img key={indiceImagen} src={imagenVisual} alt="Evento" className="absolute inset-0 w-full h-full object-contain animate-fade-in z-10" onError={() => setImagenError(true)} />
-                                    {eventoActual.imagenes.length > 1 && (
-                                        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
-                                            {eventoActual.imagenes.map((_, idx) => (
-                                                <div key={idx} className={`h-1.5 rounded-full transition-all duration-500 shadow-sm ${idx === indiceImagen ? 'bg-yellow-500 w-6' : 'bg-white/30 w-1.5'}`} />
-                                            ))}
-                                        </div>
-                                    )}
-                                </>
+                                <img 
+                                    key={indiceImagen} 
+                                    src={imagenVisual} 
+                                    alt="Evento Full" 
+                                    className="absolute inset-0 w-full h-full object-cover animate-fade-in z-0 opacity-90" // object-cover para llenar todo
+                                    onError={() => setImagenError(true)} 
+                                />
                             ) : (
                                 <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
-                                    <img src={config?.logo} className="w-1/3 opacity-10 grayscale" alt="Logo Fondo" />
+                                    <img src={config?.logo} className="w-1/3 opacity-10 grayscale" alt="Logo" />
                                 </div>
                             )}
-                        </div>
 
-                        <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-white/5 bg-zinc-900/80 backdrop-blur-xl flex flex-col items-center justify-center p-12 text-center">
-                            <div className="animate-fade-in-up w-full">
-                                <h1 className="text-5xl lg:text-7xl font-black text-white mb-10 leading-tight drop-shadow-2xl">{eventoActual.titulo}</h1>
+                            {/* Gradiente oscuro abajo para que el texto se lea */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 z-10"></div>
+
+                            {/* Tarjeta de Información Flotante (Abajo a la izquierda) */}
+                            <div className="absolute bottom-10 left-10 z-20 max-w-4xl p-10">
+                                <h1 className="text-7xl lg:text-9xl font-black text-white mb-4 leading-none drop-shadow-2xl">
+                                    {eventoActual.titulo}
+                                </h1>
                                 {eventoActual.cliente && (
-                                    <div className="mb-14">
-                                        <span className="inline-block px-8 py-3 rounded-full border border-yellow-500/50 bg-yellow-500/10 text-yellow-300 text-xl font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(234,179,8,0.15)]">
+                                    <div className="mb-6">
+                                        <span className="inline-block px-6 py-2 rounded-full bg-yellow-500 text-black text-2xl font-bold uppercase tracking-wider shadow-lg">
                                             {eventoActual.cliente}
                                         </span>
                                     </div>
                                 )}
-                                <div className="flex flex-col items-center gap-2 mb-10">
-                                    <span className="text-zinc-400 text-base uppercase tracking-widest">Horario</span>
-                                    <span className="text-3xl font-mono font-bold text-white border-b border-zinc-700 pb-1">{eventoActual.horario}</span>
+                                <div className="flex items-center gap-4 text-zinc-300">
+                                     <span className="text-3xl font-mono font-bold text-white border-l-4 border-yellow-500 pl-4">
+                                        {eventoActual.horario}
+                                    </span>
                                 </div>
                                 {eventoActual.mensaje && (
-                                    <div className="w-4/5 mx-auto bg-white/5 p-6 rounded-2xl border border-white/5">
-                                        <p className="text-xl text-gray-300 font-serif italic leading-relaxed">"{eventoActual.mensaje}"</p>
-                                    </div>
+                                    <p className="mt-6 text-2xl text-gray-200 font-serif italic max-w-2xl drop-shadow-md">
+                                        "{eventoActual.mensaje}"
+                                    </p>
                                 )}
                             </div>
                         </div>
-                    </div>
+
+                    ) : (
+                        /* === DISEÑO SPLIT (PARTIDO A LA MITAD - EL ANTERIOR) === */
+                        <div className="flex w-full h-full gap-8">
+                            <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-zinc-800/50 bg-black">
+                                {imagenVisual && !imagenError ? (
+                                    <>
+                                        <img key={indiceImagen} src={imagenVisual} alt="Evento" className="absolute inset-0 w-full h-full object-contain animate-fade-in z-10" onError={() => setImagenError(true)} />
+                                        {eventoActual.imagenes.length > 1 && (
+                                            <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
+                                                {eventoActual.imagenes.map((_, idx) => (
+                                                    <div key={idx} className={`h-1.5 rounded-full transition-all duration-500 shadow-sm ${idx === indiceImagen ? 'bg-yellow-500 w-6' : 'bg-white/30 w-1.5'}`} />
+                                                ))}
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
+                                        <img src={config?.logo} className="w-1/3 opacity-10 grayscale" alt="Logo Fondo" />
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-white/5 bg-zinc-900/80 backdrop-blur-xl flex flex-col items-center justify-center p-12 text-center">
+                                <div className="animate-fade-in-up w-full">
+                                    <h1 className="text-5xl lg:text-7xl font-black text-white mb-10 leading-tight drop-shadow-2xl">{eventoActual.titulo}</h1>
+                                    {eventoActual.cliente && (
+                                        <div className="mb-14">
+                                            <span className="inline-block px-8 py-3 rounded-full border border-yellow-500/50 bg-yellow-500/10 text-yellow-300 text-xl font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(234,179,8,0.15)]">
+                                                {eventoActual.cliente}
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div className="flex flex-col items-center gap-2 mb-10">
+                                        <span className="text-zinc-400 text-base uppercase tracking-widest">Horario</span>
+                                        <span className="text-3xl font-mono font-bold text-white border-b border-zinc-700 pb-1">{eventoActual.horario}</span>
+                                    </div>
+                                    {eventoActual.mensaje && (
+                                        <div className="w-4/5 mx-auto bg-white/5 p-6 rounded-2xl border border-white/5">
+                                            <p className="text-xl text-gray-300 font-serif italic leading-relaxed">"{eventoActual.mensaje}"</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )
                 )}
             </div>
 
-            {/* --- FOOTER NORMAL (Con Clima) --- */}
-            {/* Si hay ticker, agregamos un margen bottom para que el ticker quepa abajo */}
+            {/* --- FOOTER --- */}
             <footer className={`h-20 bg-black relative z-20 grid grid-cols-3 items-center px-10 border-t border-zinc-900 transition-all ${tickerText ? 'mb-12' : 'mb-0'}`}>
                 <div className="flex justify-start opacity-50 hover:opacity-100 transition-opacity">
                     <p className="text-[11px] tracking-[0.2em] text-zinc-500 uppercase font-medium">
                         Powered by <span className="text-yellow-600 font-bold">narabyte.xyz</span>
                     </p>
                 </div>
-
                 <div className="flex justify-center">
                     {!eventoActual && (
                         <h2 className="text-4xl font-light tracking-[0.3em] uppercase text-white drop-shadow-lg animate-fade-in-up font-sans">
@@ -198,7 +239,6 @@ export default function PlayerSalon() {
                         </h2>
                     )}
                 </div>
-
                 <div className="flex justify-end items-center gap-6">
                     <div className="text-5xl drop-shadow-lg filter pb-2">
                         {getIconoClima(clima.codigo)}
@@ -217,16 +257,13 @@ export default function PlayerSalon() {
                 </div>
             </footer>
 
-            {/* --- TIRA DE NOTICIAS / TICKER (Solo si existe texto) --- */}
+            {/* --- TICKER --- */}
             {tickerText && (
                 <div className="absolute bottom-0 left-0 w-full h-12 bg-yellow-500 z-50 overflow-hidden flex items-center shadow-[0_-5px_20px_rgba(0,0,0,0.5)] border-t border-yellow-300">
                     <div className="flex w-full">
-                         {/* Etiqueta NOTICIA (Opcional, estática a la izquierda) */}
                          <div className="bg-black text-yellow-500 px-6 h-12 flex items-center justify-center font-black uppercase tracking-widest text-sm relative z-20 shrink-0">
                             Aviso
                         </div>
-                        
-                        {/* Texto en movimiento */}
                         <div className="flex-1 overflow-hidden relative flex items-center bg-yellow-500">
                              <div className="animate-marquee whitespace-nowrap text-black text-2xl font-bold uppercase tracking-wide">
                                 {tickerText}
@@ -235,7 +272,6 @@ export default function PlayerSalon() {
                     </div>
                 </div>
             )}
-
         </div>
     );
 }
