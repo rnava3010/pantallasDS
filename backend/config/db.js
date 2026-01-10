@@ -10,17 +10,17 @@ const pool = mysql.createPool({
     database: process.env.DB_NAME,
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,
-    connectionLimit: 10, // Máximo 10 conexiones simultáneas
+    connectionLimit: 10,
     queueLimit: 0,
-    timezone: 'Z' // Mantiene las fechas universales
-});
+	timezone: '-06:00'
+	});
 
 // Prueba inicial de conexión
 (async () => {
     try {
         const connection = await pool.getConnection();
         console.log('✅ Conectado exitosamente a la BD:', process.env.DB_NAME);
-        connection.release(); // Siempre liberar la conexión al terminar
+        connection.release();
     } catch (error) {
         console.error('❌ Error de Conexión a BD:', error.message);
         if (error.code === 'ECONNREFUSED') {
