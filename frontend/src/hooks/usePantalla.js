@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 // Si usas el logger, descomenta:
-// import { log, logError } from '../utils/logger'; 
+import { log, logError } from '../utils/logger'; 
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3100';
 
@@ -13,7 +13,6 @@ export const usePantalla = (idPantalla) => {
     const [timeOffset, setTimeOffset] = useState(0);
     const [clima, setClima] = useState({ tempC: 0, tempF: 0, codigo: 0 });
 
-    // --- 1. FUNCIÓN DE AGENDA ---
     const determinarEventoActual = (agendaEventos, offset = 0) => {
         if (!agendaEventos || !Array.isArray(agendaEventos)) return null;
         const ahora = new Date(Date.now() + offset);
@@ -24,7 +23,6 @@ export const usePantalla = (idPantalla) => {
         }) || null;
     };
 
-    // --- 2. CLIMA ---
     const fetchClima = async (lat, lon) => {
         if (!lat || !lon) return;
         try {
@@ -43,24 +41,36 @@ export const usePantalla = (idPantalla) => {
         }
     };
 
-    // --- 3. [NUEVO] CONVERTIDOR DE IMÁGENES A BASE64 ---
-    // Esto descarga la imagen y la convierte en una cadena de texto gigante
+    // --- 3. CONVERTIDOR DE IMÁGENES A BASE64 ---
     const cachearImagen = async (url) => {
         if (!url) return null;
-        // Si ya es base64 (empieza con data:), la devolvemos tal cual
-        if (url.startsWith('data:')) return url;
+        if (url.startsWith('data:')) return url; // Ya es base64
+
+        // CONSTRUCCIÓN DE LA URL COMPLETA
+        let urlFinal = url;
+        if (!url.startsWith('http')) {
+            // Si es ruta relativa (/eventos/boda.jpg), le pegamos la API_URL
+            // Quitamos la barra inicial si la API_URL ya la tiene para evitar dobles //
+            const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
+            const path = url.startsWith('/') ? url : `/${url}`;
+            urlFinal = `${baseUrl}${path}`;
+        }
 
         try {
-            const response = await fetch(url);
+            // Intentamos descargar la imagen real
+            const response = await fetch(urlFinal);
+            if (!response.ok) throw new Error(`Error ${response.status}`);
+            
             const blob = await response.blob();
             return new Promise((resolve) => {
                 const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
+                reader.onloadend = () => resolve(reader.result); // Devuelve el string Base64
                 reader.readAsDataURL(blob);
             });
         } catch (error) {
-            console.warn("No se pudo cachear imagen:", url);
-            return url; // Si falla, devolvemos la URL original como respaldo
+            console.warn(`⚠️ No se pudo cachear imagen (Fallo descarga de ${urlFinal}):`, error);
+            // IMPORTANTE: Si falla la conversión, devolvemos la URL original para que al menos intente cargarla normal
+            return urlFinal; 
         }
     };
 
@@ -70,29 +80,33 @@ export const usePantalla = (idPantalla) => {
             const response = await fetch(`${API_URL}/api/pantalla/${idPantalla}`);
             if (!response.ok) throw new Error('Error Server');
             
-            // 1. Obtenemos el JSON crudo del servidor
             let result = await response.json();
 
-            // -----------------------------------------------------------
-            // [NUEVO] PROCESO DE CACHÉ DE IMÁGENES (SÓLO SI HAY INTERNET)
-            // -----------------------------------------------------------
+            // ===========================================================
+            // 🚀 INICIO: PROCESO DE CACHÉ (CONFIG + EVENTOS)
+            // ===========================================================
+            
             if (result.config) {
-                // A) Cachear Logo
                 if (result.config.logo) {
-                    const logoBase64 = await cachearImagen(result.config.logo);
-                    result.config.logo = logoBase64; // Reemplazamos URL por Base64
+                    result.config.logo = await cachearImagen(result.config.logo);
                 }
-
-                // B) Cachear Screensaver (Galería)
                 if (result.config.screensaver && result.config.screensaver.length > 0) {
-                    const screensaverPromesas = result.config.screensaver.map(url => cachearImagen(url));
-                    const screensaverBase64 = await Promise.all(screensaverPromesas);
-                    result.config.screensaver = screensaverBase64; // Reemplazamos URLs por Base64
+                    const ssPromesas = result.config.screensaver.map(url => cachearImagen(url));
+                    result.config.screensaver = await Promise.all(ssPromesas);
                 }
             }
-            // -----------------------------------------------------------
 
-            // Sincronización Hora
+            if (result.data?.tipo_datos === 'AGENDA' && Array.isArray(result.data.eventos)) {
+                for (let i = 0; i < result.data.eventos.length; i++) {
+                    const evento = result.data.eventos[i];
+                    
+                    if (evento.imagenes && evento.imagenes.length > 0) {
+                        const imgPromesas = evento.imagenes.map(url => cachearImagen(url));
+                        evento.imagenes = await Promise.all(imgPromesas);
+                    }
+                }
+            }
+			
             let currentOffset = 0;
             if (result.server_time) {
                 currentOffset = new Date(result.server_time).getTime() - new Date().getTime();
@@ -100,21 +114,18 @@ export const usePantalla = (idPantalla) => {
                 localStorage.setItem('narabyte_time_offset', currentOffset);
             }
 
-            // GUARDAR EN CACHÉ (Ahora incluye las fotos reales codificadas)
             try {
                 localStorage.setItem(`narabyte_cache_${idPantalla}`, JSON.stringify(result));
             } catch (e) {
-                console.error("⚠️ Memoria llena (QuotaExceeded). No se pudo guardar caché offline.", e);
+                console.error("⚠️ Memoria llena. No se pudo guardar caché offline.", e);
             }
             
             setConfig(result.config);
 
-            // Clima
             if (result.config?.ubicacion) {
                 fetchClima(result.config.ubicacion.lat, result.config.ubicacion.lon);
             }
 
-            // Agenda
             if (result.data?.tipo_datos === 'AGENDA') {
                 setEventoActual(determinarEventoActual(result.data.eventos, currentOffset));
             } else {
@@ -127,7 +138,6 @@ export const usePantalla = (idPantalla) => {
             console.warn("⚠️ Modo Offline Activo");
             setIsOnline(false);
 
-            // RECUPERACIÓN OFFLINE
             let savedOffset = 0;
             const cachedOffset = localStorage.getItem('narabyte_time_offset');
             if (cachedOffset) savedOffset = parseInt(cachedOffset, 10);
@@ -151,6 +161,7 @@ export const usePantalla = (idPantalla) => {
         }
     };
 
+    // --- EFECTOS ---
     useEffect(() => {
         fetchData(); 
 
