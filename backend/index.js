@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-// Importamos la conexi車n a la BD
+// Importamos la conexion a la BD
 const pool = require('./config/db');
 
 const app = express();
@@ -24,7 +24,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
     const { id } = req.params;
     
     try {
-        // 1. OBTENER CONFIGURACI車N DE LA TERMINAL
+        // 1. OBTENER CONFIGURACION DE LA TERMINAL
         const sqlTerminal = `
             SELECT 
                 t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.tema_color, t.idAreaAsignada,
@@ -47,25 +47,36 @@ app.get('/api/pantalla/:id', async (req, res) => {
 
         const terminal = rows[0];
 
-        // --- L車GICA DE IM芍GENES (PNG / ICO) ---
-        // Asumimos que en la BD solo est芍 el nombre base (sin ruta ni extensi車n)
+        // --- LOGICA DE LOGOS (PNG / ICO) ---
         let logoPngUrl = null;
         let faviconIcoUrl = null;
 
         if (terminal.final_logo_name) {
-            // Limpiamos por si acaso ya tra赤a ruta o extensi車n
             const cleanName = terminal.final_logo_name
                 .replace('/logos/', '')
                 .replace('.png', '')
                 .replace('.ico', '')
                 .replace('.jpg', '');
             
-            // Construimos las URLs finales
             logoPngUrl = `/logos/${cleanName}.png`;
             faviconIcoUrl = `/logos/${cleanName}.ico`;
         }
 
-        // Objeto base de respuesta (Configuraci車n)
+        // --- LOGICA DE SCREENSAVER (GALERIA) ---
+        // Buscamos las imagenes configuradas en tbl_galeria_terminal
+        const sqlScreensaver = `
+            SELECT url_archivo 
+            FROM tbl_galeria_terminal 
+            WHERE idTerminal = ? 
+            ORDER BY orden ASC
+        `;
+        const [rowsMedia] = await pool.query(sqlScreensaver, [terminal.idTerminal]);
+        
+        // Convertimos a un array simple de URLs ['/img1.jpg', '/img2.jpg']
+        const listaScreensaver = rowsMedia.map(row => row.url_archivo);
+
+
+        // --- OBJETO BASE DE RESPUESTA ---
         let respuesta = {
             config: {
                 id: terminal.idTerminal,
@@ -73,22 +84,22 @@ app.get('/api/pantalla/:id', async (req, res) => {
                 tipo_pantalla: terminal.tipo_pantalla,
                 tema_color: terminal.tema_color || 'dark',
                 
-                logo: logoPngUrl,         // Para la imagen grande (.png)
-                favicon: faviconIcoUrl,   // Para el icono del navegador (.ico)
+                logo: logoPngUrl,
+                favicon: faviconIcoUrl,
 
                 colores: {
                     primario: terminal.color_primario,
                     secundario: terminal.color_secundario
-                }
+                },
+                
+                screensaver: listaScreensaver // Lista de fotos de respaldo
             },
             data: null,
-            // IMPORTANTE: Enviamos la hora del servidor para sincronizar relojes
-            server_time: new Date() 
+            server_time: new Date() // Hora del servidor para sincronizacion
         };
 
-        // --- CASO A: PANTALLA DE SAL車N (Agenda) ---
+        // --- CASO A: PANTALLA DE SALON (Agenda) ---
         if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
-            // Traemos todo lo que termine DESPU谷S de ahora (eventos futuros o actuales).
             const sqlAgenda = `
                 SELECT 
                     e.idEvento,
@@ -102,30 +113,26 @@ app.get('/api/pantalla/:id', async (req, res) => {
                 LEFT JOIN tbl_eventos_media em ON e.idEvento = em.idEvento AND em.tipo = 'IMAGEN'
                 WHERE e.idArea = ? 
                 AND e.estatus = 'ACTIVO'
-                AND e.fecha_fin >= NOW() -- Trae lo actual y lo futuro
+                AND e.fecha_fin >= NOW() -- Trae eventos actuales y futuros
                 GROUP BY e.idEvento
-                ORDER BY e.fecha_inicio ASC -- Ordenado por fecha
+                ORDER BY e.fecha_inicio ASC
             `;
             
             const [agenda] = await pool.query(sqlAgenda, [terminal.idAreaAsignada]);
             
-            // Procesamos la lista para que las imagenes sean Arrays y fechas legibles
             const agendaProcesada = agenda.map(evento => ({
                 titulo: evento.nombre_evento,
                 cliente: evento.cliente_nombre,
-                // Importante: Mandamos las fechas ISO crudas para compararlas en el frontend
                 inicio_iso: evento.fecha_inicio, 
                 fin_iso: evento.fecha_fin,
-                // Formato bonito para mostrar en pantalla
                 horario: `${new Date(evento.fecha_inicio).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(evento.fecha_fin).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
                 mensaje: evento.mensaje_personalizado,
                 nombre_salon: terminal.nombre_area,
                 imagenes: evento.lista_imagenes ? evento.lista_imagenes.split(',') : []
             }));
 
-            // Enviamos LA LISTA COMPLETA (Agenda)
             respuesta.data = {
-                tipo_datos: 'AGENDA', // Bandera para saber que es una lista
+                tipo_datos: 'AGENDA',
                 eventos: agendaProcesada
             };
         }
@@ -158,7 +165,7 @@ app.get('/api/test-db', async (req, res) => {
     try {
         const [rows] = await pool.query('SELECT * FROM cat_propiedades LIMIT 1');
         res.json({
-            mensaje: 'Conexi車n exitosa',
+            mensaje: 'Conexion exitosa',
             datos: rows
         });
     } catch (error) {
