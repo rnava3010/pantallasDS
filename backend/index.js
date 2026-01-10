@@ -1,13 +1,18 @@
 const express = require('express');
 const cors = require('cors');
-app.use(express.static('public'));
 require('dotenv').config();
 const pool = require('./config/db');
 
 const app = express();
 const PORT = process.env.PORT || 3100;
 
-// Middleware
+app.use(express.static('public', {
+  setHeaders: function (res, path, stat) {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+    res.set("Cross-Origin-Resource-Policy", "cross-origin");
+  }
+}));
 app.use(cors());
 app.use(express.json());
 
