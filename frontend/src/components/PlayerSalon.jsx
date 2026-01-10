@@ -57,7 +57,7 @@ export default function PlayerSalon() {
                     setImagenError(false);
                     return (prev + 1) % fotosActivas.length;
                 });
-            }, 8000); // Cambio de imagen cada 8 segundos
+            }, 8000); 
             return () => clearInterval(intervalo);
         }
     }, [fotosActivas, eventoActual]);
@@ -77,16 +77,8 @@ export default function PlayerSalon() {
     } else if (eventoActual?.full_width) { 
         layoutMode = 1; 
     }
-	
-	useEffect(() => {
-        if (config?.screensaver) {
-            config.screensaver.forEach(url => {
-                if (url.endsWith('.mp4')) {
-                    fetch(url).then(res => res.blob()); // Descarga silenciosa al disco
-                }
-            });
-        }
-    }, [config]);
+
+    // 🔥 ELIMINADO EL EFECTO QUE CAUSABA EL BUCLE INFINITO 🔥
 
     return (
         <div className="flex flex-col h-screen w-screen bg-black text-white overflow-hidden font-sans relative">
@@ -137,16 +129,16 @@ export default function PlayerSalon() {
                     <div className="w-full h-full rounded-[3rem] overflow-hidden relative bg-black border border-zinc-800/50 shadow-2xl">
                         {imagenVisual && !imagenError && (
                             esVideo(imagenVisual) ? (
-                                // 🔴 VIDEO PLAYER - MUTED OBLIGATORIO
+                                // 🔴 VIDEO PLAYER (SCREENSAVER)
                                 <video 
                                     key={indiceImagen}
                                     src={imagenVisual} 
                                     className="absolute inset-0 w-full h-full object-contain z-10" 
                                     autoPlay loop muted playsInline 
+                                    preload="auto" // <--- Agregado aquí
                                     onError={() => setImagenError(true)} 
                                 />
                             ) : (
-                                // 🔵 IMAGE PLAYER
                                 <img key={indiceImagen} src={imagenVisual} className="absolute inset-0 w-full h-full object-contain animate-fade-in z-10" alt="Screensaver" onError={() => setImagenError(true)} />
                             )
                         )}
@@ -167,7 +159,9 @@ export default function PlayerSalon() {
                             <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-zinc-800/50 bg-black">
                                 {imagenVisual && !imagenError ? (
                                     esVideo(imagenVisual) ? (
-                                        <video key={indiceImagen} src={imagenVisual} className="absolute inset-0 w-full h-full object-contain z-10" autoPlay loop muted playsInline onError={() => setImagenError(true)} />
+                                        <video key={indiceImagen} src={imagenVisual} className="absolute inset-0 w-full h-full object-contain z-10" 
+                                        autoPlay loop muted playsInline preload="auto" // <--- Agregado aquí
+                                        onError={() => setImagenError(true)} />
                                     ) : (
                                         <img key={indiceImagen} src={imagenVisual} alt="Evento Full Clean" className="absolute inset-0 w-full h-full object-contain animate-fade-in z-10" onError={() => setImagenError(true)} />
                                     )
@@ -182,7 +176,9 @@ export default function PlayerSalon() {
                             <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-zinc-800/50 bg-black">
                                 {imagenVisual && !imagenError ? (
                                     esVideo(imagenVisual) ? (
-                                        <video key={indiceImagen} src={imagenVisual} className="absolute inset-0 w-full h-full object-cover z-0 opacity-90" autoPlay loop muted playsInline onError={() => setImagenError(true)} />
+                                        <video key={indiceImagen} src={imagenVisual} className="absolute inset-0 w-full h-full object-cover z-0 opacity-90" 
+                                        autoPlay loop muted playsInline preload="auto" // <--- Agregado aquí
+                                        onError={() => setImagenError(true)} />
                                     ) : (
                                         <img key={indiceImagen} src={imagenVisual} alt="Evento Full" className="absolute inset-0 w-full h-full object-cover animate-fade-in z-0 opacity-90" onError={() => setImagenError(true)} />
                                     )
@@ -213,14 +209,11 @@ export default function PlayerSalon() {
                                         <>
                                             {esVideo(imagenVisual) ? (
                                                 <video key={indiceImagen}
-												src={imagenVisual}
-												className="absolute inset-0 w-full h-full object-contain z-10"
-												autoPlay
-												loop
-												muted
-												playsInline
-												preload="auto"
-												onError={() => setImagenError(true)} />
+                                                src={imagenVisual}
+                                                className="absolute inset-0 w-full h-full object-contain z-10"
+                                                autoPlay loop muted playsInline 
+                                                preload="auto" // <--- Este ya estaba, lo dejamos
+                                                onError={() => setImagenError(true)} />
                                             ) : (
                                                 <img key={indiceImagen} src={imagenVisual} alt="Evento" className="absolute inset-0 w-full h-full object-contain animate-fade-in z-10" onError={() => setImagenError(true)} />
                                             )}
