@@ -10,6 +10,12 @@ export default function PlayerSalon() {
     const [indiceImagen, setIndiceImagen] = useState(0);
     const [imagenError, setImagenError] = useState(false);
 
+    // --- HELPER: DETECTAR SI ES VIDEO ---
+    const esVideo = (url) => {
+        if (!url) return false;
+        return url.toLowerCase().endsWith('.mp4') || url.toLowerCase().endsWith('.webm') || url.toLowerCase().endsWith('.mov');
+    };
+
     // --- HELPER: ICONOS DE CLIMA ---
     const getIconoClima = (codigo) => {
         if (codigo === 0) return "☀️";
@@ -51,7 +57,7 @@ export default function PlayerSalon() {
                     setImagenError(false);
                     return (prev + 1) % fotosActivas.length;
                 });
-            }, 8000);
+            }, 8000); // Cambio de imagen cada 8 segundos
             return () => clearInterval(intervalo);
         }
     }, [fotosActivas, eventoActual]);
@@ -65,12 +71,11 @@ export default function PlayerSalon() {
     const tickerText = eventoActual?.ticker || null;
     
     // Obtenemos el modo de diseño (0=Split, 1=Cine Texto, 2=Cine Limpio)
-    // Si viene del backend anterior (booleano), lo convertimos
     let layoutMode = 0;
     if (eventoActual?.layout_mode !== undefined) {
         layoutMode = eventoActual.layout_mode;
     } else if (eventoActual?.full_width) { 
-        layoutMode = 1; // Compatibilidad por si no actualizaste backend aún
+        layoutMode = 1; 
     }
 
     return (
@@ -121,7 +126,19 @@ export default function PlayerSalon() {
                 {!eventoActual && (
                     <div className="w-full h-full rounded-[3rem] overflow-hidden relative bg-black border border-zinc-800/50 shadow-2xl">
                         {imagenVisual && !imagenError && (
-                            <img key={indiceImagen} src={imagenVisual} className="absolute inset-0 w-full h-full object-contain animate-fade-in z-10" alt="Screensaver" onError={() => setImagenError(true)} />
+                            esVideo(imagenVisual) ? (
+                                // 🔴 VIDEO PLAYER - MUTED OBLIGATORIO
+                                <video 
+                                    key={indiceImagen}
+                                    src={imagenVisual} 
+                                    className="absolute inset-0 w-full h-full object-contain z-10" 
+                                    autoPlay loop muted playsInline 
+                                    onError={() => setImagenError(true)} 
+                                />
+                            ) : (
+                                // 🔵 IMAGE PLAYER
+                                <img key={indiceImagen} src={imagenVisual} className="absolute inset-0 w-full h-full object-contain animate-fade-in z-10" alt="Screensaver" onError={() => setImagenError(true)} />
+                            )
                         )}
                         <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-slate-950 to-black flex flex-col items-center justify-center z-0">
                              <div className="text-zinc-800 opacity-20 mb-4 scale-150">
@@ -139,11 +156,14 @@ export default function PlayerSalon() {
                         {layoutMode === 2 && (
                             <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-zinc-800/50 bg-black">
                                 {imagenVisual && !imagenError ? (
-                                    <img key={indiceImagen} src={imagenVisual} alt="Evento Full Clean" className="absolute inset-0 w-full h-full object-contain animate-fade-in z-10" onError={() => setImagenError(true)} />
+                                    esVideo(imagenVisual) ? (
+                                        <video key={indiceImagen} src={imagenVisual} className="absolute inset-0 w-full h-full object-contain z-10" autoPlay loop muted playsInline onError={() => setImagenError(true)} />
+                                    ) : (
+                                        <img key={indiceImagen} src={imagenVisual} alt="Evento Full Clean" className="absolute inset-0 w-full h-full object-contain animate-fade-in z-10" onError={() => setImagenError(true)} />
+                                    )
                                 ) : (
                                     <div className="absolute inset-0 flex items-center justify-center text-zinc-600">Sin Imagen</div>
                                 )}
-                                {/* ¡AQUÍ NO HAY TEXTO! Solo la imagen limpia. */}
                             </div>
                         )}
 
@@ -151,7 +171,11 @@ export default function PlayerSalon() {
                         {layoutMode === 1 && (
                             <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-zinc-800/50 bg-black">
                                 {imagenVisual && !imagenError ? (
-                                    <img key={indiceImagen} src={imagenVisual} alt="Evento Full" className="absolute inset-0 w-full h-full object-cover animate-fade-in z-0 opacity-90" onError={() => setImagenError(true)} />
+                                    esVideo(imagenVisual) ? (
+                                        <video key={indiceImagen} src={imagenVisual} className="absolute inset-0 w-full h-full object-cover z-0 opacity-90" autoPlay loop muted playsInline onError={() => setImagenError(true)} />
+                                    ) : (
+                                        <img key={indiceImagen} src={imagenVisual} alt="Evento Full" className="absolute inset-0 w-full h-full object-cover animate-fade-in z-0 opacity-90" onError={() => setImagenError(true)} />
+                                    )
                                 ) : (
                                     <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center"><img src={config?.logo} className="w-1/3 opacity-10 grayscale" alt="Logo" /></div>
                                 )}
@@ -177,7 +201,12 @@ export default function PlayerSalon() {
                                 <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-zinc-800/50 bg-black">
                                     {imagenVisual && !imagenError ? (
                                         <>
-                                            <img key={indiceImagen} src={imagenVisual} alt="Evento" className="absolute inset-0 w-full h-full object-contain animate-fade-in z-10" onError={() => setImagenError(true)} />
+                                            {esVideo(imagenVisual) ? (
+                                                <video key={indiceImagen} src={imagenVisual} className="absolute inset-0 w-full h-full object-contain z-10" autoPlay loop muted playsInline onError={() => setImagenError(true)} />
+                                            ) : (
+                                                <img key={indiceImagen} src={imagenVisual} alt="Evento" className="absolute inset-0 w-full h-full object-contain animate-fade-in z-10" onError={() => setImagenError(true)} />
+                                            )}
+                                            
                                             {eventoActual.imagenes.length > 1 && (
                                                 <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
                                                     {eventoActual.imagenes.map((_, idx) => (
