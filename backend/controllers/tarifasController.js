@@ -1,7 +1,7 @@
 const pool = require('../config/db');
 
 /**
- * Obtiene la lista de tarifas activas para una sucursal específica
+ * Obtiene la lista de tarifas activas para una sucursal
  */
 const obtenerTarifasPorSucursal = async (idSucursal) => {
     try {
@@ -12,9 +12,7 @@ const obtenerTarifasPorSucursal = async (idSucursal) => {
                 precio_rack, 
                 precio_promocion as precio, 
                 moneda, 
-                url_imagen_fondo as imagen,
-                idPropiedad,
-                idMarca
+                url_imagen_fondo as imagen
             FROM tbl_tarifas 
             WHERE idSucursal = ? AND activo = 1
             ORDER BY idTarifa ASC
@@ -27,13 +25,8 @@ const obtenerTarifasPorSucursal = async (idSucursal) => {
     }
 };
 
-/**
- * Obtiene los banners publicitarios de texto para el módulo de tarifas
- */
 const obtenerBannersTarifas = async (idSucursal) => {
-    // Aquí podrías consultar una tabla de banners si la tienes, 
-    // por ahora devolvemos un texto por defecto o de la sucursal.
-    return "¡Aprovecha nuestras promociones de temporada! • Consulta disponibilidad en recepción.";
+    return "Consulte nuestras promociones de temporada en recepción. • Tarifas vigentes para el día de hoy.";
 };
 
 module.exports = {
