@@ -26,23 +26,35 @@ export default function LayoutDirectorioHorizontalModern({
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden p-8" style={{ backgroundColor: fondo }}>
             
-            {/* HEADER */}
-            <header className="flex justify-between items-center mb-8 bg-black/40 backdrop-blur-xl p-6 rounded-[2.5rem] border border-white/10 shadow-2xl">
+            {/* HEADER CON TÍTULO MEJORADO */}
+            <header className="flex justify-between items-center mb-8 bg-black/40 backdrop-blur-xl p-6 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
+                {/* Reflejo de luz sutil en el header */}
+                <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+
                 <div className="w-1/4">
-                    {config.logo && <img src={config.logo} alt="Logo" className="h-14 object-contain" />}
+                    {config.logo && <img src={config.logo} alt="Logo" className="h-14 object-contain drop-shadow-md" />}
                 </div>
 
-                <div className="flex-1 text-center">
-                    <h1 className="text-4xl font-black italic tracking-tighter uppercase" style={{ color: acento }}>
+                {/* --- SECCIÓN DEL TÍTULO CON EFECTO --- */}
+                <div className="flex-1 text-center relative group">
+                    <h1 className="text-5xl font-black italic tracking-tighter uppercase relative z-10 animate-pulse-slow shadow-black drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)]"
+                        style={{ 
+                            background: `linear-gradient(to bottom, #FFFFFF 0%, ${acento} 50%, #FFFFFF 100%)`,
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.2))'
+                        }}>
                         Directorio de Eventos
                     </h1>
+                    {/* Resplandor detrás del texto */}
+                    <div className="absolute inset-0 blur-2xl opacity-20 scale-150 rounded-full" style={{ backgroundColor: acento }}></div>
                 </div>
 
                 <div className="w-1/4 text-right">
-                    <span className="text-5xl font-mono font-black block leading-none" style={{ color: texto_reloj }}>
+                    <span className="text-5xl font-mono font-black block leading-none tracking-tight" style={{ color: texto_reloj }}>
                         {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <p className="text-sm font-bold uppercase tracking-widest mt-1 opacity-60" style={{ color: texto_reloj }}>
+                    <p className="text-sm font-bold uppercase tracking-[0.3em] mt-1 opacity-60" style={{ color: texto_reloj }}>
                         {horaActual?.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}
                     </p>
                 </div>
@@ -54,9 +66,7 @@ export default function LayoutDirectorioHorizontalModern({
                         <div className="h-1/2 relative">
                             <img src={e.imagenes?.[0] || config.imagen_default} className="absolute inset-0 w-full h-full object-cover opacity-80" alt="img" />
                             
-                            {/* HORARIO Y FECHA MEJORADOS EN CONTRASTE */}
                             <div className="absolute top-6 left-6 flex flex-col items-start gap-2">
-                                {/* Fondo casi negro y letras en negrita extrema */}
                                 <div className="bg-black/90 backdrop-blur-xl px-5 py-2 rounded-2xl border border-white/30 flex items-center gap-2 shadow-2xl">
                                     <span className="text-2xl font-mono font-black drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" style={{ color: acento }}>
                                         {new Date(e.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -66,7 +76,6 @@ export default function LayoutDirectorioHorizontalModern({
                                         {new Date(e.fecha_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 </div>
-                                {/* Etiqueta de fecha más sólida */}
                                 <div className="bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-xl border border-white/20 ml-1 shadow-lg">
                                     <span className="text-xs font-black uppercase tracking-[0.2em] text-white">
                                         {new Date(e.fecha_inicio).toLocaleDateString([], { day: 'numeric', month: 'short' })}
@@ -119,6 +128,8 @@ export default function LayoutDirectorioHorizontalModern({
                 .animate-marquee-horizontal { animation: marquee-horizontal 120s linear infinite; }
                 .animate-fade-in-up { animation: fadeInUp 0.7s ease-out forwards; }
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-pulse-slow { animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+                @keyframes pulse-slow { 0%, 100% { opacity: 1; filter: brightness(1.2); } 50% { opacity: 0.9; filter: brightness(1); } }
             `}</style>
         </div>
     );
