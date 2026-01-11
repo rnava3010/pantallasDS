@@ -1,51 +1,52 @@
 const pool = require('../config/db');
 
 /**
- * Helper para obtener fecha y hora en una Zona Horaria específica
- * Retorna objeto con strings listos para MySQL
+ * Helper robusto para obtener fecha y hora en una Zona Horaria específica.
+ * Usa el locale 'sv-SE' (Suecia) porque sigue el estándar ISO 8601 (YYYY-MM-DD HH:mm:ss),
+ * que es exactamente lo que MySQL necesita, evitando errores de formato manual.
  */
 const getZonedNow = (timeZone) => {
-    // Si no hay zona horaria, usamos la de CDMX por defecto
-    const zona = timeZone || 'America/Mexico_City';
-    const now = new Date();
+    try {
+        const zona = timeZone || 'America/Mexico_City';
+        const now = new Date();
 
-    // Usamos Intl para convertir la hora del servidor a la hora de la Sucursal
-    const options = {
-        timeZone: zona,
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', second: '2-digit',
-        hour12: false
-    };
-
-    // Formateamos y extraemos las partes (año, mes, día, hora...)
-    const formatter = new Intl.DateTimeFormat('en-US', options);
-    const parts = formatter.formatToParts(now).reduce((acc, part) => {
-        acc[part.type] = part.value;
-        return acc;
-    }, {});
-
-    return {
-        // Formato para comparar fecha: YYYY-MM-DD
-        dateOnly: `${parts.year}-${parts.month}-${parts.day}`,
-        // Formato para comparar hora fin: YYYY-MM-DD HH:mm:ss
-        full: `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`
-    };
+        // Genera: "2025-01-10 23:30:05" directamente
+        const fechaHoraString = now.toLocaleString('sv-SE', { timeZone: zona });
+        
+        // Separamos fecha y hora
+        const [fecha, hora] = fechaHoraString.split(' ');
+        
+        return {
+            dateOnly: fecha,      // "2025-01-10"
+            full: fechaHoraString // "2025-01-10 23:30:05"
+        };
+    } catch (error) {
+        console.error("Error calculando zona horaria:", error);
+        // Fallback de emergencia a UTC si falla la zona
+        const now = new Date();
+        return {
+            dateOnly: now.toISOString().split('T')[0],
+            full: now.toISOString().slice(0, 19).replace('T', ' ')
+        };
+    }
 };
 
 const obtenerDatosDirectorio = async (idSucursal) => {
     
-    // 1. PRIMERO: Obtenemos la zona horaria de la sucursal desde la BD
+    // 1. Obtenemos la zona horaria de la sucursal
     const sqlZona = `SELECT zona_horaria FROM cat_sucursales WHERE idSucursal = ?`;
     const [rowsZona] = await pool.query(sqlZona, [idSucursal]);
     
     const zonaHoraria = rowsZona[0]?.zona_horaria || 'America/Mexico_City';
 
-    // 2. SEGUNDO: Calculamos la hora exacta en ESA ciudad
+    // 2. Calculamos la hora exacta
     const tiempoActual = getZonedNow(zonaHoraria);
     
-    console.log(`[Directorio] Sucursal ${idSucursal} (${zonaHoraria}) - Hora Local: ${tiempoActual.full}`);
+    // LOG DE DEPURACIÓN (Revisa esto en tu consola del backend)
+    console.log(`🔎 [Directorio] Sucursal ID: ${idSucursal} | Zona: ${zonaHoraria}`);
+    console.log(`🕒 [Directorio] Hora Calculada para Filtro: ${tiempoActual.full}`);
 
-    // 3. TERCERO: Consultamos los eventos usando esa hora
+    // 3. Consulta SQL
     const sql = `
         SELECT 
             e.nombre_evento, 
@@ -57,16 +58,18 @@ const obtenerDatosDirectorio = async (idSucursal) => {
         WHERE e.idSucursal = ? 
           AND e.estatus = 'ACTIVO' 
           
-          -- REGLA 1: Eventos de HOY (en la hora de la sucursal)
+          -- REGLA 1: Compara solo la parte de la FECHA (YYYY-MM-DD)
           AND DATE(e.fecha_inicio) = ?
           
-          -- REGLA 2: Que no hayan terminado (según la hora de la sucursal)
+          -- REGLA 2: El evento debe terminar DESPUÉS de ahora
           AND e.fecha_fin > ?
           
         ORDER BY e.fecha_inicio ASC
     `;
     
     const [rows] = await pool.query(sql, [idSucursal, tiempoActual.dateOnly, tiempoActual.full]);
+    
+    console.log(`✅ [Directorio] Eventos encontrados: ${rows.length}`);
     return rows;
 };
 
