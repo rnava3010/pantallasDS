@@ -1,13 +1,13 @@
 const iconv = require('iconv-lite');
 
 /**
- * Controlador de Noticias RSS - Edici車n Reforma Negocios con Correcci車n de Acentos
+ * Controlador de Noticias RSS - Reforma con Correccion de Codificacion
  */
 const fetchNoticiasRSS = async () => {
     try {
         const RSS_URL = "https://www.reforma.com/rss/negocios.xml";
         
-        console.log("?? [Noticias] Conectando a Reforma Negocios...");
+        console.log("?? [Noticias] Conectando a Reforma Negocios (Fix Acentos)...");
         
         const response = await fetch(RSS_URL, {
             headers: {
@@ -17,16 +17,11 @@ const fetchNoticiasRSS = async () => {
 
         if (!response.ok) throw new Error(`Status: ${response.status}`);
 
-        // ? PASO CLAVE: Recibir como ArrayBuffer para manejar la codificaci車n manualmente
+        // ? RECUPERAMOS EL BUFFER (No el texto directo)
         const buffer = await response.arrayBuffer();
         
-        // Decodificamos el buffer de Reforma (que suele ser win1252 o iso-8859-1) a UTF-8
+        // ? DECODIFICAMOS DESDE ISO-8859-1 (El formato de Reforma)
         let text = iconv.decode(Buffer.from(buffer), 'iso-8859-1');
-
-        // Si Reforma llegara a cambiar a UTF-8, esto asegura que no lo rompamos
-        if (text.includes('')) {
-            text = iconv.decode(Buffer.from(buffer), 'utf-8');
-        }
 
         const items = [];
         const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
@@ -42,11 +37,12 @@ const fetchNoticiasRSS = async () => {
                 const limpiar = (str) => {
                     if (!str) return "";
                     return str
-                        .replace(/<!\[CDATA\[/g, '').replace(/\]\]>/g, '')
+                        .replace(/<!\[CDATA\[/g, '')
+                        .replace(/\]\]>/g, '')
+                        // Reemplazar entidades HTML que Reforma a veces mezcla con el texto
                         .replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ')
-                        // Decodificar entidades HTML comunes que a veces vienen mezcladas
-                        .replace(/&#225;/g, '芍').replace(/&#233;/g, '谷').replace(/&#237;/g, '赤').replace(/&#243;/g, '車').replace(/&#250;/g, '迆')
-                        .replace(/&#241;/g, '?').replace(/&#209;/g, '?')
+                        .replace(/&iacute;/g, 'i').replace(/&aacute;/g, 'a').replace(/&eacute;/g, 'e')
+                        .replace(/&oacute;/g, 'o').replace(/&uacute;/g, 'u').replace(/&ntilde;/g, 'n')
                         .trim();
                 };
 
@@ -58,12 +54,12 @@ const fetchNoticiasRSS = async () => {
             if (items.length >= 15) break; 
         }
 
-        console.log(`? [Noticias] Reforma decodificado correctamente: ${items.length} titulares.`);
+        console.log(`? [Noticias] Reforma decodificado: ${items.length} titulares.`);
         return items;
 
     } catch (error) {
         console.error("?? [Noticias] Error:", error.message);
-        return [{ titulo: "Error de conexi車n", descripcion: "No se pudieron cargar las noticias." }];
+        return [{ titulo: "Noticias en actualizacion", descripcion: "Estamos recuperando la informacion financiera." }];
     }
 };
 
