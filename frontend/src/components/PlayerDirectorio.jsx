@@ -9,50 +9,45 @@ import { useOfflineVideo } from '../hooks/useOfflineVideo';
 
 // Componentes y Utilidades
 import { getIconoClima } from '../utils/weatherUtils';
-import DirectionArrow from './DirectionArrow';
 
-// Layouts específicos
+// Importación de Layouts de Directorio
 import LayoutDirectorioHorizontal from './layoutsDirectorios/LayoutDirectorioHorizontal';
 import LayoutDirectorioVertical from './layoutsDirectorios/LayoutDirectorioVertical';
 
 export default function PlayerDirectorio() {
     const { id } = useParams();
-    
-    // Obtenemos configuración y datos (incluyendo noticias y clima desde el backend)
     const { config, eventoActual: data, loading, isOnline, timeOffset, clima } = usePantalla(id);
     const horaActual = useReloj(timeOffset);
     const [paginaActual, setPaginaActual] = useState(0);
 
-    // Extraemos colores y configuración de orientación
-    const { fondo = '#000000', texto_reloj = '#FFFFFF', acento = '#EAB308' } = config?.colores || {};
+    // --- 1. SELECCIÓN DINÁMICA DE LAYOUT ---
     const isVertical = config?.orientacion === 1; // 0: Horizontal, 1: Vertical
+    const dbLayoutBase = config?.layoutDir || 'default';
+    
+    // Construimos el identificador del layout (ej: "horizontal-default" o "vertical-modern")
+    const layoutDir = `${isVertical ? 'vertical' : 'horizontal'}-${dbLayoutBase}`;
 
-    // Procesamiento de datos de eventos y noticias
+    const { fondo = '#000000', texto_reloj = '#FFFFFF', acento = '#EAB308' } = config?.colores || {};
+
+    // --- 2. PROCESAMIENTO DE DATOS ---
     let eventos = [];
     let noticias = [];
-    if (data) {
-        if (data.tipo_datos === 'DIRECTORIO') {
-            eventos = data.eventos || [];
-            noticias = data.noticias || [];
-        } else if (Array.isArray(data)) {
-            eventos = data;
-        }
+    if (data && data.tipo_datos === 'DIRECTORIO') {
+        eventos = data.eventos || [];
+        noticias = data.noticias || [];
     }
 
-    // Configuración de paginación según orientación
+    // Paginación ajustada según orientación
     const ITEMS_POR_PAGINA = isVertical ? 6 : 4; 
     const totalPaginas = Math.ceil(eventos.length / ITEMS_POR_PAGINA);
 
-    // Carrusel de Widgets Inferiores (Screensaver)
+    // Carrusel de Widgets (Screensaver)
     const { itemActual } = useCarrusel(config?.screensaver || [], 8000);
     const { videoBlobUrl } = useOfflineVideo(config?.screensaver || []);
 
-    // Efecto para cambio de página automático
     useEffect(() => {
         if (totalPaginas > 1) {
-            const intervalo = setInterval(() => {
-                setPaginaActual((prev) => (prev + 1) % totalPaginas);
-            }, 12000); 
+            const intervalo = setInterval(() => setPaginaActual(p => (p + 1) % totalPaginas), 12000); 
             return () => clearInterval(intervalo);
         } else {
             setPaginaActual(0);
@@ -61,11 +56,9 @@ export default function PlayerDirectorio() {
 
     const eventosVisibles = eventos.slice(paginaActual * ITEMS_POR_PAGINA, (paginaActual + 1) * ITEMS_POR_PAGINA);
 
-    if (loading && !config) {
-        return <div className="bg-black h-screen flex items-center justify-center text-white animate-pulse text-2xl">CARGANDO DIRECTORIO...</div>;
-    }
+    if (loading && !config) return <div className="bg-black h-screen flex items-center justify-center text-white animate-pulse">CARGANDO...</div>;
 
-    // Props que compartiremos con los Layouts
+    // Props que se inyectan a los layouts
     const layoutProps = {
         eventosVisibles,
         paginaActual,
@@ -74,16 +67,35 @@ export default function PlayerDirectorio() {
         noticias,
         itemActual,
         videoBlobUrl,
-        FilaGaleria // Pasamos el sub-componente
+        FilaGaleria
+    };
+
+    // --- 3. RENDERIZADO CONDICIONAL DE LAYOUTS ---
+    const renderContent = () => {
+        switch (layoutDir) {
+            case 'vertical-default':
+                return <LayoutDirectorioVertical {...layoutProps} />;
+            case 'horizontal-default':
+                return <LayoutDirectorioHorizontal {...layoutProps} />;
+            
+            // Aquí puedes añadir futuros diseños:
+            // case 'horizontal-modern': return <LayoutDirectorioModern {...layoutProps} />;
+            
+            default:
+                // Fallback de seguridad basado en orientación
+                return isVertical ? 
+                    <LayoutDirectorioVertical {...layoutProps} /> : 
+                    <LayoutDirectorioHorizontal {...layoutProps} />;
+        }
     };
 
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden font-sans relative" style={{ backgroundColor: fondo }}>
             
-            {/* INDICADOR DE ESTADO ONLINE (Pequeño punto en esquina) */}
+            {/* INDICADOR ONLINE */}
             <div className={`absolute bottom-20 right-4 z-50 w-2 h-2 rounded-full transition-colors duration-500 ${isOnline ? 'bg-green-500/40' : 'bg-red-600 animate-pulse'}`}></div>
 
-            {/* HEADER UNIFICADO */}
+            {/* HEADER */}
             <header className={`${isVertical ? 'h-20' : 'h-24'} flex justify-between items-center px-10 shrink-0 z-20 bg-gradient-to-b from-black/80 to-transparent`}>
                 <div className="flex justify-start w-1/4">
                     {config?.logo && <img src={config.logo} alt="Logo" className={`${isVertical ? 'h-12' : 'h-16'} w-auto object-contain`} />}
@@ -107,13 +119,9 @@ export default function PlayerDirectorio() {
                 </div>
             </header>
 
-            {/* CONTENEDOR PRINCIPAL QUE ELIGE EL LAYOUT */}
+            {/* MAIN CONTENT AREA */}
             <main className="flex-1 px-10 py-4 min-h-0 flex flex-col relative overflow-hidden">
-                {isVertical ? (
-                    <LayoutDirectorioVertical {...layoutProps} />
-                ) : (
-                    <LayoutDirectorioHorizontal {...layoutProps} />
-                )}
+                {renderContent()}
             </main>
 
             {/* FOOTER */}
@@ -135,18 +143,12 @@ export default function PlayerDirectorio() {
     );
 }
 
-/**
- * SUB-COMPONENTE: Mini Galería de Eventos
- * Se define aquí para ser reutilizado por ambos layouts
- */
+// Sub-componente de Galería (reutilizado por los layouts)
 const FilaGaleria = ({ imagenes, isVertical }) => {
     const [indice, setIndice] = useState(0);
-
     useEffect(() => {
         if (!imagenes || imagenes.length <= 1) return;
-        const timer = setInterval(() => {
-            setIndice(p => (p + 1) % imagenes.length);
-        }, 4000);
+        const timer = setInterval(() => setIndice(p => (p + 1) % imagenes.length), 4000);
         return () => clearInterval(timer);
     }, [imagenes]);
 

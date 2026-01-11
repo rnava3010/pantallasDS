@@ -9,6 +9,7 @@ const obtenerConfiguracion = async (id) => {
             t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.tema_color, t.idAreaAsignada,
             t.idSucursal,
             t.orientacion,
+            t.layoutDir, -- ✅ Nueva columna para selección de diseño
             a.nombre as nombre_area,
             COALESCE(s.logo_url, m.logo_url) as final_logo_name, 
             m.color_primario, m.color_secundario,
@@ -73,8 +74,15 @@ const getNoticiasSeguras = async () => {
     }
 
     if (necesitaActualizar) {
-        noticias = await noticiasController.fetchNoticiasRSS();
-        pool.query("INSERT INTO tbl_cache_noticias (id, lista_noticias, updated_at) VALUES (1, ?, NOW()) ON DUPLICATE KEY UPDATE lista_noticias = VALUES(lista_noticias), updated_at = NOW()", [JSON.stringify(noticias)]);
+        try {
+            noticias = await noticiasController.fetchNoticiasRSS();
+            await pool.query(
+                "INSERT INTO tbl_cache_noticias (id, lista_noticias, updated_at) VALUES (1, ?, NOW()) ON DUPLICATE KEY UPDATE lista_noticias = VALUES(lista_noticias), updated_at = NOW()", 
+                [JSON.stringify(noticias)]
+            );
+        } catch (err) {
+            console.error("Error fallback noticias:", err);
+        }
     }
     return noticias;
 };
@@ -96,7 +104,6 @@ const getClimaSeguro = async (idSucursal) => {
 // ==========================================
 const getDatosPantalla = async (req, res) => {
     const { id } = req.params;
-    console.log(`\n⬇️ [PantallaController] Solicitud ID: ${id}`);
     
     try {
         const terminal = await obtenerConfiguracion(id);
@@ -119,6 +126,7 @@ const getDatosPantalla = async (req, res) => {
                 nombre_interno: terminal.nombre_interno,
                 tipo_pantalla: terminal.tipo_pantalla,
                 orientacion: terminal.orientacion,
+                layoutDir: terminal.layoutDir || 'default', // ✅ Enviado al frontend
                 zona_horaria: terminal.zona_horaria || 'America/Mexico_City', 
                 logo: logoPngUrl,
                 favicon: faviconIcoUrl,
@@ -159,15 +167,9 @@ const getDatosPantalla = async (req, res) => {
                 }))
             };
         } 
-		else if (terminal.tipo_pantalla === 'DIRECTORIO') {
-            console.log("📂 [PantallaController] Procesando como DIRECTORIO");
-            
+        else if (terminal.tipo_pantalla === 'DIRECTORIO') {
             const eventos = await directorioController.obtenerDatosDirectorio(terminal.idSucursal);
-            
-            // ✅ Usa la función que lee de la Base de Datos (Caché)
-            // Si quieres probar sin cron, usa: const noticias = await noticiasController.fetchNoticiasRSS();
-            const noticias = await getNoticiasSeguras(); 
-
+            const noticias = await getNoticiasSeguras();
             respuesta.data = {
                 tipo_datos: 'DIRECTORIO',
                 eventos: eventos,
