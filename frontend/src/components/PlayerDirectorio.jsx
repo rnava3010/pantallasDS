@@ -53,45 +53,42 @@ const FilaGaleria = ({ imagenes }) => {
 
 // --- SUB-COMPONENTE: Ticker de Noticias ---
 const NewsTicker = ({ noticias, colorTitulo, colorTexto }) => {
-    // LOG DE DEBUG PARA NOTICIAS
-    useEffect(() => {
-        if (noticias && noticias.length > 0) {
-            console.log("📰 [NewsTicker] Renderizando noticias:", noticias);
-        } else {
-            console.warn("⚠️ [NewsTicker] No hay noticias para mostrar");
-        }
-    }, [noticias]);
-
-    if (!noticias || noticias.length === 0) return (
-        <div className="w-full h-full flex items-center justify-center border border-white/10 rounded-[2rem] bg-white/5">
-            <span className="opacity-50 text-sm">Sin noticias</span>
-        </div>
-    );
+    if (!noticias || noticias.length === 0) return null;
 
     return (
         <div className="w-full h-full relative overflow-hidden flex flex-col">
-            <div className="px-4 py-2 border-b border-white/10 flex items-center gap-2 bg-black/20">
+            <div className="px-4 py-2 border-b border-white/10 flex items-center gap-2 bg-black/20 shrink-0">
                 <span className="text-xs font-bold uppercase tracking-widest px-2 py-0.5 rounded" style={{ backgroundColor: colorTitulo, color: '#000' }}>
-                    NOTICIAS
-                </span>
-                <span className="text-xs opacity-70 uppercase tracking-wide" style={{ color: colorTexto }}>
-                    Al momento
+                    REFORMA NEGOCIOS
                 </span>
             </div>
             
             <div className="flex-1 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full animate-marquee-vertical">
                     {[...noticias, ...noticias].map((noticia, idx) => (
-                        <div key={idx} className="p-4 border-b border-white/5 flex gap-3">
-                            <span className="text-lg font-bold opacity-30 select-none">•</span>
-                            <p className="text-lg leading-snug font-medium" style={{ color: colorTexto }}>
-                                {noticia}
+                        <div key={idx} className="p-4 border-b border-white/5 flex flex-col gap-1">
+                            {/* Título en Negritas */}
+                            <h3 className="text-xl font-black leading-tight" style={{ color: colorTitulo }}>
+                                {noticia.titulo}
+                            </h3>
+                            {/* Descripción más chica */}
+                            <p className="text-sm leading-snug opacity-80" style={{ color: colorTexto }}>
+                                {noticia.descripcion}
                             </p>
                         </div>
                     ))}
                 </div>
             </div>
-            <style>{`@keyframes marquee-vertical { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } } .animate-marquee-vertical { animation: marquee-vertical 40s linear infinite; }`}</style>
+            
+            <style>{`
+                @keyframes marquee-vertical {
+                    0% { transform: translateY(0); }
+                    100% { transform: translateY(-50%); }
+                }
+                .animate-marquee-vertical {
+                    animation: marquee-vertical 60s linear infinite; /* Un poco más lento para que de tiempo de leer la descripción */
+                }
+            `}</style>
         </div>
     );
 };
