@@ -1,16 +1,18 @@
 const pool = require('../config/db');
 
+// --- SUB-FUNCION: Obtener Configuración Base ---
 const obtenerConfiguracion = async (id) => {
     const sqlTerminal = `
         SELECT 
             t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.tema_color, t.idAreaAsignada,
             t.idSucursal,
+            t.orientacion, -- <--- ✅ NUEVO CAMPO: 0=Horizontal, 1=Vertical
             a.nombre as nombre_area,
             COALESCE(s.logo_url, m.logo_url) as final_logo_name, 
             m.color_primario, m.color_secundario,
             s.latitud, s.longitud,
             
-            -- COLORES PERSONALIZABLES (Nuevos campos)
+            -- COLORES PERSONALIZABLES
             COALESCE(t.color_fondo, '#000000') as color_fondo,
             COALESCE(t.color_texto_evento, '#FFFFFF') as color_texto_evento,
             COALESCE(t.color_texto_reloj, '#FFFFFF') as color_texto_reloj,
@@ -41,7 +43,7 @@ const obtenerAgendaSalon = async (idArea) => {
             e.fecha_inicio, e.fecha_fin, 
             e.mensaje_personalizado, e.mensaje_ticker,
             e.imagen_full_width, e.direccion_reloj,
-            e.nombre_salon_personalizado,  -- <--- ¡NUEVO CAMPO AGREGADO!
+            e.nombre_salon_personalizado, 
             
             e.fecha_visualizacion_inicio, e.fecha_visualizacion_fin,
             e.es_recurrente,
@@ -71,14 +73,18 @@ const obtenerDirectorio = async (idSucursal) => {
 };
 
 
+// ==========================================
+// 🎮 CONTROLADOR PRINCIPAL
+// ==========================================
 const getDatosPantalla = async (req, res) => {
     const { id } = req.params;
     
     try {
+        // 1. Configuración Principal
         const terminal = await obtenerConfiguracion(id);
         if (!terminal) return res.status(404).json({ error: "Terminal no encontrada" });
 
-        // ... (Lógica de logos igual) ...
+        // 2. Procesar Logos
         let logoPngUrl = null;
         let faviconIcoUrl = null;
         if (terminal.final_logo_name) {
@@ -87,34 +93,38 @@ const getDatosPantalla = async (req, res) => {
              faviconIcoUrl = `/logos/${cleanName}.ico`;
         }
 
- const listaScreensaver = await obtenerScreensaver(terminal.idTerminal);
+        // 3. Screensaver
+        const listaScreensaver = await obtenerScreensaver(terminal.idTerminal);
 
+        // 4. Armar Respuesta Base
         let respuesta = {
             config: {
-                // ... (Datos previos) ...
                 id: terminal.idTerminal,
                 nombre_interno: terminal.nombre_interno,
                 tipo_pantalla: terminal.tipo_pantalla,
+                orientacion: terminal.orientacion, // <--- ✅ AGREGADO: Se envía al front (0 o 1)
                 tema_color: terminal.tema_color || 'dark',
                 logo: logoPngUrl,
                 favicon: faviconIcoUrl,
                 screensaver: listaScreensaver,
                 ubicacion: { lat: terminal.latitud || '19.43', lon: terminal.longitud || '-99.13' },
                 
-                // ✅ NUEVOS COLORES CONFIGURABLES
+                // COLORES CONFIGURABLES
                 colores: {
                     fondo: terminal.color_fondo,
                     texto_evento: terminal.color_texto_evento,
                     texto_reloj: terminal.color_texto_reloj,
-                    acento: terminal.color_acento // Este controla los 5 elementos que pediste
+                    acento: terminal.color_acento 
                 }
             },
             data: null,
             server_time: new Date()
         };
 
-if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
+        // 5. Lógica Específica según Tipo
+        if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
              const agenda = await obtenerAgendaSalon(terminal.idAreaAsignada);
+             
              respuesta.data = {
                 tipo_datos: 'AGENDA',
                 eventos: agenda.map(evento => ({

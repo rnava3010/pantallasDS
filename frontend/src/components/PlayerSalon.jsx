@@ -17,7 +17,6 @@ import LayoutSplit from './layoutsSalones/LayoutSplit';         // Modo 0
 import LayoutCine from './layoutsSalones/LayoutCine';           // Modo 1
 import LayoutPoster from './layoutsSalones/LayoutPoster';       // Modo 2
 import LayoutClean from './layoutsSalones/LayoutClean';         // Modo 3
-// import LayoutCorporativo from './layoutsSalones/LayoutCorporativo'; // Modo 4 (Opcional)
 import LayoutVertical from './layoutsSalones/LayoutVertical';           // Modo 5
 import LayoutVerticalCine from './layoutsSalones/LayoutVerticalCine';   // Modo 6
 import LayoutVerticalFull from './layoutsSalones/LayoutVerticalFull';   // Modo 7
@@ -47,7 +46,7 @@ export default function PlayerSalon() {
 
     // Logs
     useEffect(() => {
-        if (config) logger.log(`✅ [PlayerSalon] Configurado: "${config.nombre_interno}"`);
+        if (config) logger.log(`✅ [PlayerSalon] Configurado: "${config.nombre_interno}" Orientación: ${config.orientacion === 1 ? 'Vertical' : 'Horizontal'}`);
     }, [config]);
 
     // Contenido
@@ -86,24 +85,27 @@ export default function PlayerSalon() {
     if (eventoActual) {
         const fInicio = formatDate(eventoActual.inicio_iso);
         const fFin = formatDate(eventoActual.fin_iso);
-        if (fInicio === fFin) {
-            textoFechas = fInicio; 
-        } else {
-            textoFechas = `${fInicio} al ${fFin}`;
-        }
+        if (fInicio === fFin) { textoFechas = fInicio; } 
+        else { textoFechas = `${fInicio} al ${fFin}`; }
     }
 
-    // --- DETECCIÓN DE MODO ---
+    // --- DETECCIÓN INTELIGENTE DE ORIENTACIÓN ---
     let layoutMode = 0;
-    if (eventoActual?.layout_mode !== undefined) {
-        layoutMode = eventoActual.layout_mode;
-    } else if (eventoActual?.full_width) { 
-        layoutMode = 1; 
-    }
+    if (eventoActual?.layout_mode !== undefined) { layoutMode = eventoActual.layout_mode; } 
+    else if (eventoActual?.full_width) { layoutMode = 1; }
 
-    // Configuración Responsiva
-    const isVertical = (layoutMode === 5 || layoutMode === 6 || layoutMode === 7);
+    // 1. ¿Es un layout de evento vertical?
+    const isEventVertical = (layoutMode === 5 || layoutMode === 6 || layoutMode === 7);
+    
+    // 2. ¿La terminal está configurada físicamente como vertical?
+    const isConfigVertical = config?.orientacion === 1;
+
+    // 3. Decisión Final: Si hay evento, manda el evento. Si no, manda la configuración física.
+    const isVertical = eventoActual ? isEventVertical : isConfigVertical;
+
+    // Ajustes de CSS basados en la decisión
     const paddingX = isVertical ? 'px-4' : 'px-10';
+    const radioBorde = isVertical ? 'rounded-[2rem]' : 'rounded-[3rem]';
 
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden font-sans relative transition-colors duration-1000" style={{ backgroundColor: fondo }}>
@@ -111,7 +113,7 @@ export default function PlayerSalon() {
             
             <div className={`absolute bottom-32 right-6 z-50 w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] transition-colors duration-500 ${isOnline ? 'bg-green-500/40 text-green-500' : 'bg-red-600 text-red-600 animate-pulse'}`}></div>
 
-            {/* HEADER */}
+            {/* HEADER (Se adapta automáticamente si es Vertical u Horizontal) */}
             <header className={`h-24 grid grid-cols-3 items-center ${paddingX} relative z-20 bg-gradient-to-b from-black/90 to-transparent`}>
                 <div className="flex justify-start">
                     {config?.logo && <img src={config.logo} alt="Logo" className={`${isVertical ? 'h-16' : 'h-20'} w-auto object-contain animate-float`} />}
@@ -137,21 +139,27 @@ export default function PlayerSalon() {
 
             {/* CONTENIDO */}
             <div className={`flex-1 ${paddingX} pt-2 relative z-10 w-full h-full min-h-0 ${tickerText ? 'pb-14' : ''}`}>
+                
+                {/* A. SCREENSAVER (ADAPTABLE) */}
                 {!eventoActual && (
-                     <div className="w-full h-full rounded-[2rem] overflow-hidden relative border border-white/10 shadow-2xl" style={{ backgroundColor: fondo }}>
+                     <div className={`w-full h-full ${radioBorde} overflow-hidden relative border border-white/10 shadow-2xl`} style={{ backgroundColor: fondo }}>
+                        {/* Usamos object-contain para no cortar imágenes, u object-cover si queremos llenar todo */}
                         <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10 w-full h-full"/>
+                        
+                        {/* Logo de fondo (Marca de agua) */}
                         {!itemActual && <div className="absolute inset-0 flex items-center justify-center opacity-10"><img src={config?.logo} className="w-1/3 grayscale animate-pulse" alt="Logo" /></div>}
                      </div>
                 )}
 
+                {/* B. EVENTO ACTIVO */}
                 {eventoActual && (
                     <>
-                        {/* VERTICALES */}
+                        {/* Verticales */}
                         {layoutMode === 5 && <LayoutVertical {...{eventoActual, itemActual, videoBlobUrl, config, fotosActivas, indice, shinyStyle, acento, fondo, texto_evento, textoFechas}} />}
                         {layoutMode === 6 && <LayoutVerticalCine {...{eventoActual, itemActual, videoBlobUrl, config, shinyStyle, acento, fondo, texto_evento, textoFechas}} />}
                         {layoutMode === 7 && <LayoutVerticalFull {...{itemActual, videoBlobUrl, fondo}} />}
                         
-                        {/* HORIZONTALES */}
+                        {/* Horizontales */}
                         {layoutMode === 0 && <LayoutSplit {...{eventoActual, itemActual, videoBlobUrl, config, fotosActivas, indice, texto_evento, acento, fondo, textoFechas}} />}
                         {layoutMode === 1 && <LayoutCine {...{eventoActual, itemActual, videoBlobUrl, config, texto_evento, acento, fondo, textoFechas}} />}
                         {layoutMode === 2 && <LayoutPoster {...{eventoActual, itemActual, videoBlobUrl, acento, fondo}} />}
@@ -160,16 +168,17 @@ export default function PlayerSalon() {
                 )}
             </div>
 
-            {/* FOOTER */}
+            {/* FOOTER (Se adapta automáticamente) */}
             <footer className={`h-16 relative z-20 grid grid-cols-3 items-center ${paddingX} border-t transition-all`} style={{ backgroundColor: fondo, borderColor: `${texto_evento}20` }}>
                 <div className="flex justify-start opacity-50"><p className="text-[10px] tracking-widest uppercase">Powered by <span className="font-bold" style={{ color: acento }}>narabyte.xyz</span></p></div>
-                <div className="flex justify-center">{!eventoActual && <h2 className="text-2xl font-light tracking-[0.3em] uppercase" style={{ color: texto_evento }}>BIENVENIDOS</h2>}</div>
+                <div className="flex justify-center">{!eventoActual && <h2 className={`${isVertical ? 'text-2xl' : 'text-4xl'} font-light tracking-[0.3em] uppercase`} style={{ color: texto_evento }}>BIENVENIDOS</h2>}</div>
                 <div className="flex justify-end items-center gap-2" style={{ color: texto_reloj }}>
-                    <div className="text-3xl pb-1">{getIconoClima(clima.codigo)}</div>
-                    <span className="text-2xl font-bold">{clima.tempC}°C</span>
+                    <div className={`${isVertical ? 'text-3xl' : 'text-4xl'} pb-1`}>{getIconoClima(clima.codigo)}</div>
+                    <span className={`${isVertical ? 'text-2xl' : 'text-3xl'} font-bold`}>{clima.tempC}°C</span>
                 </div>
             </footer>
              
+             {/* TICKER */}
              {tickerText && (
                 <div className="absolute bottom-0 left-0 w-full h-12 z-50 overflow-hidden flex items-center shadow-lg border-t" style={{ backgroundColor: acento, borderColor: `${acento}80` }}>
                     <div className="flex w-full">
