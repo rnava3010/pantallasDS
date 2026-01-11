@@ -69,21 +69,21 @@ export const TEXTOS_SALONES = {
 // --- NUEVO: TEXTOS PARA DIRECTORIOS ---
 export const TEXTOS_DIRECTORIO = {
     es: {
-        titulo: "DIRECTORIO DE SERVICIOS",
+        titulo: "DIRECTORIO DE EVENTOS",
         lugar: "LUGAR / SERVICIO",
         ubicacion: "UBICACIÓN",
         horario: "HORARIO",
         nivel: "Nivel"
     },
     en: {
-        titulo: "SERVICES DIRECTORY",
+        titulo: "EVENT DIRECTORY",
         lugar: "PLACE / SERVICE",
         ubicacion: "LOCATION",
         horario: "HOURS",
         nivel: "Level"
     },
     fr: {
-        titulo: "RÉPERTOIRE DES SERVICES",
+        titulo: "RÉPERTOIRE DES EVENTOS",
         lugar: "LIEU / SERVICE",
         ubicacion: "EMPLACEMENT",
         horario: "HORAIRES",
