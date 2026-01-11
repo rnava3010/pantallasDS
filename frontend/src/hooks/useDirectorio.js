@@ -10,7 +10,7 @@ export const useDirectorio = (idTerminal) => {
 
     const fetchDatos = async () => {
         try {
-            const res = await axios.get(`https://tu-api.com/api/pantalla/${idTerminal}`);
+            const res = await axios.get(`https://ds.logicielmx.cloud/pantalla/${idTerminal}`);
             const { config: cfg, data, clima_backend } = res.data;
 
             setConfig(cfg);
