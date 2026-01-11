@@ -51,23 +51,20 @@ export default function PlayerDirectorio() {
         }
     }, [config?.favicon]);
 
-    if (loading && !config) return <div className="bg-black h-screen flex items-center justify-center text-white animate-pulse">Cargando Directorio...</div>;
-
-    // --- CONFIGURACIÓN VISUAL ---
+    // --- VARIABLES Y LÓGICA (Calculamos todo SIEMPRE, aunque esté cargando) ---
     const { fondo = '#000000', texto_evento = '#FFFFFF', texto_reloj = '#FFFFFF', acento = '#EAB308' } = config?.colores || {};
     const eventos = Array.isArray(data) ? data : [];
     const hayEventos = eventos.length > 0;
 
-    // --- LÓGICA DE ORIENTACIÓN ---
+    // Lógica de Orientación
     const isVertical = config?.orientacion === 1;
     const paddingX = isVertical ? 'px-4' : 'px-10';
     
-    // --- LÓGICA DE PAGINACIÓN ---
-    // En vertical caben más items (ej. 12), en horizontal menos (ej. 7) pero más grandes
+    // Lógica de Paginación
     const ITEMS_POR_PAGINA = isVertical ? 12 : 7; 
     const totalPaginas = Math.ceil(eventos.length / ITEMS_POR_PAGINA);
 
-    // Ciclo de páginas automático
+    // ✅ ESTE EFFECT AHORA ESTÁ ANTES DE CUALQUIER RETURN
     useEffect(() => {
         if (totalPaginas > 1) {
             const intervalo = setInterval(() => {
@@ -94,6 +91,9 @@ export default function PlayerDirectorio() {
         color: 'transparent',
         filter: `drop-shadow(0 0 2px ${acento})`
     };
+
+    // ✅ AHORA SÍ: SI ESTÁ CARGANDO, RETORNAMOS (Ya pasaron todos los hooks)
+    if (loading && !config) return <div className="bg-black h-screen flex items-center justify-center text-white animate-pulse">Cargando Directorio...</div>;
 
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden font-sans relative transition-colors duration-1000" style={{ backgroundColor: fondo }}>
@@ -174,8 +174,6 @@ export default function PlayerDirectorio() {
                                             <h2 className="text-2xl font-bold leading-tight" style={{ color: texto_evento }}>
                                                 {evento.nombre_evento}
                                             </h2>
-                                            {/* Opcional: Mostrar cliente si existe */}
-                                            {/* <span className="text-sm opacity-60 uppercase mt-1">{evento.cliente}</span> */}
                                         </div>
                                         
                                         {/* Ubicación (Salón/Área) */}
