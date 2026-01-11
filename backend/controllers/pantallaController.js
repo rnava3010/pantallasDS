@@ -10,7 +10,7 @@ const obtenerConfiguracionBase = async (id) => {
         SELECT 
             t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.idAreaAsignada,
             t.idSucursal, t.orientacion, t.layoutDir, t.layoutTarifas,
-            t.idiomas_activos, t.tiempo_rotacion_idioma,  -- <--- NUEVOS CAMPOS
+            t.idiomas_activos, t.tiempo_rotacion_idioma,  -- <--- OBTENEMOS LA CONFIG DE IDIOMAS
             a.nombre as nombre_area,
             COALESCE(s.logo_url, m.logo_url) as final_logo_name, 
             s.latitud, s.longitud, s.zona_horaria, t.imagen_default_url,
@@ -33,7 +33,7 @@ const obtenerScreensaver = async (idTerminal) => {
     return rows.map(row => row.url_archivo);
 };
 
-// Helper para obtener clima (si lo usas en este controlador)
+// Helper para obtener clima seguro
 const getClimaSeguro = async (idSucursal) => {
     const [rows] = await pool.query("SELECT json_clima, updated_at FROM tbl_cache_clima WHERE idSucursal = ?", [idSucursal]);
     if (rows.length > 0) {
@@ -55,8 +55,22 @@ const getDatosPantalla = async (req, res) => {
         const listaScreensaver = await obtenerScreensaver(terminal.idTerminal);
         const climaCache = await getClimaSeguro(terminal.idSucursal);
 
-        // --- PROCESAMIENTO CORRECTO DEL LOGO ---
-        // Esto evita el error 404 al mantener la extensión (.png, .jpg, etc)
+        // --- 1. PROCESAMIENTO CORRECTO DE IDIOMAS ---
+        // MySQL a veces devuelve JSON como string, aseguramos que sea un Array para React
+        let idiomasParsed = ["es"]; 
+        try {
+            if (terminal.idiomas_activos) {
+                if (typeof terminal.idiomas_activos === 'string') {
+                    idiomasParsed = JSON.parse(terminal.idiomas_activos);
+                } else if (Array.isArray(terminal.idiomas_activos)) {
+                    idiomasParsed = terminal.idiomas_activos;
+                }
+            }
+        } catch (e) {
+            console.error("⚠️ Error parseando idiomas_activos, usando default ['es']:", e.message);
+        }
+
+        // --- 2. PROCESAMIENTO DE LOGO ---
         let logoFinal = null;
         if (terminal.final_logo_name) {
             const fileName = terminal.final_logo_name.split('/').pop(); 
@@ -73,11 +87,11 @@ const getDatosPantalla = async (req, res) => {
                 layoutTarifas: terminal.layoutTarifas || 0,
                 zona_horaria: terminal.zona_horaria || 'America/Mexico_City',
                 
-                // Configuración de Idiomas
-                idiomas_activos: terminal.idiomas_activos || ["es"], // Default a español si es null
-                tiempo_rotacion: terminal.tiempo_rotacion_idioma || 20, // Default 20 segundos
+                // ✅ CONFIGURACIÓN DE IDIOMAS PROCESADA
+                idiomas_activos: idiomasParsed, 
+                tiempo_rotacion: terminal.tiempo_rotacion_idioma || 20, 
 
-                logo: logoFinal, // ✅ Logo con extensión corregida
+                logo: logoFinal,
                 imagen_default: terminal.imagen_default_url,
                 screensaver: listaScreensaver,
                 ubicacion: { 
@@ -101,7 +115,6 @@ const getDatosPantalla = async (req, res) => {
         // --- DELEGACIÓN POR TIPO DE PANTALLA ---
         if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
             const eventos = await salonesController.obtenerAgendaSalon(terminal.idAreaAsignada);
-            // Formateamos los eventos específicamente para lo que PlayerSalon espera
             const dataSalon = { 
                 tipo_datos: 'AGENDA', 
                 eventos: eventos.map(e => ({
