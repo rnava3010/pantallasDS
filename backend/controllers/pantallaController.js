@@ -1,12 +1,15 @@
 const pool = require('../config/db');
 
+// Importamos el especialista en Directorios
+const directorioController = require('./directorioController');
+
 // --- SUB-FUNCION: Obtener Configuración Base ---
 const obtenerConfiguracion = async (id) => {
     const sqlTerminal = `
         SELECT 
             t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.tema_color, t.idAreaAsignada,
             t.idSucursal,
-            t.orientacion, -- <--- ✅ NUEVO CAMPO: 0=Horizontal, 1=Vertical
+            t.orientacion, -- 0=Horizontal, 1=Vertical
             a.nombre as nombre_area,
             COALESCE(s.logo_url, m.logo_url) as final_logo_name, 
             m.color_primario, m.color_secundario,
@@ -35,7 +38,7 @@ const obtenerScreensaver = async (idTerminal) => {
     return rows.map(row => row.url_archivo);
 };
 
-// --- SUB-FUNCION: Obtener Agenda (Salón) ---
+// --- SUB-FUNCION: Obtener Agenda (EXCLUSIVO PARA SALÓN) ---
 const obtenerAgendaSalon = async (idArea) => {
     const sql = `
         SELECT 
@@ -59,22 +62,8 @@ const obtenerAgendaSalon = async (idArea) => {
     return rows;
 };
 
-// --- SUB-FUNCION: Obtener Directorio ---
-const obtenerDirectorio = async (idSucursal) => {
-    const sql = `
-        SELECT e.nombre_evento, e.fecha_inicio, a.nombre as nombre_salon
-        FROM tbl_eventos e
-        JOIN cat_areas a ON e.idArea = a.idArea
-        WHERE e.idSucursal = ? AND e.estatus = 'ACTIVO' AND DATE(e.fecha_inicio) = CURDATE()
-        ORDER BY e.fecha_inicio ASC
-    `;
-    const [rows] = await pool.query(sql, [idSucursal]);
-    return rows;
-};
-
-
 // ==========================================
-// 🎮 CONTROLADOR PRINCIPAL
+// 🎮 CONTROLADOR PRINCIPAL (El "Dispatcher")
 // ==========================================
 const getDatosPantalla = async (req, res) => {
     const { id } = req.params;
@@ -93,7 +82,7 @@ const getDatosPantalla = async (req, res) => {
              faviconIcoUrl = `/logos/${cleanName}.ico`;
         }
 
-        // 3. Screensaver
+        // 3. Screensaver (Común para todos)
         const listaScreensaver = await obtenerScreensaver(terminal.idTerminal);
 
         // 4. Armar Respuesta Base
@@ -102,14 +91,12 @@ const getDatosPantalla = async (req, res) => {
                 id: terminal.idTerminal,
                 nombre_interno: terminal.nombre_interno,
                 tipo_pantalla: terminal.tipo_pantalla,
-                orientacion: terminal.orientacion, // <--- ✅ AGREGADO: Se envía al front (0 o 1)
+                orientacion: terminal.orientacion,
                 tema_color: terminal.tema_color || 'dark',
                 logo: logoPngUrl,
                 favicon: faviconIcoUrl,
                 screensaver: listaScreensaver,
                 ubicacion: { lat: terminal.latitud || '19.43', lon: terminal.longitud || '-99.13' },
-                
-                // COLORES CONFIGURABLES
                 colores: {
                     fondo: terminal.color_fondo,
                     texto_evento: terminal.color_texto_evento,
@@ -121,8 +108,9 @@ const getDatosPantalla = async (req, res) => {
             server_time: new Date()
         };
 
-        // 5. Lógica Específica según Tipo
+        // 5. DELEGACIÓN DE LÓGICA SEGÚN TIPO
         if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
+             // Lógica de Salón (Se queda aquí por ahora)
              const agenda = await obtenerAgendaSalon(terminal.idAreaAsignada);
              
              respuesta.data = {
@@ -146,7 +134,8 @@ const getDatosPantalla = async (req, res) => {
             };
         } 
         else if (terminal.tipo_pantalla === 'DIRECTORIO') {
-            respuesta.data = await obtenerDirectorio(terminal.idSucursal);
+            // ✅ AQUÍ USAMOS EL NUEVO CONTROLADOR DE DIRECTORIO
+            respuesta.data = await directorioController.obtenerDatosDirectorio(terminal.idSucursal);
         }
 
         res.json(respuesta);

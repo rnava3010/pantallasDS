@@ -25,7 +25,7 @@ const lightenColor = (hex, percent) => {
 
 export default function PlayerDirectorio() {
     const { id } = useParams();
-    // data contiene la lista de eventos del directorio
+    // data contiene la lista filtrada por el backend (solo eventos activos del día)
     const { config, data, loading, isOnline, timeOffset, clima } = usePantalla(id);
     const horaActual = useReloj(timeOffset);
 
@@ -37,7 +37,7 @@ export default function PlayerDirectorio() {
         if (config) logger.log(`✅ [Directorio] Configurado: "${config.nombre_interno}" Orientación: ${config.orientacion === 1 ? 'Vertical' : 'Horizontal'}`);
     }, [config]);
 
-    // Screensaver (Carrusel de imágenes si no hay eventos)
+    // Screensaver (Se usa si la lista de eventos está vacía)
     const fotosActivas = config?.screensaver || [];
     const { itemActual } = useCarrusel(fotosActivas, 8000);
     const { videoBlobUrl } = useOfflineVideo(fotosActivas);
@@ -51,8 +51,10 @@ export default function PlayerDirectorio() {
         }
     }, [config?.favicon]);
 
-    // --- VARIABLES Y LÓGICA (Calculamos todo SIEMPRE, aunque esté cargando) ---
+    // --- VARIABLES Y LÓGICA ---
     const { fondo = '#000000', texto_evento = '#FFFFFF', texto_reloj = '#FFFFFF', acento = '#EAB308' } = config?.colores || {};
+    
+    // Si data viene vacío (porque no hay eventos hoy o ya acabaron), hayEventos será false
     const eventos = Array.isArray(data) ? data : [];
     const hayEventos = eventos.length > 0;
 
@@ -64,12 +66,12 @@ export default function PlayerDirectorio() {
     const ITEMS_POR_PAGINA = isVertical ? 12 : 7; 
     const totalPaginas = Math.ceil(eventos.length / ITEMS_POR_PAGINA);
 
-    // ✅ ESTE EFFECT AHORA ESTÁ ANTES DE CUALQUIER RETURN
+    // Ciclo de páginas automático
     useEffect(() => {
         if (totalPaginas > 1) {
             const intervalo = setInterval(() => {
                 setPaginaActual((prev) => (prev + 1) % totalPaginas);
-            }, 10000); // Cambia cada 10 segundos
+            }, 10000); // Cambia página cada 10 segundos
             return () => clearInterval(intervalo);
         } else {
             setPaginaActual(0);
@@ -92,7 +94,6 @@ export default function PlayerDirectorio() {
         filter: `drop-shadow(0 0 2px ${acento})`
     };
 
-    // ✅ AHORA SÍ: SI ESTÁ CARGANDO, RETORNAMOS (Ya pasaron todos los hooks)
     if (loading && !config) return <div className="bg-black h-screen flex items-center justify-center text-white animate-pulse">Cargando Directorio...</div>;
 
     return (
@@ -128,20 +129,20 @@ export default function PlayerDirectorio() {
             {/* --- CONTENIDO PRINCIPAL --- */}
             <div className={`flex-1 ${paddingX} py-4 relative z-10 w-full h-full overflow-hidden flex flex-col`}>
                 
-                {/* A. MODO SCREENSAVER (Si no hay eventos) */}
+                {/* OPCIÓN A: MODO SCREENSAVER (Se activa si hayEventos es false) */}
                 {!hayEventos && (
                     <div className={`w-full h-full rounded-[3rem] overflow-hidden relative border border-white/10 shadow-2xl`} style={{ backgroundColor: fondo }}>
                         <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10 w-full h-full"/>
                         {!itemActual && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center opacity-30">
                                 <img src={config?.logo} className="w-1/3 grayscale animate-pulse mb-4" alt="Logo" />
-                                <p className="text-xl uppercase tracking-widest" style={{ color: texto_evento }}>Sin eventos programados</p>
+                                <p className="text-xl uppercase tracking-widest" style={{ color: texto_evento }}>Sin eventos por hoy</p>
                             </div>
                         )}
                     </div>
                 )}
 
-                {/* B. LISTA DE EVENTOS */}
+                {/* OPCIÓN B: LISTA DE EVENTOS (Se activa si hay al menos 1 evento) */}
                 {hayEventos && (
                     <div className="w-full h-full flex flex-col gap-4">
                         
@@ -152,10 +153,9 @@ export default function PlayerDirectorio() {
                             <div className="col-span-3 text-right">Ubicación</div>
                         </div>
 
-                        {/* Filas de Eventos (Animadas) */}
+                        {/* Filas de Eventos */}
                         <div className="flex-1 flex flex-col gap-3 relative">
                             {eventosVisibles.map((evento, idx) => {
-                                // Convertimos fechas string a objeto Date para formatear hora
                                 const horaInicio = new Date(evento.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                                 
                                 return (
@@ -164,19 +164,14 @@ export default function PlayerDirectorio() {
                                         className="grid grid-cols-12 gap-4 items-center p-6 bg-white/5 border border-white/5 rounded-2xl shadow-lg backdrop-blur-sm animate-fade-in-up"
                                         style={{ animationDelay: `${idx * 100}ms` }}
                                     >
-                                        {/* Hora */}
                                         <div className="col-span-3 font-mono text-2xl font-bold" style={{ color: acento }}>
                                             {horaInicio}
                                         </div>
-                                        
-                                        {/* Nombre Evento */}
                                         <div className="col-span-6 flex flex-col justify-center">
                                             <h2 className="text-2xl font-bold leading-tight" style={{ color: texto_evento }}>
                                                 {evento.nombre_evento}
                                             </h2>
                                         </div>
-                                        
-                                        {/* Ubicación (Salón/Área) */}
                                         <div className="col-span-3 text-right">
                                             <span className="inline-block px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wide bg-white/10 border border-white/10" style={{ color: texto_reloj }}>
                                                 {evento.nombre_salon}
@@ -187,7 +182,7 @@ export default function PlayerDirectorio() {
                             })}
                         </div>
 
-                        {/* Indicador de Páginas (Puntos) */}
+                        {/* Paginación (Puntos) */}
                         {totalPaginas > 1 && (
                             <div className="h-8 flex items-center justify-center gap-2 mt-2">
                                 {Array.from({ length: totalPaginas }).map((_, idx) => (
