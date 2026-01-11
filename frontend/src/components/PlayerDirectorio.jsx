@@ -10,6 +10,8 @@ import { useOfflineVideo } from '../hooks/useOfflineVideo';
 // Layouts disponibles
 import LayoutDirectorioHorizontal from './layoutsDirectorios/LayoutDirectorioHorizontal';
 import LayoutDirectorioVertical from './layoutsDirectorios/LayoutDirectorioVertical';
+import LayoutDirectorioHorizontalModern from './layoutsDirectorios/LayoutDirectorioHorizontalModern';
+import LayoutDirectorioVerticalMinimal from './layoutsDirectorios/LayoutDirectorioVerticalMinimal';
 
 export default function PlayerDirectorio() {
     const { id } = useParams();
@@ -47,18 +49,15 @@ export default function PlayerDirectorio() {
         videoBlobUrl
     };
 
-    // 6. Renderizado condicional
-    const renderLayout = () => {
-        switch (layoutId) {
-            case 0:
-                return <LayoutDirectorioHorizontal {...layoutProps} />;
-            case 1:
-                return <LayoutDirectorioVertical {...layoutProps} />;
-            default:
-                // Fallback por defecto si el ID no coincide
-                return <LayoutDirectorioHorizontal {...layoutProps} />;
-        }
-    };
+const renderLayout = () => {
+    switch (layoutId) {
+        case 0: return <LayoutDirectorioHorizontal {...layoutProps} />;
+        case 1: return <LayoutDirectorioVertical {...layoutProps} />;
+        case 2: return <LayoutDirectorioHorizontalModern {...layoutProps} />; // Nuevo ID 2
+        case 3: return <LayoutDirectorioVerticalMinimal {...layoutProps} />; // Nuevo ID 3
+        default: return <LayoutDirectorioHorizontal {...layoutProps} />;
+    }
+};
 
     return (
         <div className="w-full h-full">
