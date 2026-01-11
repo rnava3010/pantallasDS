@@ -3,7 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 const pool = require('./config/db');
 const pantallaRoutes = require('./routes/pantallasRoutes');
-
+const { iniciarCrons } = require('./services/cronService');
 const app = express();
 const PORT = process.env.PORT || 3100;
 
@@ -38,4 +38,6 @@ app.listen(PORT, () => {
     console.log(`\n=============================================`);
     console.log(`🚀 Servidor corriendo en: http://localhost:${PORT}`);
     console.log(`=============================================`);
+	
+	iniciarCrons();
 });

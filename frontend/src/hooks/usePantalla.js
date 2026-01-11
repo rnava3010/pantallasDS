@@ -12,6 +12,7 @@ export const usePantalla = (idPantalla) => {
     const [clima, setClima] = useState({ tempC: 0, tempF: 0, codigo: 0 });
 
     // --- HELPER: PROCESAR URLS ---
+    // Convierte rutas relativas (/logos/...) en rutas absolutas (http://server/logos/...)
     const procesarUrl = (url) => {
         if (!url) return null;
         if (url.startsWith('http') || url.startsWith('data:')) return url;
@@ -21,7 +22,7 @@ export const usePantalla = (idPantalla) => {
         return `${baseUrl}${path}`;
     };
 
-    // --- HELPER: LÓGICA DE AGENDA ---
+    // --- HELPER: LÓGICA DE AGENDA (PARA SALONES) ---
     const determinarEventoActual = (agendaEventos, offset = 0) => {
         if (!agendaEventos || !Array.isArray(agendaEventos)) return null;
         
@@ -31,25 +32,20 @@ export const usePantalla = (idPantalla) => {
             const inicio = new Date(evt.mostrar_inicio_iso || evt.inicio_iso);
             const fin = new Date(evt.mostrar_fin_iso || evt.fin_iso);
 
-            // 1. Validar fecha general
             if (ahora < inicio || ahora > fin) return false;
 
-            // 2. Validar recurrencia
             if (evt.recurrente) {
                 const minutosAhora = ahora.getHours() * 60 + ahora.getMinutes();
                 const minutosInicio = inicio.getHours() * 60 + inicio.getMinutes();
                 const minutosFin = fin.getHours() * 60 + fin.getMinutes();
-
-                if (minutosAhora < minutosInicio || minutosAhora > minutosFin) {
-                    return false; 
-                }
+                if (minutosAhora < minutosInicio || minutosAhora > minutosFin) return false;
             }
             return true;
         }) || null;
     };
 
-    // --- FETCH CLIMA ---
-    const fetchClima = async (lat, lon) => {
+    // --- FETCH CLIMA (FALLBACK) ---
+    const fetchClimaExterno = async (lat, lon) => {
         if (!lat || !lon) return;
         try {
             const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
@@ -63,7 +59,7 @@ export const usePantalla = (idPantalla) => {
                 });
             }
         } catch (e) {
-            console.warn("⚠️ No se pudo obtener clima:", e);
+            console.warn("⚠️ No se pudo obtener clima externo:", e);
         }
     };
 
@@ -75,11 +71,12 @@ export const usePantalla = (idPantalla) => {
             
             let result = await response.json();
 
-            // 1. Procesamos todas las URLs
+            // 1. Procesamos URLs de Configuración
             if (result.config) {
                 if (result.config.logo) result.config.logo = procesarUrl(result.config.logo);
+                if (result.config.favicon) result.config.favicon = procesarUrl(result.config.favicon);
                 
-                // ✅ PROCESAMOS LA IMAGEN DEFAULT AQUI
+                // ✅ IMAGEN DEFAULT
                 if (result.config.imagen_default) {
                     result.config.imagen_default = procesarUrl(result.config.imagen_default);
                 }
@@ -89,49 +86,44 @@ export const usePantalla = (idPantalla) => {
                 }
             }
 
-            if (result.data?.tipo_datos === 'AGENDA' && Array.isArray(result.data.eventos)) {
-                result.data.eventos = result.data.eventos.map(evt => ({
+            // 2. Procesamos URLs de Eventos (Imágenes de cada evento)
+            const procesarImagenesDeEventos = (lista) => {
+                return lista.map(evt => ({
                     ...evt,
                     imagenes: evt.imagenes ? evt.imagenes.map(url => procesarUrl(url)) : []
                 }));
-            }
-            
-            // Para Directorio también procesamos las imágenes de los eventos si vienen
-            if (Array.isArray(result.data)) {
-                 result.data = result.data.map(evt => ({
-                    ...evt,
-                    imagenes: evt.imagenes ? evt.imagenes.map(url => procesarUrl(url)) : []
-                }));
-            } else if (result.data && Array.isArray(result.data.eventos)) {
-                 // Estructura alternativa
-                 result.data.eventos = result.data.eventos.map(evt => ({
-                    ...evt,
-                    imagenes: evt.imagenes ? evt.imagenes.map(url => procesarUrl(url)) : []
-                }));
+            };
+
+            if (result.data?.tipo_datos === 'AGENDA') {
+                result.data.eventos = procesarImagenesDeEventos(result.data.eventos);
+            } else if (result.data?.tipo_datos === 'DIRECTORIO') {
+                result.data.eventos = procesarImagenesDeEventos(result.data.eventos);
+            } else if (Array.isArray(result.data)) {
+                result.data = procesarImagenesDeEventos(result.data);
             }
 			
-            // 2. Calculamos diferencia de hora
+            // 3. Gestión de Clima (Prioridad Backend/Cron)
+            if (result.clima_backend) {
+                setClima(result.clima_backend);
+            } else if (result.config?.ubicacion) {
+                fetchClimaExterno(result.config.ubicacion.lat, result.config.ubicacion.lon);
+            }
+
+            // 4. Sincronización de Tiempo
             let currentOffset = 0;
             if (result.server_time) {
                 currentOffset = new Date(result.server_time).getTime() - new Date().getTime();
                 setTimeOffset(currentOffset);
             }
 
-            // 3. Guardado LocalStorage
+            // 5. Guardado en Caché Local (Offline)
             try {
                 localStorage.setItem(`narabyte_cache_${idPantalla}`, JSON.stringify(result));
                 localStorage.setItem('narabyte_time_offset', currentOffset);
-            } catch (e) {
-                console.warn("⚠️ Caché llena");
-            }
+            } catch (e) { console.warn("Caché llena"); }
             
-            // 4. Actualizamos Estado
+            // 6. Actualizamos Estados
             setConfig(result.config);
-
-            if (result.config?.ubicacion) {
-                fetchClima(result.config.ubicacion.lat, result.config.ubicacion.lon);
-            }
-
             if (result.data?.tipo_datos === 'AGENDA') {
                 setEventoActual(determinarEventoActual(result.data.eventos, currentOffset));
             } else {
@@ -143,12 +135,10 @@ export const usePantalla = (idPantalla) => {
         } catch (err) {
             console.warn("⚠️ Modo Offline Activo");
             setIsOnline(false);
+            // Intentar cargar desde caché
             try {
                 const cachedRaw = localStorage.getItem(`narabyte_cache_${idPantalla}`);
-                const cachedOffset = localStorage.getItem('narabyte_time_offset');
-                const savedOffset = cachedOffset ? parseInt(cachedOffset, 10) : 0;
-                setTimeOffset(savedOffset);
-
+                const savedOffset = parseInt(localStorage.getItem('narabyte_time_offset') || 0);
                 if (cachedRaw) {
                     const cachedResult = JSON.parse(cachedRaw);
                     setConfig(cachedResult.config);
@@ -158,7 +148,7 @@ export const usePantalla = (idPantalla) => {
                         setEventoActual(cachedResult.data);
                     }
                 }
-            } catch (e) { console.error("Error caché", e); }
+            } catch (e) { console.error("Error cargando caché", e); }
         } finally {
             setLoading(false);
         }
@@ -166,12 +156,13 @@ export const usePantalla = (idPantalla) => {
 
     useEffect(() => {
         fetchData();
+        // Recargar datos cada 5 minutos
         const intervalDescarga = setInterval(fetchData, 300000);
+        
+        // Re-evaluar evento actual cada 30 segundos (para Salones)
         const intervalReloj = setInterval(() => {
             const cachedRaw = localStorage.getItem(`narabyte_cache_${idPantalla}`);
-            const cachedOffset = localStorage.getItem('narabyte_time_offset');
-            const offset = cachedOffset ? parseInt(cachedOffset, 10) : 0;
-            
+            const offset = parseInt(localStorage.getItem('narabyte_time_offset') || 0);
             if (cachedRaw) {
                 const res = JSON.parse(cachedRaw);
                 if (res.data?.tipo_datos === 'AGENDA') {
