@@ -14,9 +14,8 @@ export default function LayoutVerticalCine({
     const idiomaActual = idiomasActivos[langIndex];
     const TIEMPO_ROTACION_IDIOMA = (config?.tiempo_rotacion || 20) * 1000;
 
-    // Diccionario
-    const t = TEXTOS_SALONES[idiomaActual] || TEXTOS_SALONES['es'];
-    // Etiquetas traducidas
+    // Diccionario para etiquetas fijas (Inicio, Fin)
+    const t = TEXTOS_SALONES?.[idiomaActual] || TEXTOS_SALONES?.['es'] || {};
     const labelInicio = idiomaActual === 'en' ? 'Start' : (idiomaActual === 'fr' ? 'Début' : 'Inicio');
     const labelFin = idiomaActual === 'en' ? 'End' : (idiomaActual === 'fr' ? 'Fin' : 'Fin');
 
@@ -31,6 +30,7 @@ export default function LayoutVerticalCine({
     }, [idiomasActivos.length, TIEMPO_ROTACION_IDIOMA]);
 
     // --- TRADUCCIÓN DE DATOS DINÁMICOS ---
+    // Nota: Usamos 'titulo' como fallback principal porque así viene de tu controlador base
     const titulo = (idiomaActual === 'en' && eventoActual.titulo_en) ? eventoActual.titulo_en : 
                    (idiomaActual === 'fr' && eventoActual.titulo_fr) ? eventoActual.titulo_fr : eventoActual.titulo;
 
@@ -41,12 +41,11 @@ export default function LayoutVerticalCine({
                     (idiomaActual === 'fr' && eventoActual.mensaje_fr) ? eventoActual.mensaje_fr : eventoActual.mensaje;
 
     // --- LÓGICA DE RECUPERACIÓN DE HORAS (SMART PARSING) ---
-    // Esto es lo que faltaba: Si no hay fecha, usa el string de horario
     let horaInicioMostrar = '--:--';
     let horaFinMostrar = '--:--';
-    let fechaMostrar = textoFechas; 
+    let fechaMostrar = textoFechas;
 
-    // INTENTO A: Usar fechas reales si existen
+    // INTENTO A: Usar fechas reales si el backend las envió
     if (eventoActual.fecha_inicio && eventoActual.fecha_fin) {
         horaInicioMostrar = new Date(eventoActual.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         horaFinMostrar = new Date(eventoActual.fecha_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -56,17 +55,16 @@ export default function LayoutVerticalCine({
             { weekday: 'short', day: 'numeric', month: 'long' }
         );
     } 
-    // INTENTO B: Parsear el string "horario" (Ej: "10:00 - 12:00")
+    // INTENTO B: Parsear el string "horario" (Fallback si no hay fechas)
     else if (eventoActual.horario && eventoActual.horario.includes('-')) {
         const partes = eventoActual.horario.split('-').map(s => s.trim());
         if (partes.length >= 2) {
-            horaInicioMostrar = partes[0]; // "10:00"
-            horaFinMostrar = partes[1];    // "12:00"
+            horaInicioMostrar = partes[0];
+            horaFinMostrar = partes[1];
         } else {
             horaInicioMostrar = eventoActual.horario;
         }
     } else {
-        // Fallback total
         horaInicioMostrar = eventoActual.horario || '--:--';
     }
 
@@ -107,10 +105,10 @@ export default function LayoutVerticalCine({
                     </div>
                 )}
                 
-                {/* --- SECCIÓN HORARIO --- */}
+                {/* --- SECCIÓN HORARIO SPLIT --- */}
                 <div className="flex items-center justify-center gap-8 mb-8 animate-fade-in-up" style={{ color: texto_evento, animationDelay: '0.2s' }}>
                      
-                     {/* HORA INICIO (GRANDE) */}
+                     {/* HORA INICIO */}
                      <div className="flex flex-col items-center">
                         <span className="text-[10px] uppercase tracking-widest opacity-60 mb-1">{labelInicio}</span>
                         <span className="text-5xl font-mono font-black tracking-tighter" style={{ color: acento }}>
@@ -124,7 +122,7 @@ export default function LayoutVerticalCine({
 
                      <div className="h-12 w-px bg-white/20"></div>
 
-                     {/* HORA FIN (PEQUEÑA) */}
+                     {/* HORA FIN */}
                      <div className="flex flex-col items-center">
                         <span className="text-[10px] uppercase tracking-widest opacity-60 mb-1">{labelFin}</span>
                         <span className="text-3xl font-mono font-bold opacity-80">

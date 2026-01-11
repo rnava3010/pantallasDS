@@ -1,76 +1,81 @@
 const pool = require('../config/db');
 
 /**
- * Obtiene la agenda de eventos.
- * CORREGIDO: Adaptado a la estructura real de tbl_eventos y cat_areas.
+ * Obtiene la agenda de eventos para un área (salón) específica.
+ * VERSIÓN MEJORADA: Soporte multilenguaje y fechas exactas.
  */
 const obtenerAgendaSalon = async (idArea) => {
     try {
         const sql = `
             SELECT 
-                a.idEvento,
+                e.idEvento, 
+                -- Datos Base
+                e.nombre_evento, 
+                e.nombre_evento_en, e.nombre_evento_fr, -- Nuevos campos
                 
-                -- Datos Principales
-                a.nombre_evento, 
-                a.nombre_evento_en, 
-                a.nombre_evento_fr,
+                e.cliente_nombre, 
+                e.cliente_en, e.cliente_fr, -- Nuevos campos
                 
-                -- Datos Cliente
-                a.cliente_nombre, 
-                a.cliente_en,
-                a.cliente_fr,
+                e.fecha_inicio, e.fecha_fin, 
                 
-                -- Fechas
-                a.fecha_inicio, 
-                a.fecha_fin,
+                e.mensaje_personalizado, 
+                e.mensaje_personalizado_en, e.mensaje_personalizado_fr, -- Nuevos campos
                 
-                -- Mensajes (Alias para el Frontend)
-                a.mensaje_personalizado as mensaje, 
-                a.mensaje_personalizado_en as mensaje_en, 
-                a.mensaje_personalizado_fr as mensaje_fr,
-                
-                -- Diseño
-                a.imagen_full_width, -- El modo (0, 1, 2, etc.)
-                
-                -- Ubicación y Dirección
-                a.direccion_reloj,   -- Viene directo del evento
-                
-                -- Nombre del Salón (Prioridad: Personalizado > Nombre del Área)
-                COALESCE(NULLIF(a.nombre_salon_personalizado, ''), s.nombre) as nombre_salon
-                
-            FROM tbl_eventos a
-            LEFT JOIN cat_areas s ON a.idArea = s.idArea
-            WHERE a.idArea = ? 
-            
-            -- Filtro de Estatus (Enum)
-            AND a.estatus = 'ACTIVO'
-            
-            -- Filtro de Fechas (Vigentes hoy)
-            AND (
-                DATE(a.fecha_inicio) = CURDATE() 
-                OR 
-                (a.fecha_inicio <= NOW() AND a.fecha_fin >= NOW())
-            )
-            ORDER BY a.fecha_inicio ASC
+                e.mensaje_ticker,
+                e.imagen_full_width, 
+                e.direccion_reloj,
+                e.nombre_salon_personalizado, 
+                e.fecha_visualizacion_inicio, e.fecha_visualizacion_fin,
+                e.es_recurrente,
+                GROUP_CONCAT(em.url_archivo ORDER BY em.orden ASC SEPARATOR ',') as lista_imagenes
+            FROM tbl_eventos e
+            LEFT JOIN tbl_eventos_media em ON e.idEvento = em.idEvento AND em.tipo = 'IMAGEN'
+            WHERE e.idArea = ? AND e.estatus = 'ACTIVO'
+            AND COALESCE(e.fecha_visualizacion_fin, e.fecha_fin) >= NOW()
+            GROUP BY e.idEvento
+            ORDER BY e.fecha_inicio ASC
         `;
-
         const [rows] = await pool.query(sql, [idArea]);
         
-        return rows.map(row => {
-            const inicio = new Date(row.fecha_inicio);
-            const fin = new Date(row.fecha_fin);
+        // Mapeamos al formato que espera el frontend
+        return rows.map(evento => ({
+            // Mapeo Clásico (para que no se rompa nada antiguo)
+            titulo: evento.nombre_evento,
+            cliente: evento.cliente_nombre,
+            mensaje: evento.mensaje_personalizado,
+            
+            // Mapeo Multilenguaje (NUEVO)
+            titulo_en: evento.nombre_evento_en,
+            titulo_fr: evento.nombre_evento_fr,
+            cliente_en: evento.cliente_en,
+            cliente_fr: evento.cliente_fr,
+            mensaje_en: evento.mensaje_personalizado_en,
+            mensaje_fr: evento.mensaje_personalizado_fr,
 
-            return {
-                ...row,
-                // Generamos string de horario por comodidad
-                horario: `${inicio.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - ${fin.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`,
-            };
-        });
+            // Fechas Crudas (Importante para el Frontend)
+            fecha_inicio: evento.fecha_inicio,
+            fecha_fin: evento.fecha_fin,
+            
+            // Compatibilidad
+            inicio_iso: evento.fecha_inicio, 
+            fin_iso: evento.fecha_fin,
+            
+            // Formato texto simple (Fallback)
+            horario: `${new Date(evento.fecha_inicio).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - ${new Date(evento.fecha_fin).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`,
 
+            ticker: evento.mensaje_ticker,
+            layout_mode: evento.imagen_full_width || 0,
+            direccion: evento.direccion_reloj, 
+            recurrente: evento.es_recurrente === 1,
+            nombre_salon: evento.nombre_salon_personalizado, 
+            imagenes: evento.lista_imagenes ? evento.lista_imagenes.split(',') : []
+        }));
     } catch (error) {
-        console.error("❌ Error en salonesController:", error);
-        return [];
+        console.error("❌ Error en obtenerAgendaSalon:", error);
+        throw error;
     }
 };
 
-module.exports = { obtenerAgendaSalon };
+module.exports = {
+    obtenerAgendaSalon
+};

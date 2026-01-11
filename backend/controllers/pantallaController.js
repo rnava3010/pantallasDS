@@ -10,7 +10,7 @@ const obtenerConfiguracionBase = async (id) => {
         SELECT 
             t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.idAreaAsignada,
             t.idSucursal, t.orientacion, t.layoutDir, t.layoutTarifas,
-            t.idiomas_activos, t.tiempo_rotacion_idioma,  -- <--- OBTENEMOS LA CONFIG DE IDIOMAS
+            t.idiomas_activos, t.tiempo_rotacion_idioma, -- <--- NUEVO: Configuración de idiomas
             a.nombre as nombre_area,
             COALESCE(s.logo_url, m.logo_url) as final_logo_name, 
             s.latitud, s.longitud, s.zona_horaria, t.imagen_default_url,
@@ -33,7 +33,7 @@ const obtenerScreensaver = async (idTerminal) => {
     return rows.map(row => row.url_archivo);
 };
 
-// Helper para obtener clima seguro
+// Helper para obtener clima
 const getClimaSeguro = async (idSucursal) => {
     const [rows] = await pool.query("SELECT json_clima, updated_at FROM tbl_cache_clima WHERE idSucursal = ?", [idSucursal]);
     if (rows.length > 0) {
@@ -55,8 +55,8 @@ const getDatosPantalla = async (req, res) => {
         const listaScreensaver = await obtenerScreensaver(terminal.idTerminal);
         const climaCache = await getClimaSeguro(terminal.idSucursal);
 
-        // --- 1. PROCESAMIENTO CORRECTO DE IDIOMAS ---
-        // MySQL a veces devuelve JSON como string, aseguramos que sea un Array para React
+        // --- PROCESAMIENTO DE IDIOMAS ---
+        // Convertimos el JSON string de MySQL a un Array real para React
         let idiomasParsed = ["es"]; 
         try {
             if (terminal.idiomas_activos) {
@@ -67,10 +67,10 @@ const getDatosPantalla = async (req, res) => {
                 }
             }
         } catch (e) {
-            console.error("⚠️ Error parseando idiomas_activos, usando default ['es']:", e.message);
+            console.error("⚠️ Error parseando idiomas, usando default ['es']");
         }
 
-        // --- 2. PROCESAMIENTO DE LOGO ---
+        // --- PROCESAMIENTO DEL LOGO ---
         let logoFinal = null;
         if (terminal.final_logo_name) {
             const fileName = terminal.final_logo_name.split('/').pop(); 
@@ -87,9 +87,9 @@ const getDatosPantalla = async (req, res) => {
                 layoutTarifas: terminal.layoutTarifas || 0,
                 zona_horaria: terminal.zona_horaria || 'America/Mexico_City',
                 
-                // ✅ CONFIGURACIÓN DE IDIOMAS PROCESADA
+                // Config de Idiomas
                 idiomas_activos: idiomasParsed, 
-                tiempo_rotacion: terminal.tiempo_rotacion_idioma || 20, 
+                tiempo_rotacion: terminal.tiempo_rotacion_idioma || 20,
 
                 logo: logoFinal,
                 imagen_default: terminal.imagen_default_url,
@@ -135,15 +135,7 @@ const getDatosPantalla = async (req, res) => {
         else if (terminal.tipo_pantalla === 'TARIFAS') {
             const tarifas = await tarifasController.obtenerTarifasPorSucursal(terminal.idSucursal);
             const banner = await tarifasController.obtenerBannersTarifas(terminal.idSucursal);
-            const divisas = await tarifasController.obtenerDivisasPorSucursal(terminal.idSucursal);
-            
-            const dataTarifas = { 
-                tipo_datos: 'TARIFAS', 
-                tarifas, 
-                banner, 
-                divisas,
-                galeria: listaScreensaver 
-            };
+            const dataTarifas = { tipo_datos: 'TARIFAS', tarifas, banner, galeria: listaScreensaver };
             respuesta.datos = dataTarifas;
             respuesta.data = dataTarifas;
         }
