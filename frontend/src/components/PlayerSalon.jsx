@@ -1,13 +1,13 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
-// Hooks Personalizados
+// Hooks
 import { usePantalla } from '../hooks/usePantalla';
 import { useOfflineVideo } from '../hooks/useOfflineVideo';
 import { useReloj } from '../hooks/useReloj';
 import { useCarrusel } from '../hooks/useCarrusel';
 
-// Componentes y Utilidades
+// Componentes
 import MediaRenderer from '../components/MediaRenderer';
 import DirectionArrow from '../components/DirectionArrow'; 
 import { getIconoClima } from '../utils/weatherUtils'; 
@@ -26,12 +26,11 @@ export default function PlayerSalon() {
         else if (config) logger.log(`✅ [PlayerSalon] Configurado: "${config.nombre_interno}"`);
     }, [loading, config]);
 
-    // 3. Contenido y Hooks
+    // 3. Contenido
     const fotosActivas = (eventoActual?.imagenes?.length > 0) ? eventoActual.imagenes : (config?.screensaver || []);
     const { itemActual, indice } = useCarrusel(fotosActivas, 8000);
     const { videoBlobUrl } = useOfflineVideo(fotosActivas);
 
-    // Favicon
     useEffect(() => {
         if (config?.favicon) {
             let link = document.querySelector("link[rel~='icon']") || document.createElement('link');
@@ -45,7 +44,14 @@ export default function PlayerSalon() {
     const nombreSalon = eventoActual?.nombre_salon || config?.nombre_interno || "Sala de Eventos";
     const tickerText = eventoActual?.ticker || null;
     
-    // Layout
+    // Extracción segura de colores (con defaults por si acaso)
+    const { 
+        fondo = '#000000', 
+        texto_evento = '#FFFFFF', 
+        texto_reloj = '#FFFFFF', 
+        acento = '#EAB308' // Amarillo default
+    } = config?.colores || {};
+
     let layoutMode = 0;
     if (eventoActual?.layout_mode !== undefined) {
         layoutMode = eventoActual.layout_mode;
@@ -54,7 +60,10 @@ export default function PlayerSalon() {
     }
 
     return (
-        <div className="flex flex-col h-screen w-screen bg-black text-white overflow-hidden font-sans relative">
+        <div 
+            className="flex flex-col h-screen w-screen overflow-hidden font-sans relative transition-colors duration-1000"
+            style={{ backgroundColor: fondo }} // 🎨 COLOR DE FONDO CONFIGURABLE
+        >
 
             <style>{`
                 @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
@@ -71,16 +80,27 @@ export default function PlayerSalon() {
                 </div>
                 <div className="flex-1 flex justify-center">
                     <div className="px-12 py-3 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl">
-                        <h1 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-200 tracking-widest uppercase drop-shadow-sm whitespace-nowrap text-ellipsis overflow-hidden">
+                        {/* 🎨 1. NOMBRE DEL SALON (Color Acento) */}
+                        <h1 
+                            className="text-4xl md:text-5xl font-bold tracking-widest uppercase drop-shadow-sm whitespace-nowrap text-ellipsis overflow-hidden"
+                            style={{ color: acento }} 
+                        >
                             {nombreSalon}
                         </h1>
                     </div>
                 </div>
                 <div className="w-1/4 flex flex-col items-end">
-                    <span className="text-5xl font-mono font-bold text-white drop-shadow-lg tracking-tighter">
+                    {/* 🎨 2. HORA Y FECHA (Color Texto Reloj) */}
+                    <span 
+                        className="text-5xl font-mono font-bold drop-shadow-lg tracking-tighter"
+                        style={{ color: texto_reloj }}
+                    >
                         {horaActual.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <span className="text-sm text-gray-400 font-medium uppercase tracking-widest mt-1">
+                    <span 
+                        className="text-sm font-medium uppercase tracking-widest mt-1 opacity-80"
+                        style={{ color: texto_reloj }}
+                    >
                         {horaActual.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}
                     </span>
                 </div>
@@ -91,15 +111,16 @@ export default function PlayerSalon() {
                 
                 {/* 1. MODO SCREENSAVER */}
                 {!eventoActual && (
-                    <div className="w-full h-full rounded-[3rem] overflow-hidden relative bg-black border border-zinc-800/50 shadow-2xl">
+                    <div className="w-full h-full rounded-[3rem] overflow-hidden relative border border-white/10 shadow-2xl" style={{ backgroundColor: fondo }}>
                         <MediaRenderer 
                             url={itemActual} 
                             blobUrl={videoBlobUrl} 
                             className="object-contain z-10"
                             onError={(e) => logger.error("Error media:", e)}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-slate-950 to-black flex flex-col items-center justify-center z-0">
-                             <div className="text-zinc-800 opacity-20 mb-4 scale-150">
+                        {/* Fondo decorativo sutil */}
+                        <div className="absolute inset-0 flex flex-col items-center justify-center z-0 opacity-20">
+                             <div style={{ color: texto_evento }} className="scale-150">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                              </div>
                         </div>
@@ -110,76 +131,117 @@ export default function PlayerSalon() {
                 {eventoActual && (
                     <div className="w-full h-full h-full relative">
                         
-                        {/* === MODO POSTER (Limpio) === */}
+                        {/* === MODO POSTER === */}
                         {layoutMode === 2 && (
-                             <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-zinc-800/50 bg-black">
+                             <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-white/10" style={{ backgroundColor: fondo }}>
                                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10"/>
-                                {!itemActual && <div className="absolute inset-0 flex items-center justify-center text-zinc-600">Sin Imagen</div>}
                                 
-                                {/* FLECHA: Esquina inferior derecha */}
+                                {/* 🎨 3. FLECHA (Color Acento) */}
                                 {eventoActual.direccion && (
-                                    <div className="absolute bottom-10 right-10 z-50 bg-yellow-500/90 text-black rounded-full p-6 shadow-[0_0_40px_rgba(234,179,8,0.5)] border-4 border-black/20 animate-pulse">
-                                        <DirectionArrow direccion={eventoActual.direccion} size="w-48 h-48" color="text-black" />
+                                    <div className="absolute bottom-10 right-10 z-50 bg-black/80 rounded-full p-6 shadow-[0_0_40px_rgba(0,0,0,0.5)] border-4 border-white/10 animate-pulse">
+                                        <DirectionArrow direccion={eventoActual.direccion} size="w-48 h-48" color={acento} />
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {/* === MODO CINE (Texto) === */}
+                        {/* === MODO CINE === */}
                         {layoutMode === 1 && (
-                            <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-zinc-800/50 bg-black">
+                            <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-white/10" style={{ backgroundColor: fondo }}>
                                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-cover z-0 opacity-90"/>
                                 {!itemActual && <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center"><img src={config?.logo} className="w-1/3 opacity-10 grayscale" alt="Logo" /></div>}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 z-10"></div>
                                 
                                 <div className="absolute bottom-10 left-10 z-20 max-w-4xl p-10">
-                                    <h1 className="text-7xl lg:text-9xl font-black text-white mb-4 leading-none drop-shadow-2xl">{eventoActual.titulo}</h1>
-                                    {eventoActual.cliente && <div className="mb-6"><span className="inline-block px-6 py-2 rounded-full bg-yellow-500 text-black text-2xl font-bold uppercase tracking-wider shadow-lg">{eventoActual.cliente}</span></div>}
-                                    <div className="flex items-center gap-8 text-zinc-300">
-                                         <span className="text-3xl font-mono font-bold text-white border-l-4 border-yellow-500 pl-4">{eventoActual.horario}</span>
+                                    {/* 🎨 4. TITULO EVENTO (Color Texto Evento) */}
+                                    <h1 className="text-7xl lg:text-9xl font-black mb-4 leading-none drop-shadow-2xl" style={{ color: texto_evento }}>{eventoActual.titulo}</h1>
+                                    
+                                    {eventoActual.cliente && (
+                                        <div className="mb-6">
+                                            {/* 🎨 5. CLIENTE (Fondo Acento, Texto Negro/Contraste) */}
+                                            <span 
+                                                className="inline-block px-6 py-2 rounded-full text-2xl font-bold uppercase tracking-wider shadow-lg"
+                                                style={{ backgroundColor: acento, color: fondo === '#000000' ? '#000000' : '#FFFFFF' }}
+                                            >
+                                                {eventoActual.cliente}
+                                            </span>
+                                        </div>
+                                    )}
+                                    
+                                    <div className="flex items-center gap-8" style={{ color: texto_evento }}>
+                                         {/* 🎨 6. LINEA DIVISORIA (Borde Acento) */}
+                                         <span className="text-3xl font-mono font-bold pl-4 border-l-4" style={{ borderColor: acento }}>
+                                            {eventoActual.horario}
+                                         </span>
                                     </div>
-                                    {eventoActual.mensaje && <p className="mt-6 text-2xl text-gray-200 font-serif italic max-w-2xl drop-shadow-md">"{eventoActual.mensaje}"</p>}
+                                    
+                                    {eventoActual.mensaje && <p className="mt-6 text-2xl font-serif italic max-w-2xl drop-shadow-md opacity-90" style={{ color: texto_evento }}>"{eventoActual.mensaje}"</p>}
                                 </div>
 
-                                {/* FLECHA: Esquina inferior derecha (separada del texto) */}
                                 {eventoActual.direccion && (
                                     <div className="absolute bottom-10 right-10 z-30 bg-white/10 p-4 rounded-full border border-white/20 backdrop-blur-md shadow-2xl animate-fade-in-up">
-                                        <DirectionArrow direccion={eventoActual.direccion} size="w-40 h-40" />
+                                        <DirectionArrow direccion={eventoActual.direccion} size="w-40 h-40" color={acento} />
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {/* === MODO SPLIT (Normal) === */}
+                        {/* === MODO SPLIT === */}
                         {layoutMode === 0 && (
                             <div className="flex w-full h-full gap-8">
-                                <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-zinc-800/50 bg-black">
+                                <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-white/10" style={{ backgroundColor: fondo }}>
                                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10"/>
-                                    {!itemActual && <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center"><img src={config?.logo} className="w-1/3 opacity-10 grayscale" alt="Logo Fondo" /></div>}
+                                    {!itemActual && <div className="absolute inset-0 flex items-center justify-center opacity-10"><img src={config?.logo} className="w-1/3 grayscale" alt="Logo" /></div>}
+                                    
+                                    {/* Carrusel Dots */}
                                     {fotosActivas.length > 1 && (
                                         <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
                                             {fotosActivas.map((_, idx) => (
-                                                <div key={idx} className={`h-1.5 rounded-full transition-all duration-500 shadow-sm ${idx === indice ? 'bg-yellow-500 w-6' : 'bg-white/30 w-1.5'}`} />
+                                                <div 
+                                                    key={idx} 
+                                                    className={`h-1.5 rounded-full transition-all duration-500 shadow-sm ${idx === indice ? 'w-6' : 'w-1.5 bg-white/30'}`} 
+                                                    style={idx === indice ? { backgroundColor: acento } : {}}
+                                                />
                                             ))}
                                         </div>
                                     )}
                                 </div>
                                 
-                                <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-white/5 bg-zinc-900/80 backdrop-blur-xl flex flex-col items-center justify-center p-12 text-center">
+                                <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-white/5 backdrop-blur-xl flex flex-col items-center justify-center p-12 text-center" style={{ backgroundColor: `${fondo}CC` }}> {/* Fondo con transparencia */}
                                     <div className="animate-fade-in-up w-full flex flex-col items-center h-full justify-center relative">
-                                        <h1 className="text-5xl lg:text-7xl font-black text-white mb-10 leading-tight drop-shadow-2xl">{eventoActual.titulo}</h1>
-                                        {eventoActual.cliente && <div className="mb-14"><span className="inline-block px-8 py-3 rounded-full border border-yellow-500/50 bg-yellow-500/10 text-yellow-300 text-xl font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(234,179,8,0.15)]">{eventoActual.cliente}</span></div>}
-                                        <div className="flex flex-col items-center gap-2 mb-10">
-                                            <span className="text-zinc-400 text-base uppercase tracking-widest">Horario</span>
-                                            <span className="text-3xl font-mono font-bold text-white border-b border-zinc-700 pb-1">{eventoActual.horario}</span>
-                                        </div>
-                                        {eventoActual.mensaje && <div className="w-4/5 mx-auto bg-white/5 p-6 rounded-2xl border border-white/5"><p className="text-xl text-gray-300 font-serif italic leading-relaxed">"{eventoActual.mensaje}"</p></div>}
                                         
-                                        {/* FLECHA: Pegada abajo a la derecha del panel de información */}
+                                        <h1 className="text-5xl lg:text-7xl font-black mb-10 leading-tight drop-shadow-2xl" style={{ color: texto_evento }}>
+                                            {eventoActual.titulo}
+                                        </h1>
+                                        
+                                        {eventoActual.cliente && (
+                                            <div className="mb-14">
+                                                <span 
+                                                    className="inline-block px-8 py-3 rounded-full border border-white/10 text-xl font-bold uppercase tracking-wider shadow-lg"
+                                                    style={{ color: acento, backgroundColor: `${acento}15`, borderColor: `${acento}50` }}
+                                                >
+                                                    {eventoActual.cliente}
+                                                </span>
+                                            </div>
+                                        )}
+                                        
+                                        <div className="flex flex-col items-center gap-2 mb-10">
+                                            <span className="text-sm uppercase tracking-widest opacity-60" style={{ color: texto_evento }}>Horario</span>
+                                            <span className="text-3xl font-mono font-bold border-b pb-1" style={{ color: texto_evento, borderColor: acento }}>
+                                                {eventoActual.horario}
+                                            </span>
+                                        </div>
+                                        
+                                        {eventoActual.mensaje && (
+                                            <div className="w-4/5 mx-auto bg-white/5 p-6 rounded-2xl border border-white/5">
+                                                <p className="text-xl font-serif italic leading-relaxed" style={{ color: texto_evento }}>"{eventoActual.mensaje}"</p>
+                                            </div>
+                                        )}
+                                        
                                         {eventoActual.direccion && (
                                             <div className="absolute bottom-0 right-0 p-4">
-                                                <div className="bg-white/5 p-4 rounded-full border-2 border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.2)] animate-bounce">
-                                                    <DirectionArrow direccion={eventoActual.direccion} size="w-32 h-32" />
+                                                <div className="bg-white/5 p-4 rounded-full border-2 shadow-lg animate-bounce" style={{ borderColor: `${acento}50` }}>
+                                                    <DirectionArrow direccion={eventoActual.direccion} size="w-32 h-32" color={acento} />
                                                 </div>
                                             </div>
                                         )}
@@ -192,21 +254,43 @@ export default function PlayerSalon() {
             </div>
 
             {/* FOOTER */}
-            <footer className={`h-20 bg-black relative z-20 grid grid-cols-3 items-center px-10 border-t border-zinc-900 transition-all ${tickerText ? 'mb-12' : 'mb-0'}`}>
-                <div className="flex justify-start opacity-50 hover:opacity-100 transition-opacity"><p className="text-[11px] tracking-[0.2em] text-zinc-500 uppercase font-medium">Powered by <span className="text-yellow-600 font-bold">narabyte.xyz</span></p></div>
-                <div className="flex justify-center">{!eventoActual && <h2 className="text-4xl font-light tracking-[0.3em] uppercase text-white drop-shadow-lg animate-fade-in-up font-sans">BIENVENIDOS</h2>}</div>
-                <div className="flex justify-end items-center gap-6">
+            <footer className="h-20 relative z-20 grid grid-cols-3 items-center px-10 border-t transition-all" style={{ backgroundColor: fondo, borderColor: `${texto_evento}20` }}>
+                <div className="flex justify-start opacity-50 hover:opacity-100 transition-opacity">
+                    <p className="text-[11px] tracking-[0.2em] uppercase font-medium" style={{ color: texto_reloj }}>
+                        Powered by <span className="font-bold" style={{ color: acento }}>narabyte.xyz</span> {/* 🎨 7. POWERED BY (Color Acento) */}
+                    </p>
+                </div>
+                <div className="flex justify-center">
+                    {!eventoActual && <h2 className="text-4xl font-light tracking-[0.3em] uppercase drop-shadow-lg animate-fade-in-up font-sans" style={{ color: texto_evento }}>BIENVENIDOS</h2>}
+                </div>
+                <div className="flex justify-end items-center gap-6" style={{ color: texto_reloj }}>
                     <div className="text-5xl drop-shadow-lg filter pb-2">{getIconoClima(clima.codigo)}</div>
-                    <div className="flex items-baseline gap-3"><span className="text-4xl font-bold text-white tracking-tighter">{clima.tempC}°C</span><div className="h-6 w-px bg-zinc-700"></div><div className="flex items-start opacity-60"><span className="text-2xl font-medium text-gray-300 tracking-tighter">{clima.tempF}</span><span className="text-xs text-gray-400 mt-1 ml-0.5">°F</span></div></div>
+                    <div className="flex items-baseline gap-3">
+                         <span className="text-4xl font-bold tracking-tighter">{clima.tempC}°C</span>
+                         <div className="h-6 w-px opacity-30 bg-current"></div>
+                         <div className="flex items-start opacity-60"><span className="text-2xl font-medium tracking-tighter">{clima.tempF}</span><span className="text-xs mt-1 ml-0.5">°F</span></div>
+                    </div>
                 </div>
             </footer>
              
              {/* TICKER */}
              {tickerText && (
-                <div className="absolute bottom-0 left-0 w-full h-12 bg-yellow-500 z-50 overflow-hidden flex items-center shadow-[0_-5px_20px_rgba(0,0,0,0.5)] border-t border-yellow-300">
+                <div 
+                    className="absolute bottom-0 left-0 w-full h-12 z-50 overflow-hidden flex items-center shadow-lg border-t"
+                    style={{ backgroundColor: acento, borderColor: `${acento}80` }} // 🎨 TICKER FONDO = ACENTO
+                >
                     <div className="flex w-full">
-                         <div className="bg-black text-yellow-500 px-6 h-12 flex items-center justify-center font-black uppercase tracking-widest text-sm relative z-20 shrink-0">Aviso</div>
-                        <div className="flex-1 overflow-hidden relative flex items-center bg-yellow-500"><div className="animate-marquee whitespace-nowrap text-black text-2xl font-bold uppercase tracking-wide">{tickerText}</div></div>
+                         <div 
+                            className="px-6 h-12 flex items-center justify-center font-black uppercase tracking-widest text-sm relative z-20 shrink-0"
+                            style={{ backgroundColor: fondo, color: acento }} // Contraste inverso
+                        >
+                            Aviso
+                        </div>
+                        <div className="flex-1 overflow-hidden relative flex items-center">
+                             <div className="animate-marquee whitespace-nowrap text-2xl font-bold uppercase tracking-wide" style={{ color: fondo }}> {/* Texto contraste */}
+                                {tickerText}
+                             </div>
+                        </div>
                     </div>
                 </div>
             )}
