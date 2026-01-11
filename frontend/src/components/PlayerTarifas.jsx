@@ -13,24 +13,18 @@ import LayoutTarifasVertical from './layoutTarifas/LayoutTarifasVertical';
 
 export default function PlayerTarifas() {
     const { id } = useParams();
-    
-    // 1. Obtención de datos y configuración de Tarifas
     const { config, datos, loading, timeOffset } = useTarifas(id);
-    
-    // 2. Gestión del tiempo
-    const horaActual = useReloj(timeOffset);
 
     // 3. Gestión de la Galería del Footer (Screensaver)
     const listaGaleria = datos?.galeria?.length > 0 ? datos.galeria : (config?.screensaver || []);
     const { itemActual } = useCarrusel(listaGaleria, 10000);
     const { videoBlobUrl } = useOfflineVideo(listaGaleria);
 
-    // 4. Pantalla de carga
-    if (loading && !config) {
+	if (loading || !config) {
         return (
             <div className="bg-[#050505] h-screen w-screen flex flex-col items-center justify-center text-white">
                 <div className="w-10 h-10 border-2 border-white/10 border-t-white rounded-full animate-spin mb-4"></div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.5em] opacity-40">Actualizando Tarifas</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.5em] opacity-40">Cargando Tarifas...</p>
             </div>
         );
     }

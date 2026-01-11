@@ -9,7 +9,6 @@ export const useTarifas = (id) => {
 
     const fetchData = async () => {
         try {
-            // Ajusta esta ruta según tu API de backend
             const response = await axios.get(`/api/pantallas/${id}`);
             setConfig(response.data.config);
             setDatos(response.data.datos);
