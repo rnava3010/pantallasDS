@@ -1,6 +1,5 @@
 const pool = require('../config/db');
 
-// --- SUB-FUNCION: Obtener Configuración Base ---
 const obtenerConfiguracion = async (id) => {
     const sqlTerminal = `
         SELECT 
@@ -9,7 +8,14 @@ const obtenerConfiguracion = async (id) => {
             a.nombre as nombre_area,
             COALESCE(s.logo_url, m.logo_url) as final_logo_name, 
             m.color_primario, m.color_secundario,
-            s.latitud, s.longitud 
+            s.latitud, s.longitud,
+            
+            -- COLORES PERSONALIZABLES (Nuevos campos)
+            COALESCE(t.color_fondo, '#000000') as color_fondo,
+            COALESCE(t.color_texto_evento, '#FFFFFF') as color_texto_evento,
+            COALESCE(t.color_texto_reloj, '#FFFFFF') as color_texto_reloj,
+            COALESCE(t.color_acento, '#EAB308') as color_acento
+
         FROM cat_terminales t
         LEFT JOIN cat_areas a ON t.idAreaAsignada = a.idArea
         LEFT JOIN cat_sucursales s ON t.idSucursal = s.idSucursal
@@ -65,51 +71,51 @@ const obtenerDirectorio = async (idSucursal) => {
 };
 
 
-// ==========================================
-// 🎮 CONTROLADOR PRINCIPAL
-// ==========================================
 const getDatosPantalla = async (req, res) => {
     const { id } = req.params;
     
     try {
-        // 1. Configuración Principal
         const terminal = await obtenerConfiguracion(id);
         if (!terminal) return res.status(404).json({ error: "Terminal no encontrada" });
 
-        // 2. Procesar Logos
+        // ... (Lógica de logos igual) ...
         let logoPngUrl = null;
         let faviconIcoUrl = null;
         if (terminal.final_logo_name) {
-            const cleanName = terminal.final_logo_name.replace('/logos/', '').replace('.png', '').replace('.ico', '').replace('.jpg', '');
-            logoPngUrl = `/logos/${cleanName}.png`;
-            faviconIcoUrl = `/logos/${cleanName}.ico`;
+             const cleanName = terminal.final_logo_name.replace('/logos/', '').replace('.png', '').replace('.ico', '').replace('.jpg', '');
+             logoPngUrl = `/logos/${cleanName}.png`;
+             faviconIcoUrl = `/logos/${cleanName}.ico`;
         }
 
-        // 3. Screensaver
-        const listaScreensaver = await obtenerScreensaver(terminal.idTerminal);
+ const listaScreensaver = await obtenerScreensaver(terminal.idTerminal);
 
-        // 4. Armar Respuesta Base
         let respuesta = {
             config: {
+                // ... (Datos previos) ...
                 id: terminal.idTerminal,
                 nombre_interno: terminal.nombre_interno,
                 tipo_pantalla: terminal.tipo_pantalla,
                 tema_color: terminal.tema_color || 'dark',
                 logo: logoPngUrl,
                 favicon: faviconIcoUrl,
-                colores: { primario: terminal.color_primario, secundario: terminal.color_secundario },
                 screensaver: listaScreensaver,
-                ubicacion: { lat: terminal.latitud || '19.43', lon: terminal.longitud || '-99.13' }
+                ubicacion: { lat: terminal.latitud || '19.43', lon: terminal.longitud || '-99.13' },
+                
+                // ✅ NUEVOS COLORES CONFIGURABLES
+                colores: {
+                    fondo: terminal.color_fondo,
+                    texto_evento: terminal.color_texto_evento,
+                    texto_reloj: terminal.color_texto_reloj,
+                    acento: terminal.color_acento // Este controla los 5 elementos que pediste
+                }
             },
             data: null,
             server_time: new Date()
         };
 
-        // 5. Lógica Específica según Tipo
-        if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
-            const agenda = await obtenerAgendaSalon(terminal.idAreaAsignada);
-            
-            respuesta.data = {
+if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
+             const agenda = await obtenerAgendaSalon(terminal.idAreaAsignada);
+             respuesta.data = {
                 tipo_datos: 'AGENDA',
                 eventos: agenda.map(evento => ({
                     titulo: evento.nombre_evento,
@@ -124,11 +130,7 @@ const getDatosPantalla = async (req, res) => {
                     recurrente: evento.es_recurrente === 1,
                     mostrar_inicio_iso: evento.fecha_visualizacion_inicio || evento.fecha_inicio,
                     mostrar_fin_iso: evento.fecha_visualizacion_fin || evento.fecha_fin,
-                    
-                    // --- AQUÍ ESTÁ EL TRUCO ---
-                    // Si hay nombre personalizado, úsalo. Si no, usa el nombre normal del área.
                     nombre_salon: evento.nombre_salon_personalizado || terminal.nombre_area, 
-                    
                     imagenes: evento.lista_imagenes ? evento.lista_imagenes.split(',') : []
                 }))
             };
