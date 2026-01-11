@@ -14,7 +14,7 @@ export default function LayoutVerticalCine({
     const idiomaActual = idiomasActivos[langIndex];
     const TIEMPO_ROTACION_IDIOMA = (config?.tiempo_rotacion || 20) * 1000;
 
-    // Diccionario para etiquetas fijas (Inicio, Fin)
+    // Diccionario
     const t = TEXTOS_SALONES?.[idiomaActual] || TEXTOS_SALONES?.['es'] || {};
     const labelInicio = idiomaActual === 'en' ? 'Start' : (idiomaActual === 'fr' ? 'Début' : 'Inicio');
     const labelFin = idiomaActual === 'en' ? 'End' : (idiomaActual === 'fr' ? 'Fin' : 'Fin');
@@ -30,7 +30,6 @@ export default function LayoutVerticalCine({
     }, [idiomasActivos.length, TIEMPO_ROTACION_IDIOMA]);
 
     // --- TRADUCCIÓN DE DATOS DINÁMICOS ---
-    // Nota: Usamos 'titulo' como fallback principal porque así viene de tu controlador base
     const titulo = (idiomaActual === 'en' && eventoActual.titulo_en) ? eventoActual.titulo_en : 
                    (idiomaActual === 'fr' && eventoActual.titulo_fr) ? eventoActual.titulo_fr : eventoActual.titulo;
 
@@ -45,7 +44,6 @@ export default function LayoutVerticalCine({
     let horaFinMostrar = '--:--';
     let fechaMostrar = textoFechas;
 
-    // INTENTO A: Usar fechas reales si el backend las envió
     if (eventoActual.fecha_inicio && eventoActual.fecha_fin) {
         horaInicioMostrar = new Date(eventoActual.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         horaFinMostrar = new Date(eventoActual.fecha_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -55,7 +53,6 @@ export default function LayoutVerticalCine({
             { weekday: 'short', day: 'numeric', month: 'long' }
         );
     } 
-    // INTENTO B: Parsear el string "horario" (Fallback si no hay fechas)
     else if (eventoActual.horario && eventoActual.horario.includes('-')) {
         const partes = eventoActual.horario.split('-').map(s => s.trim());
         if (partes.length >= 2) {
@@ -88,7 +85,7 @@ export default function LayoutVerticalCine({
             {/* 3. INFO */}
             <div className="absolute bottom-0 left-0 w-full z-20 p-8 pb-12 flex flex-col items-center text-center">
                 
-                {/* TÍTULO */}
+                {/* TÍTULO (CON EFECTO SHINY) */}
                 <h1 className="text-4xl md:text-5xl font-black mb-4 leading-tight drop-shadow-2xl w-full animate-fade-in-up" 
                     key={`tit-${idiomaActual}`}
                     style={shinyStyle}>
@@ -105,13 +102,14 @@ export default function LayoutVerticalCine({
                     </div>
                 )}
                 
-                {/* --- SECCIÓN HORARIO SPLIT --- */}
+                {/* --- SECCIÓN HORARIO (CON EFECTO SHINY APLICADO) --- */}
                 <div className="flex items-center justify-center gap-8 mb-8 animate-fade-in-up" style={{ color: texto_evento, animationDelay: '0.2s' }}>
                      
                      {/* HORA INICIO */}
                      <div className="flex flex-col items-center">
                         <span className="text-[10px] uppercase tracking-widest opacity-60 mb-1">{labelInicio}</span>
-                        <span className="text-5xl font-mono font-black tracking-tighter" style={{ color: acento }}>
+                        {/* APLICAMOS shinyStyle AQUÍ */}
+                        <span className="text-5xl font-mono font-black tracking-tighter" style={shinyStyle}>
                             {horaInicioMostrar}
                         </span>
                         {/* FECHA */}
@@ -125,7 +123,8 @@ export default function LayoutVerticalCine({
                      {/* HORA FIN */}
                      <div className="flex flex-col items-center">
                         <span className="text-[10px] uppercase tracking-widest opacity-60 mb-1">{labelFin}</span>
-                        <span className="text-3xl font-mono font-bold opacity-80">
+                        {/* APLICAMOS shinyStyle AQUÍ TAMBIÉN */}
+                        <span className="text-3xl font-mono font-bold" style={shinyStyle}>
                             {horaFinMostrar}
                         </span>
                      </div>
