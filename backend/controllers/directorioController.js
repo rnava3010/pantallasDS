@@ -23,32 +23,38 @@ const obtenerDatosDirectorio = async (idSucursal) => {
     
     console.log(`\n--- CONSULTA DIRECTORIO (Sucursal ${idSucursal}) ---`);
 
-    // 3. CONSULTA SQL (Con Imágenes y Flechas)
+    // 3. CONSULTA SQL CORREGIDA (Con JOIN a cat_tipos_evento)
     const sql = `
         SELECT 
             e.idEvento,
             e.nombre_evento, 
             e.cliente_nombre,
-            e.tipo_evento,       -- ✅ Nuevo campo (Asegúrate de que exista en tu BD)
-            e.direccion_reloj,   -- ✅ Campo para la flecha
+            
+            -- ✅ CORRECCIÓN: Traemos el nombre desde el catálogo usando el ID
+            te.nombre as tipo_evento,
+            
+            e.direccion_reloj,
             e.fecha_inicio, 
             e.fecha_fin,
             
             DATE_FORMAT(e.fecha_fin, '%Y-%m-%d %H:%i:%s') as fin_str,
             a.nombre as nombre_salon,
 
-            -- ✅ Agrupamos todas las imágenes (NO videos) en una lista separada por comas
             GROUP_CONCAT(em.url_archivo ORDER BY em.orden ASC SEPARATOR ',') as imagenes_lista
 
         FROM tbl_eventos e
         JOIN cat_areas a ON e.idArea = a.idArea
-        LEFT JOIN tbl_eventos_media em ON e.idEvento = em.idEvento AND em.tipo = 'IMAGEN' -- Solo Imágenes
+        
+        -- ✅ JOIN con el catálogo de tipos
+        LEFT JOIN cat_tipos_evento te ON e.idTipoEvento = te.idTipoEvento
+        
+        LEFT JOIN tbl_eventos_media em ON e.idEvento = em.idEvento AND em.tipo = 'IMAGEN'
         
         WHERE e.idSucursal = ? 
           AND e.estatus = 'ACTIVO' 
           AND DATE(e.fecha_inicio) = ? 
         
-        GROUP BY e.idEvento -- Necesario para el GROUP_CONCAT
+        GROUP BY e.idEvento
         ORDER BY e.fecha_inicio ASC
     `;
     
@@ -60,7 +66,6 @@ const obtenerDatosDirectorio = async (idSucursal) => {
         return sigueVigente;
     });
 
-    // Procesamos la lista de imágenes para que sea un Array real
     const eventosFinales = eventosVigentes.map(evt => ({
         ...evt,
         imagenes: evt.imagenes_lista ? evt.imagenes_lista.split(',') : []
