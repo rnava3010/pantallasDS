@@ -1,14 +1,13 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { usePantalla } from '../hooks/usePantalla'; // Asegúrate de la ruta correcta
+import { usePantalla } from '../hooks/usePantalla'; 
 import PlayerSalon from '../components/PlayerSalon';
-// import PlayerDirectorio from '../components/PlayerDirectorio'; // Si lo tienes
+import PlayerDirectorio from '../components/PlayerDirectorio'; // ✅ AHORA SÍ IMPORTADO
 
 export default function VistaPantalla() {
     const { id } = useParams();
     
-    // IMPORTANTE: El hook nuevo devuelve 'config', 'loading' y 'isOnline'.
-    // Ya no devuelve 'data' genérico aquí, porque cada Player gestiona sus datos.
+    // El hook devuelve la configuración inicial
     const { config, loading, isOnline } = usePantalla(id);
 
     // 1. Cargando
@@ -20,7 +19,7 @@ export default function VistaPantalla() {
         );
     }
 
-    // 2. Si falló la carga y no hay configuración (ID incorrecto o error fatal)
+    // 2. Si falló la carga
     if (!config) {
         return (
             <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-white">
@@ -31,15 +30,13 @@ export default function VistaPantalla() {
         );
     }
 
-    // 3. Renderizar el Player correcto según el tipo
-    // Nota: No pasamos props de datos porque PlayerSalon ya usa el hook internamente
+    // 3. Renderizar el Player correcto
     switch (config.tipo_pantalla) {
         case 'SALON':
             return <PlayerSalon />;
             
         case 'DIRECTORIO':
-            // return <PlayerDirectorio />; // Descomenta cuando tengas este componente
-            return <div className="text-white">Componente Directorio en construcción</div>;
+            return <PlayerDirectorio />; // ✅ AHORA MUESTRA EL DIRECTORIO REAL
 
         default:
             return (
