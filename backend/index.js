@@ -22,6 +22,7 @@ app.use(express.static('public', {
 // --- RUTAS API ---
 // Cambiado a '/api/pantallas' para coincidir con la llamada del frontend
 app.use('/api/pantallas', pantallaRoutes); 
+app.use('/api/pantalla', pantallaRoutes); 
 
 app.get('/', (req, res) => res.send('🚀 Servidor Digital Signage: ACTIVO'));
 
