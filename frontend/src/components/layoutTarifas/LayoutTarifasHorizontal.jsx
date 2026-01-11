@@ -26,13 +26,24 @@ export default function LayoutTarifasHorizontal({
             
             {/* HEADER */}
             <header className="flex justify-between items-center mb-10 bg-black/40 backdrop-blur-md p-6 rounded-[2rem] border border-white/10 shadow-2xl">
-                <img src={config.logo} alt="Logo" className="h-14 object-contain" />
+                {/* 1. LOGO: Agregada clase 'animate-float' */}
+                <img 
+                    src={config.logo} 
+                    alt="Logo" 
+                    className="h-14 object-contain animate-float" 
+                />
+                
                 <h1 className="text-4xl font-black uppercase tracking-tighter" style={{ color: acento }}>
                     Tarifas Vigentes
                 </h1>
-                <div className="text-right">
+                
+                <div className="text-right flex flex-col items-end">
                     <span className="text-5xl font-mono font-black block leading-none text-white">
                         {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    {/* 2. FECHA: Agregada debajo de la hora */}
+                    <span className="text-sm font-bold uppercase tracking-widest text-white/60 mt-1">
+                        {horaActual?.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                     </span>
                 </div>
             </header>
@@ -58,16 +69,29 @@ export default function LayoutTarifasHorizontal({
                 <div className="relative rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl">
                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="absolute inset-0 w-full h-full object-cover" />
                 </div>
-                <div className="bg-black/40 backdrop-blur-md rounded-[2.5rem] border border-white/10 p-8 flex items-center justify-center overflow-hidden">
-                    <div className="animate-marquee-horizontal whitespace-nowrap">
-                        <span className="text-4xl font-light tracking-widest text-white uppercase">{banner}</span>
+                
+                {/* 3. BANNER VERTICAL: Contenedor modificado */}
+                <div className="bg-black/40 backdrop-blur-md rounded-[2.5rem] border border-white/10 p-8 flex items-center justify-center overflow-hidden relative">
+                    <div className="animate-marquee-vertical absolute inset-x-8 text-center">
+                        <span className="text-4xl font-light tracking-widest text-white uppercase leading-tight">
+                            {banner}
+                        </span>
                     </div>
                 </div>
             </footer>
 
             <style>{`
-                .animate-marquee-horizontal { animation: marquee 20s linear infinite; }
-                @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+                /* Animación Vertical: De abajo (100%) hacia arriba (-100%) */
+                .animate-marquee-vertical { 
+                    animation: marqueeVertical 15s linear infinite; 
+                }
+                @keyframes marqueeVertical { 
+                    0% { transform: translateY(150%); opacity: 0; } 
+                    10% { opacity: 1; }
+                    90% { opacity: 1; }
+                    100% { transform: translateY(-150%); opacity: 0; } 
+                }
+
                 .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
             `}</style>
