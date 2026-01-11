@@ -7,10 +7,12 @@ const pool = require('../config/db');
  */
 const obtenerTarifasPorSucursal = async (idSucursal) => {
     try {
+        // AGREGAMOS 'descripcion' AL SELECT
         const sql = `
             SELECT 
                 idTarifa, 
                 nombre_habitacion as nombre, 
+                descripcion,
                 precio_rack, 
                 precio_promocion as precio, 
                 moneda, 
