@@ -1,5 +1,11 @@
 // frontend/src/utils/diccionario.js
 
+export const TEXTOS_GENERAL = {
+    es: { bienvenidos: "Bienvenidos" },
+    en: { bienvenidos: "Welcome" },
+    fr: { bienvenidos: "Bienvenue" }
+};
+
 export const TEXTOS_TARIFAS = {
     es: {
         titulo: "TARIFAS",
@@ -23,7 +29,7 @@ export const TEXTOS_TARIFAS = {
         precio_regular: "Regular Price:",
         bienvenidos: "Welcome"
     },
-    fr: { // Ejemplo de lo fácil que es agregar otro idioma
+    fr: { 
         titulo: "TARIFS",
         titulo_largo: "TARIFS ACTUELS",
         header_hab: "Chambre / Détails",
@@ -36,8 +42,63 @@ export const TEXTOS_TARIFAS = {
     }
 };
 
+export const TEXTOS_SALONES = {
+    es: {
+        titulo: "AGENDA DE EVENTOS",
+        salon: "SALÓN",
+        evento: "EVENTO",
+        hora: "HORA",
+        no_eventos: "No hay eventos programados por el momento."
+    },
+    en: {
+        titulo: "EVENTS AGENDA",
+        salon: "ROOM",
+        evento: "EVENT",
+        hora: "TIME",
+        no_eventos: "No scheduled events at the moment."
+    },
+    fr: {
+        titulo: "AGENDA DES ÉVÉNEMENTS",
+        salon: "SALLE",
+        evento: "ÉVÉNEMENT",
+        hora: "HEURE",
+        no_eventos: "Aucun événement prévu pour le moment."
+    }
+};
 
-export const getTexto = (idioma, clave) => {
-    const lang = TEXTOS_TARIFAS[idioma] ? idioma : 'es';
-    return TEXTOS_TARIFAS[lang][clave] || TEXTOS_TARIFAS['es'][clave] || clave;
+// --- NUEVO: TEXTOS PARA DIRECTORIOS ---
+export const TEXTOS_DIRECTORIO = {
+    es: {
+        titulo: "DIRECTORIO DE SERVICIOS",
+        lugar: "LUGAR / SERVICIO",
+        ubicacion: "UBICACIÓN",
+        horario: "HORARIO",
+        nivel: "Nivel"
+    },
+    en: {
+        titulo: "SERVICES DIRECTORY",
+        lugar: "PLACE / SERVICE",
+        ubicacion: "LOCATION",
+        horario: "HOURS",
+        nivel: "Level"
+    },
+    fr: {
+        titulo: "RÉPERTOIRE DES SERVICES",
+        lugar: "LIEU / SERVICE",
+        ubicacion: "EMPLACEMENT",
+        horario: "HORAIRES",
+        nivel: "Niveau"
+    }
+};
+
+/**
+ * Helper para obtener texto seguro.
+ */
+export const getTexto = (seccion, idioma, clave) => {
+    const diccionario = seccion === 'TARIFAS' ? TEXTOS_TARIFAS : 
+                        seccion === 'SALONES' ? TEXTOS_SALONES : 
+                        seccion === 'DIRECTORIO' ? TEXTOS_DIRECTORIO : TEXTOS_GENERAL;
+    
+    const lang = diccionario[idioma] ? idioma : 'es';
+    return diccionario[lang][clave] || clave;
 };
