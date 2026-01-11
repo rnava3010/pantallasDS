@@ -91,7 +91,7 @@ export default function PlayerSalon() {
             className="flex flex-col h-screen w-screen overflow-hidden font-sans relative transition-colors duration-1000"
             style={{ backgroundColor: fondo }}
         >
-            {/* Animación local Marquee (Float ya es global) */}
+            {/* Animación local Marquee (Float ya es global en index.css) */}
             <style>{`
                 @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
                 .animate-marquee { animation: marquee 30s linear infinite; white-space: nowrap; display: inline-block; padding-left: 100%; }
@@ -104,7 +104,6 @@ export default function PlayerSalon() {
             <header className="h-28 flex items-center justify-between px-10 relative z-20 bg-gradient-to-b from-black/90 to-transparent">
                 <div className="w-1/4 flex justify-start">
                     {config?.logo && (
-                        /* ✨ CLASE GLOBAL 'animate-float' */
                         <img 
                             src={config.logo} 
                             alt="Logo" 
@@ -162,6 +161,73 @@ export default function PlayerSalon() {
                 {eventoActual && (
                     <div className="w-full h-full h-full relative">
                         
+                        {/* === MODO 4: CORPORATIVO (Imagen Arriba / Texto Abajo) === */}
+                        {layoutMode === 4 && (
+                             <div className="flex flex-col w-full h-full rounded-[3rem] overflow-hidden shadow-2xl border border-white/10" style={{ backgroundColor: fondo }}>
+                                {/* Mitad Superior: Imagen */}
+                                <div className="h-1/2 relative w-full bg-black">
+                                    <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-cover z-10"/>
+                                    {!itemActual && <div className="absolute inset-0 flex items-center justify-center opacity-10"><img src={config?.logo} className="w-1/3 grayscale animate-pulse" alt="Logo" /></div>}
+                                    
+                                    {/* Carrusel Dots (Opcional en modo vertical) */}
+                                    {fotosActivas.length > 1 && (
+                                        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
+                                            {fotosActivas.map((_, idx) => (
+                                                <div 
+                                                    key={idx} 
+                                                    className={`h-1.5 rounded-full transition-all duration-500 shadow-sm ${idx === indice ? 'w-6' : 'w-1.5 bg-white/30'}`} 
+                                                    style={idx === indice ? { backgroundColor: acento } : {}}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {/* Mitad Inferior: Información */}
+                                <div className="h-1/2 relative flex flex-col items-center justify-center p-12 text-center" style={{ backgroundColor: fondo }}>
+                                    <div className="animate-fade-in-up w-full flex flex-col items-center justify-center relative h-full">
+                                        
+                                        <h1 className="text-5xl lg:text-7xl font-black mb-6 leading-tight drop-shadow-2xl" style={shinyStyle}>
+                                            {eventoActual.titulo}
+                                        </h1>
+                                        
+                                        {eventoActual.cliente && (
+                                            <div className="mb-8">
+                                                <span 
+                                                    className="inline-block px-8 py-3 rounded-full border border-white/10 text-xl font-bold uppercase tracking-wider shadow-lg"
+                                                    style={{ color: acento, backgroundColor: `${acento}15`, borderColor: `${acento}50` }}
+                                                >
+                                                    {eventoActual.cliente}
+                                                </span>
+                                            </div>
+                                        )}
+                                        
+                                        <div className="flex flex-col items-center gap-2 mb-6">
+                                            <span className="text-sm uppercase tracking-widest opacity-60" style={{ color: texto_evento }}>Horario</span>
+                                            <span className="text-3xl font-mono font-bold border-b pb-1" style={{ color: texto_evento, borderColor: acento }}>
+                                                {eventoActual.horario}
+                                            </span>
+                                        </div>
+                                        
+                                        {eventoActual.mensaje && (
+                                            <div className="w-4/5 mx-auto bg-white/5 p-6 rounded-2xl border border-white/5">
+                                                <p className="text-xl font-serif italic leading-relaxed" style={{ color: texto_evento }}>"{eventoActual.mensaje}"</p>
+                                            </div>
+                                        )}
+                                        
+                                        {/* FLECHA: Esquina inferior derecha del panel de texto */}
+                                        {eventoActual.direccion && (
+                                            <div className="absolute bottom-0 right-0 p-4">
+                                                <div className="bg-white/5 p-3 rounded-full border-2 shadow-lg animate-bounce" style={{ borderColor: `${acento}50` }}>
+                                                    <DirectionArrow direccion={eventoActual.direccion} size="w-20 h-20" color={acento} />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* === MODO 3: FULL SCREEN LIMPIO (Sin texto, sin flecha) === */}
                         {layoutMode === 3 && (
                              <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-white/10" style={{ backgroundColor: fondo }}>
@@ -187,7 +253,6 @@ export default function PlayerSalon() {
                         {layoutMode === 1 && (
                             <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-white/10" style={{ backgroundColor: fondo }}>
                                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-cover z-0 opacity-90"/>
-                                {/* Logo fondo */}
                                 {!itemActual && <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center"><img src={config?.logo} className="w-1/3 opacity-10 grayscale animate-pulse" alt="Logo" /></div>}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 z-10"></div>
                                 
