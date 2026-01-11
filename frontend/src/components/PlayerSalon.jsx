@@ -13,6 +13,22 @@ import DirectionArrow from '../components/DirectionArrow';
 import { getIconoClima } from '../utils/weatherUtils'; 
 import logger from '../utils/logger';
 
+// --- HELPER: Generar color más claro para el brillo ---
+const lightenColor = (hex, percent) => {
+    if (!hex) return '#ffffff';
+    const num = parseInt(hex.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = (num >> 16) + amt;
+    const B = ((num >> 8) & 0x00ff) + amt;
+    const G = (num & 0x0000ff) + amt;
+    return '#' + (
+        0x1000000 +
+        (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+        (B < 255 ? (B < 1 ? 0 : B) : 255) * 0x100 +
+        (G < 255 ? (G < 1 ? 0 : G) : 255)
+    ).toString(16).slice(1);
+};
+
 export default function PlayerSalon() {
     const { id } = useParams();
     
@@ -44,13 +60,23 @@ export default function PlayerSalon() {
     const nombreSalon = eventoActual?.nombre_salon || config?.nombre_interno || "Sala de Eventos";
     const tickerText = eventoActual?.ticker || null;
     
-    // Extracción segura de colores (con defaults por si acaso)
+    // Extracción segura de colores
     const { 
         fondo = '#000000', 
         texto_evento = '#FFFFFF', 
         texto_reloj = '#FFFFFF', 
-        acento = '#EAB308' // Amarillo default
+        acento = '#EAB308' 
     } = config?.colores || {};
+
+    // Generamos el estilo "Shiny" (Degradado Metálico) basado en el color de acento
+    const colorBrillante = lightenColor(acento, 40); // 40% más claro
+    const shinyStyle = {
+        backgroundImage: `linear-gradient(to right, ${acento}, ${colorBrillante}, ${acento})`,
+        WebkitBackgroundClip: 'text',
+        backgroundClip: 'text',
+        color: 'transparent',
+        filter: `drop-shadow(0 0 2px ${acento})` // Un pequeño resplandor del mismo color
+    };
 
     let layoutMode = 0;
     if (eventoActual?.layout_mode !== undefined) {
@@ -62,9 +88,8 @@ export default function PlayerSalon() {
     return (
         <div 
             className="flex flex-col h-screen w-screen overflow-hidden font-sans relative transition-colors duration-1000"
-            style={{ backgroundColor: fondo }} // 🎨 COLOR DE FONDO CONFIGURABLE
+            style={{ backgroundColor: fondo }}
         >
-
             <style>{`
                 @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
                 .animate-marquee { animation: marquee 30s linear infinite; white-space: nowrap; display: inline-block; padding-left: 100%; }
@@ -80,17 +105,16 @@ export default function PlayerSalon() {
                 </div>
                 <div className="flex-1 flex justify-center">
                     <div className="px-12 py-3 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl">
-                        {/* 🎨 1. NOMBRE DEL SALON (Color Acento) */}
+                        {/* 🎨 1. NOMBRE DEL SALON CON EFECTO BRILLO RESTAURADO */}
                         <h1 
                             className="text-4xl md:text-5xl font-bold tracking-widest uppercase drop-shadow-sm whitespace-nowrap text-ellipsis overflow-hidden"
-                            style={{ color: acento }} 
+                            style={shinyStyle} 
                         >
                             {nombreSalon}
                         </h1>
                     </div>
                 </div>
                 <div className="w-1/4 flex flex-col items-end">
-                    {/* 🎨 2. HORA Y FECHA (Color Texto Reloj) */}
                     <span 
                         className="text-5xl font-mono font-bold drop-shadow-lg tracking-tighter"
                         style={{ color: texto_reloj }}
@@ -118,7 +142,6 @@ export default function PlayerSalon() {
                             className="object-contain z-10"
                             onError={(e) => logger.error("Error media:", e)}
                         />
-                        {/* Fondo decorativo sutil */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center z-0 opacity-20">
                              <div style={{ color: texto_evento }} className="scale-150">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -136,7 +159,6 @@ export default function PlayerSalon() {
                              <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-white/10" style={{ backgroundColor: fondo }}>
                                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10"/>
                                 
-                                {/* 🎨 3. FLECHA (Color Acento) */}
                                 {eventoActual.direccion && (
                                     <div className="absolute bottom-10 right-10 z-50 bg-black/80 rounded-full p-6 shadow-[0_0_40px_rgba(0,0,0,0.5)] border-4 border-white/10 animate-pulse">
                                         <DirectionArrow direccion={eventoActual.direccion} size="w-48 h-48" color={acento} />
@@ -153,12 +175,10 @@ export default function PlayerSalon() {
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 z-10"></div>
                                 
                                 <div className="absolute bottom-10 left-10 z-20 max-w-4xl p-10">
-                                    {/* 🎨 4. TITULO EVENTO (Color Texto Evento) */}
                                     <h1 className="text-7xl lg:text-9xl font-black mb-4 leading-none drop-shadow-2xl" style={{ color: texto_evento }}>{eventoActual.titulo}</h1>
                                     
                                     {eventoActual.cliente && (
                                         <div className="mb-6">
-                                            {/* 🎨 5. CLIENTE (Fondo Acento, Texto Negro/Contraste) */}
                                             <span 
                                                 className="inline-block px-6 py-2 rounded-full text-2xl font-bold uppercase tracking-wider shadow-lg"
                                                 style={{ backgroundColor: acento, color: fondo === '#000000' ? '#000000' : '#FFFFFF' }}
@@ -169,7 +189,6 @@ export default function PlayerSalon() {
                                     )}
                                     
                                     <div className="flex items-center gap-8" style={{ color: texto_evento }}>
-                                         {/* 🎨 6. LINEA DIVISORIA (Borde Acento) */}
                                          <span className="text-3xl font-mono font-bold pl-4 border-l-4" style={{ borderColor: acento }}>
                                             {eventoActual.horario}
                                          </span>
@@ -193,7 +212,6 @@ export default function PlayerSalon() {
                                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10"/>
                                     {!itemActual && <div className="absolute inset-0 flex items-center justify-center opacity-10"><img src={config?.logo} className="w-1/3 grayscale" alt="Logo" /></div>}
                                     
-                                    {/* Carrusel Dots */}
                                     {fotosActivas.length > 1 && (
                                         <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
                                             {fotosActivas.map((_, idx) => (
@@ -207,7 +225,7 @@ export default function PlayerSalon() {
                                     )}
                                 </div>
                                 
-                                <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-white/5 backdrop-blur-xl flex flex-col items-center justify-center p-12 text-center" style={{ backgroundColor: `${fondo}CC` }}> {/* Fondo con transparencia */}
+                                <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-white/5 backdrop-blur-xl flex flex-col items-center justify-center p-12 text-center" style={{ backgroundColor: `${fondo}CC` }}>
                                     <div className="animate-fade-in-up w-full flex flex-col items-center h-full justify-center relative">
                                         
                                         <h1 className="text-5xl lg:text-7xl font-black mb-10 leading-tight drop-shadow-2xl" style={{ color: texto_evento }}>
@@ -257,7 +275,7 @@ export default function PlayerSalon() {
             <footer className="h-20 relative z-20 grid grid-cols-3 items-center px-10 border-t transition-all" style={{ backgroundColor: fondo, borderColor: `${texto_evento}20` }}>
                 <div className="flex justify-start opacity-50 hover:opacity-100 transition-opacity">
                     <p className="text-[11px] tracking-[0.2em] uppercase font-medium" style={{ color: texto_reloj }}>
-                        Powered by <span className="font-bold" style={{ color: acento }}>narabyte.xyz</span> {/* 🎨 7. POWERED BY (Color Acento) */}
+                        Powered by <span className="font-bold" style={{ color: acento }}>narabyte.xyz</span>
                     </p>
                 </div>
                 <div className="flex justify-center">
@@ -277,17 +295,17 @@ export default function PlayerSalon() {
              {tickerText && (
                 <div 
                     className="absolute bottom-0 left-0 w-full h-12 z-50 overflow-hidden flex items-center shadow-lg border-t"
-                    style={{ backgroundColor: acento, borderColor: `${acento}80` }} // 🎨 TICKER FONDO = ACENTO
+                    style={{ backgroundColor: acento, borderColor: `${acento}80` }}
                 >
                     <div className="flex w-full">
                          <div 
                             className="px-6 h-12 flex items-center justify-center font-black uppercase tracking-widest text-sm relative z-20 shrink-0"
-                            style={{ backgroundColor: fondo, color: acento }} // Contraste inverso
+                            style={{ backgroundColor: fondo, color: acento }}
                         >
                             Aviso
                         </div>
                         <div className="flex-1 overflow-hidden relative flex items-center">
-                             <div className="animate-marquee whitespace-nowrap text-2xl font-bold uppercase tracking-wide" style={{ color: fondo }}> {/* Texto contraste */}
+                             <div className="animate-marquee whitespace-nowrap text-2xl font-bold uppercase tracking-wide" style={{ color: fondo }}>
                                 {tickerText}
                              </div>
                         </div>
