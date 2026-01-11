@@ -25,24 +25,24 @@ const lightenColor = (hex, percent) => {
 
 export default function PlayerDirectorio() {
     const { id } = useParams();
-    // data contiene la lista filtrada por el backend (solo eventos activos del día)
+    // data contiene la respuesta del backend
     const { config, data, loading, isOnline, timeOffset, clima } = usePantalla(id);
     const horaActual = useReloj(timeOffset);
 
     // Estado para paginación
     const [paginaActual, setPaginaActual] = useState(0);
 
-    // Logs
+    // Logs de configuración
     useEffect(() => {
         if (config) logger.log(`✅ [Directorio] Configurado: "${config.nombre_interno}" Orientación: ${config.orientacion === 1 ? 'Vertical' : 'Horizontal'}`);
     }, [config]);
 
-    // Screensaver (Se usa si la lista de eventos está vacía)
+    // Screensaver (Carrusel de imágenes si no hay eventos)
     const fotosActivas = config?.screensaver || [];
     const { itemActual } = useCarrusel(fotosActivas, 8000);
     const { videoBlobUrl } = useOfflineVideo(fotosActivas);
 
-    // Favicon
+    // Favicon Dinámico
     useEffect(() => {
         if (config?.favicon) {
             let link = document.querySelector("link[rel~='icon']") || document.createElement('link');
@@ -54,9 +54,26 @@ export default function PlayerDirectorio() {
     // --- VARIABLES Y LÓGICA ---
     const { fondo = '#000000', texto_evento = '#FFFFFF', texto_reloj = '#FFFFFF', acento = '#EAB308' } = config?.colores || {};
     
-    // Si data viene vacío (porque no hay eventos hoy o ya acabaron), hayEventos será false
-    const eventos = Array.isArray(data) ? data : [];
+    // ✅ DETECCIÓN ROBUSTA DE DATOS
+    // El backend puede enviar un array directo o un objeto con la propiedad 'data' o 'eventos'.
+    let listaFinal = [];
+    if (Array.isArray(data)) {
+        listaFinal = data; 
+    } else if (data && Array.isArray(data.eventos)) {
+        listaFinal = data.eventos; 
+    } else if (data && Array.isArray(data.data)) {
+        listaFinal = data.data; 
+    }
+
+    const eventos = listaFinal;
     const hayEventos = eventos.length > 0;
+    
+    // Log para depuración en el navegador
+    // Si ves un array vacío [] aquí, es que el filtro del backend ocultó todo.
+    // Si ves objetos, ¡todo funciona!
+    if (!loading) {
+        console.log("📊 [PlayerDirectorio] Eventos procesados para mostrar:", eventos);
+    }
 
     // Lógica de Orientación
     const isVertical = config?.orientacion === 1;
@@ -66,7 +83,7 @@ export default function PlayerDirectorio() {
     const ITEMS_POR_PAGINA = isVertical ? 12 : 7; 
     const totalPaginas = Math.ceil(eventos.length / ITEMS_POR_PAGINA);
 
-    // Ciclo de páginas automático
+    // ✅ EFECTO DE PAGINACIÓN (Antes de cualquier return)
     useEffect(() => {
         if (totalPaginas > 1) {
             const intervalo = setInterval(() => {
@@ -94,6 +111,7 @@ export default function PlayerDirectorio() {
         filter: `drop-shadow(0 0 2px ${acento})`
     };
 
+    // ✅ PANTALLA DE CARGA (Al final, para no romper reglas de Hooks)
     if (loading && !config) return <div className="bg-black h-screen flex items-center justify-center text-white animate-pulse">Cargando Directorio...</div>;
 
     return (
@@ -129,20 +147,20 @@ export default function PlayerDirectorio() {
             {/* --- CONTENIDO PRINCIPAL --- */}
             <div className={`flex-1 ${paddingX} py-4 relative z-10 w-full h-full overflow-hidden flex flex-col`}>
                 
-                {/* OPCIÓN A: MODO SCREENSAVER (Se activa si hayEventos es false) */}
+                {/* A. MODO SCREENSAVER (Si no hay eventos) */}
                 {!hayEventos && (
                     <div className={`w-full h-full rounded-[3rem] overflow-hidden relative border border-white/10 shadow-2xl`} style={{ backgroundColor: fondo }}>
                         <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10 w-full h-full"/>
                         {!itemActual && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center opacity-30">
                                 <img src={config?.logo} className="w-1/3 grayscale animate-pulse mb-4" alt="Logo" />
-                                <p className="text-xl uppercase tracking-widest" style={{ color: texto_evento }}>Sin eventos por hoy</p>
+                                <p className="text-xl uppercase tracking-widest" style={{ color: texto_evento }}>Sin eventos programados</p>
                             </div>
                         )}
                     </div>
                 )}
 
-                {/* OPCIÓN B: LISTA DE EVENTOS (Se activa si hay al menos 1 evento) */}
+                {/* B. LISTA DE EVENTOS */}
                 {hayEventos && (
                     <div className="w-full h-full flex flex-col gap-4">
                         
@@ -153,9 +171,10 @@ export default function PlayerDirectorio() {
                             <div className="col-span-3 text-right">Ubicación</div>
                         </div>
 
-                        {/* Filas de Eventos */}
+                        {/* Filas de Eventos (Animadas) */}
                         <div className="flex-1 flex flex-col gap-3 relative">
                             {eventosVisibles.map((evento, idx) => {
+                                // Formatear hora de inicio
                                 const horaInicio = new Date(evento.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                                 
                                 return (
@@ -164,14 +183,19 @@ export default function PlayerDirectorio() {
                                         className="grid grid-cols-12 gap-4 items-center p-6 bg-white/5 border border-white/5 rounded-2xl shadow-lg backdrop-blur-sm animate-fade-in-up"
                                         style={{ animationDelay: `${idx * 100}ms` }}
                                     >
+                                        {/* Hora */}
                                         <div className="col-span-3 font-mono text-2xl font-bold" style={{ color: acento }}>
                                             {horaInicio}
                                         </div>
+                                        
+                                        {/* Nombre Evento */}
                                         <div className="col-span-6 flex flex-col justify-center">
                                             <h2 className="text-2xl font-bold leading-tight" style={{ color: texto_evento }}>
                                                 {evento.nombre_evento}
                                             </h2>
                                         </div>
+                                        
+                                        {/* Ubicación (Salón/Área) */}
                                         <div className="col-span-3 text-right">
                                             <span className="inline-block px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wide bg-white/10 border border-white/10" style={{ color: texto_reloj }}>
                                                 {evento.nombre_salon}
@@ -182,7 +206,7 @@ export default function PlayerDirectorio() {
                             })}
                         </div>
 
-                        {/* Paginación (Puntos) */}
+                        {/* Indicador de Páginas (Puntos) */}
                         {totalPaginas > 1 && (
                             <div className="h-8 flex items-center justify-center gap-2 mt-2">
                                 {Array.from({ length: totalPaginas }).map((_, idx) => (
