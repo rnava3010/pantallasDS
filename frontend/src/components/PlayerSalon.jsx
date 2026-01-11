@@ -9,7 +9,7 @@ import { useCarrusel } from '../hooks/useCarrusel';
 
 // Componentes y Utilidades
 import MediaRenderer from '../components/MediaRenderer';
-import DirectionArrow from '../components/DirectionArrow'; // <--- Nuevo componente
+import DirectionArrow from '../components/DirectionArrow'; 
 import { getIconoClima } from '../utils/weatherUtils'; 
 import logger from '../utils/logger';
 
@@ -20,31 +20,17 @@ export default function PlayerSalon() {
     const { eventoActual, config, loading, isOnline, timeOffset, clima } = usePantalla(id);
     const horaActual = useReloj(timeOffset);
 
-    // 2. Logs de Auditoría
+    // 2. Logs
     useEffect(() => {
-        if (loading) {
-            logger.log(`🔄 [PlayerSalon] Cargando configuración para pantalla ID: ${id}...`);
-        } else if (config) {
-            logger.log(`✅ [PlayerSalon] Configuración cargada. Salon: "${config.nombre_interno || 'Sin Nombre'}"`);
-        }
-    }, [loading, config, id]);
+        if (loading) logger.log(`🔄 [PlayerSalon] Cargando configuración...`);
+        else if (config) logger.log(`✅ [PlayerSalon] Configuración cargada: "${config.nombre_interno}"`);
+    }, [loading, config]);
 
-    useEffect(() => {
-        if (eventoActual) {
-            logger.log(`📅 [Agenda] Mostrando evento: "${eventoActual.titulo}"`);
-        } else if (!loading && config) {
-            logger.log(`💤 [Screensaver] Sin eventos activos.`);
-        }
-    }, [eventoActual?.id, loading]);
-
-    // 3. Preparación de Contenido
+    // 3. Contenido
     const fotosActivas = (eventoActual?.imagenes?.length > 0) ? eventoActual.imagenes : (config?.screensaver || []);
-    
-    // Hooks de Medios
     const { itemActual, indice } = useCarrusel(fotosActivas, 8000);
     const { videoBlobUrl } = useOfflineVideo(fotosActivas);
 
-    // --- EFECTO: FAVICON ---
     useEffect(() => {
         if (config?.favicon) {
             let link = document.querySelector("link[rel~='icon']") || document.createElement('link');
@@ -53,23 +39,17 @@ export default function PlayerSalon() {
         }
     }, [config?.favicon]);
 
-    // --- RENDERIZADO ---
     if (loading && !config) return <div className="bg-black h-screen flex items-center justify-center text-white animate-pulse">Iniciando Narabyte DS...</div>;
 
     const nombreSalon = eventoActual?.nombre_salon || config?.nombre_interno || "Sala de Eventos";
     const tickerText = eventoActual?.ticker || null;
     
-    // Determinamos Layout
     let layoutMode = 0;
     if (eventoActual?.layout_mode !== undefined) {
         layoutMode = eventoActual.layout_mode;
     } else if (eventoActual?.full_width) { 
         layoutMode = 1; 
     }
-
-    // --- PRUEBA DE DIRECCIÓN (Opcional: Descomenta para probar la flecha si no tienes datos en BD) ---
-    // if (eventoActual && !eventoActual.direccion) eventoActual.direccion = 3; // Apunta a la derecha
-    // -----------------------------------------------------------------------------------------------
 
     return (
         <div className="flex flex-col h-screen w-screen bg-black text-white overflow-hidden font-sans relative">
@@ -82,7 +62,7 @@ export default function PlayerSalon() {
             {/* Indicador Offline */}
             <div className={`absolute bottom-32 right-6 z-50 w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] transition-colors duration-500 ${isOnline ? 'bg-green-500/40 text-green-500' : 'bg-red-600 text-red-600 animate-pulse'}`}></div>
 
-            {/* --- HEADER --- */}
+            {/* HEADER */}
             <header className="h-28 flex items-center justify-between px-10 relative z-20 bg-gradient-to-b from-black/90 to-transparent">
                 <div className="w-1/4 flex justify-start">
                     {config?.logo && <img src={config.logo} alt="Logo" className="h-20 w-auto object-contain drop-shadow-xl" />}
@@ -104,17 +84,17 @@ export default function PlayerSalon() {
                 </div>
             </header>
 
-            {/* --- CONTENIDO PRINCIPAL --- */}
+            {/* CONTENIDO PRINCIPAL */}
             <div className={`flex-1 p-8 pt-2 relative z-10 w-full h-full ${tickerText ? 'pb-14' : ''}`}>
                 
-                {/* 1. MODO SCREENSAVER (Sin Evento) */}
+                {/* 1. MODO SCREENSAVER */}
                 {!eventoActual && (
                     <div className="w-full h-full rounded-[3rem] overflow-hidden relative bg-black border border-zinc-800/50 shadow-2xl">
                         <MediaRenderer 
                             url={itemActual} 
                             blobUrl={videoBlobUrl} 
                             className="object-contain z-10"
-                            onError={(e) => logger.error("Error renderizando media:", e)}
+                            onError={(e) => logger.error("Error media:", e)}
                         />
                         <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-slate-950 to-black flex flex-col items-center justify-center z-0">
                              <div className="text-zinc-800 opacity-20 mb-4 scale-150">
@@ -128,22 +108,22 @@ export default function PlayerSalon() {
                 {eventoActual && (
                     <div className="w-full h-full h-full relative">
                         
-                        {/* === OPCIÓN A: MODO POSTER / LIMPIO (layout_mode === 2) === */}
+                        {/* === MODO POSTER (Limpio) === */}
                         {layoutMode === 2 && (
                              <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-zinc-800/50 bg-black">
                                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10"/>
                                 {!itemActual && <div className="absolute inset-0 flex items-center justify-center text-zinc-600">Sin Imagen</div>}
                                 
-                                {/* FLECHA DIRECCIONAL FLOTANTE */}
+                                {/* FLECHA CIRCULAR FLOTANTE */}
                                 {eventoActual.direccion && (
-                                    <div className="absolute top-10 right-10 z-50 bg-black/60 backdrop-blur-md rounded-full p-4 border border-white/10 shadow-xl">
-                                        <DirectionArrow direccion={eventoActual.direccion} size="w-32 h-32" />
+                                    <div className="absolute top-10 right-10 z-50 bg-yellow-500/90 text-black rounded-full p-6 shadow-[0_0_30px_rgba(234,179,8,0.4)] border-4 border-black/20 animate-pulse">
+                                        <DirectionArrow direccion={eventoActual.direccion} size="w-24 h-24" color="text-black" />
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {/* === OPCIÓN B: MODO CINE / TEXTO (layout_mode === 1) === */}
+                        {/* === MODO CINE (Texto) === */}
                         {layoutMode === 1 && (
                             <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-zinc-800/50 bg-black">
                                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-cover z-0 opacity-90"/>
@@ -158,10 +138,9 @@ export default function PlayerSalon() {
                                     <div className="flex items-center gap-8 text-zinc-300">
                                          <span className="text-3xl font-mono font-bold text-white border-l-4 border-yellow-500 pl-4">{eventoActual.horario}</span>
                                          
-                                         {/* FLECHA JUNTO AL HORARIO */}
+                                         {/* FLECHA CIRCULAR JUNTO AL HORARIO */}
                                          {eventoActual.direccion && (
-                                            <div className="flex items-center gap-4 bg-white/10 px-6 py-2 rounded-2xl border border-white/5 animate-fade-in-up">
-                                                <span className="text-xl uppercase font-bold text-yellow-500">Sala hacia:</span>
+                                            <div className="bg-white/10 p-4 rounded-full border border-white/20 backdrop-blur-md shadow-lg animate-fade-in-up">
                                                 <DirectionArrow direccion={eventoActual.direccion} size="w-16 h-16" />
                                             </div>
                                          )}
@@ -172,15 +151,13 @@ export default function PlayerSalon() {
                             </div>
                         )}
 
-                        {/* === OPCIÓN C: MODO SPLIT / NORMAL (layout_mode === 0) === */}
+                        {/* === MODO SPLIT (Normal) === */}
                         {layoutMode === 0 && (
                             <div className="flex w-full h-full gap-8">
-                                {/* Izquierda: Visual */}
                                 <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-zinc-800/50 bg-black">
                                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10"/>
                                     {!itemActual && <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center"><img src={config?.logo} className="w-1/3 opacity-10 grayscale" alt="Logo Fondo" /></div>}
                                     
-                                    {/* Indicadores Carrusel */}
                                     {fotosActivas.length > 1 && (
                                         <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
                                             {fotosActivas.map((_, idx) => (
@@ -190,14 +167,13 @@ export default function PlayerSalon() {
                                     )}
                                 </div>
                                 
-                                {/* Derecha: Info */}
                                 <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-white/5 bg-zinc-900/80 backdrop-blur-xl flex flex-col items-center justify-center p-12 text-center">
                                     <div className="animate-fade-in-up w-full flex flex-col items-center">
                                         <h1 className="text-5xl lg:text-7xl font-black text-white mb-10 leading-tight drop-shadow-2xl">{eventoActual.titulo}</h1>
                                         
-                                        {/* FLECHA CENTRAL PROMINENTE */}
+                                        {/* FLECHA CENTRAL EN SU CÍRCULO */}
                                         {eventoActual.direccion && (
-                                            <div className="mb-10 p-6 rounded-full bg-white/5 border border-white/10 shadow-lg animate-bounce">
+                                            <div className="mb-10 p-6 rounded-full bg-white/5 border-2 border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.2)] animate-bounce">
                                                 <DirectionArrow direccion={eventoActual.direccion} size="w-32 h-32" />
                                             </div>
                                         )}
@@ -218,32 +194,22 @@ export default function PlayerSalon() {
                 )}
             </div>
 
-            {/* --- FOOTER --- */}
+            {/* FOOTER */}
             <footer className={`h-20 bg-black relative z-20 grid grid-cols-3 items-center px-10 border-t border-zinc-900 transition-all ${tickerText ? 'mb-12' : 'mb-0'}`}>
-                <div className="flex justify-start opacity-50 hover:opacity-100 transition-opacity">
-                    <p className="text-[11px] tracking-[0.2em] text-zinc-500 uppercase font-medium">Powered by <span className="text-yellow-600 font-bold">narabyte.xyz</span></p>
-                </div>
-                <div className="flex justify-center">
-                    {!eventoActual && <h2 className="text-4xl font-light tracking-[0.3em] uppercase text-white drop-shadow-lg animate-fade-in-up font-sans">BIENVENIDOS</h2>}
-                </div>
+                <div className="flex justify-start opacity-50 hover:opacity-100 transition-opacity"><p className="text-[11px] tracking-[0.2em] text-zinc-500 uppercase font-medium">Powered by <span className="text-yellow-600 font-bold">narabyte.xyz</span></p></div>
+                <div className="flex justify-center">{!eventoActual && <h2 className="text-4xl font-light tracking-[0.3em] uppercase text-white drop-shadow-lg animate-fade-in-up font-sans">BIENVENIDOS</h2>}</div>
                 <div className="flex justify-end items-center gap-6">
                     <div className="text-5xl drop-shadow-lg filter pb-2">{getIconoClima(clima.codigo)}</div>
-                    <div className="flex items-baseline gap-3">
-                         <span className="text-4xl font-bold text-white tracking-tighter">{clima.tempC}°C</span>
-                         <div className="h-6 w-px bg-zinc-700"></div>
-                         <div className="flex items-start opacity-60"><span className="text-2xl font-medium text-gray-300 tracking-tighter">{clima.tempF}</span><span className="text-xs text-gray-400 mt-1 ml-0.5">°F</span></div>
-                    </div>
+                    <div className="flex items-baseline gap-3"><span className="text-4xl font-bold text-white tracking-tighter">{clima.tempC}°C</span><div className="h-6 w-px bg-zinc-700"></div><div className="flex items-start opacity-60"><span className="text-2xl font-medium text-gray-300 tracking-tighter">{clima.tempF}</span><span className="text-xs text-gray-400 mt-1 ml-0.5">°F</span></div></div>
                 </div>
             </footer>
              
-             {/* --- TICKER --- */}
+             {/* TICKER */}
              {tickerText && (
                 <div className="absolute bottom-0 left-0 w-full h-12 bg-yellow-500 z-50 overflow-hidden flex items-center shadow-[0_-5px_20px_rgba(0,0,0,0.5)] border-t border-yellow-300">
                     <div className="flex w-full">
                          <div className="bg-black text-yellow-500 px-6 h-12 flex items-center justify-center font-black uppercase tracking-widest text-sm relative z-20 shrink-0">Aviso</div>
-                        <div className="flex-1 overflow-hidden relative flex items-center bg-yellow-500">
-                             <div className="animate-marquee whitespace-nowrap text-black text-2xl font-bold uppercase tracking-wide">{tickerText}</div>
-                        </div>
+                        <div className="flex-1 overflow-hidden relative flex items-center bg-yellow-500"><div className="animate-marquee whitespace-nowrap text-black text-2xl font-bold uppercase tracking-wide">{tickerText}</div></div>
                     </div>
                 </div>
             )}
