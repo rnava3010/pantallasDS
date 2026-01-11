@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import MediaRenderer from '../MediaRenderer';
 import DirectionArrow from '../DirectionArrow';
-import { TEXTOS_SALONES } from '../../utils/diccionario'; // <--- IMPORTACIÓN
+import { TEXTOS_SALONES } from '../../utils/diccionario';
 
 export default function LayoutVerticalCine({ 
     eventoActual, itemActual, videoBlobUrl, config, shinyStyle, acento, fondo, texto_evento, textoFechas 
@@ -14,9 +14,11 @@ export default function LayoutVerticalCine({
     const idiomaActual = idiomasActivos[langIndex];
     const TIEMPO_ROTACION_IDIOMA = (config?.tiempo_rotacion || 20) * 1000;
 
-    // Diccionario para etiquetas
+    // Diccionario
     const t = TEXTOS_SALONES[idiomaActual] || TEXTOS_SALONES['es'];
-    const labelHorario = t.hora || (idiomaActual === 'en' ? 'Time' : (idiomaActual === 'fr' ? 'Horaire' : 'Horario'));
+    // Etiquetas traducidas
+    const labelInicio = idiomaActual === 'en' ? 'Start' : (idiomaActual === 'fr' ? 'Début' : 'Inicio');
+    const labelFin = idiomaActual === 'en' ? 'End' : (idiomaActual === 'fr' ? 'Fin' : 'Fin');
 
     // --- EFECTO: Rotación de Idiomas ---
     useEffect(() => {
@@ -38,13 +40,22 @@ export default function LayoutVerticalCine({
     const mensaje = (idiomaActual === 'en' && eventoActual.mensaje_en) ? eventoActual.mensaje_en : 
                     (idiomaActual === 'fr' && eventoActual.mensaje_fr) ? eventoActual.mensaje_fr : eventoActual.mensaje;
 
-    // Fecha Localizada
+    // Fecha
     const fechaFormateada = eventoActual.fecha_inicio 
         ? new Date(eventoActual.fecha_inicio).toLocaleDateString(
             idiomaActual === 'en' ? 'en-US' : (idiomaActual === 'fr' ? 'fr-FR' : 'es-ES'), 
             { weekday: 'short', day: 'numeric', month: 'long' }
           )
         : textoFechas;
+
+    // --- CÁLCULO DE HORAS ---
+    const horaInicio = eventoActual.fecha_inicio 
+        ? new Date(eventoActual.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+        : '--:--';
+    
+    const horaFin = eventoActual.fecha_fin 
+        ? new Date(eventoActual.fecha_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+        : '--:--';
 
     return (
         <div className="w-full h-full rounded-[2rem] overflow-hidden relative shadow-2xl border border-white/10 transition-all duration-500" style={{ backgroundColor: fondo }}>
@@ -61,21 +72,21 @@ export default function LayoutVerticalCine({
             )}
             
             {/* 2. DEGRADADO */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent z-10 pointer-events-none"></div>
             
             {/* 3. INFO */}
             <div className="absolute bottom-0 left-0 w-full z-20 p-8 pb-12 flex flex-col items-center text-center">
                 
-                {/* TÍTULO TRADUCIDO */}
+                {/* TÍTULO */}
                 <h1 className="text-4xl md:text-5xl font-black mb-4 leading-tight drop-shadow-2xl w-full animate-fade-in-up" 
                     key={`tit-${idiomaActual}`}
                     style={shinyStyle}>
                     {titulo}
                 </h1>
                 
-                {/* CLIENTE TRADUCIDO */}
+                {/* CLIENTE */}
                 {cliente && (
-                    <div className="mb-6 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                    <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                         <span className="inline-block px-6 py-2 rounded-full text-lg font-bold uppercase tracking-wider shadow-lg backdrop-blur-md bg-black/40 border border-white/20 transition-all duration-300" 
                               style={{ color: acento, borderColor: `${acento}50` }}>
                             {cliente}
@@ -83,23 +94,33 @@ export default function LayoutVerticalCine({
                     </div>
                 )}
                 
-                <div className="flex flex-col items-center gap-1 mb-6 animate-fade-in-up" style={{ color: texto_evento, animationDelay: '0.2s' }}>
-                     {/* ETIQUETA HORARIO TRADUCIDA */}
-                     <span className="text-sm uppercase tracking-widest opacity-80 transition-all duration-300">
-                        {labelHorario}
-                     </span>
+                {/* --- SECCIÓN HORARIO CORREGIDA --- */}
+                <div className="flex items-center justify-center gap-8 mb-8 animate-fade-in-up" style={{ color: texto_evento, animationDelay: '0.2s' }}>
                      
-                     {/* FECHA LOCALIZADA */}
-                     <span className="text-sm font-bold uppercase opacity-90 transition-all duration-300" key={`date-${idiomaActual}`}>
-                        {fechaFormateada}
-                     </span>
-                     
-                     <span className="text-3xl font-mono font-bold border-b-2 pb-1" style={{ borderColor: acento }}>
-                        {eventoActual.horario}
-                     </span>
+                     {/* HORA INICIO (GRANDE) */}
+                     <div className="flex flex-col items-center">
+                        <span className="text-[10px] uppercase tracking-widest opacity-60 mb-1">{labelInicio}</span>
+                        <span className="text-5xl font-mono font-black tracking-tighter" style={{ color: acento }}>
+                            {horaInicio}
+                        </span>
+                        {/* FECHA BAJO LA HORA */}
+                        <span className="text-[10px] font-bold uppercase opacity-80 mt-1">
+                            {fechaFormateada}
+                        </span>
+                     </div>
+
+                     <div className="h-12 w-px bg-white/20"></div>
+
+                     {/* HORA FIN (PEQUEÑA) */}
+                     <div className="flex flex-col items-center">
+                        <span className="text-[10px] uppercase tracking-widest opacity-60 mb-1">{labelFin}</span>
+                        <span className="text-3xl font-mono font-bold opacity-80">
+                            {horaFin}
+                        </span>
+                     </div>
                 </div>
                 
-                {/* MENSAJE TRADUCIDO */}
+                {/* MENSAJE */}
                 {mensaje && (
                     <p className="text-lg font-serif italic max-w-sm drop-shadow-md opacity-90 mb-4 animate-fade-in-up" 
                        key={`msg-${idiomaActual}`}
