@@ -10,9 +10,6 @@ export const usePantalla = (idPantalla) => {
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [timeOffset, setTimeOffset] = useState(0);
     const [clima, setClima] = useState({ tempC: 0, tempF: 0, codigo: 0 });
-
-    // --- HELPER: PROCESAR URLS ---
-    // Convierte rutas relativas (/logos/...) en rutas absolutas (http://server/logos/...)
     const procesarUrl = (url) => {
         if (!url) return null;
         if (url.startsWith('http') || url.startsWith('data:')) return url;
@@ -22,7 +19,7 @@ export const usePantalla = (idPantalla) => {
         return `${baseUrl}${path}`;
     };
 
-    // --- HELPER: LÓGICA DE AGENDA (PARA SALONES) ---
+
     const determinarEventoActual = (agendaEventos, offset = 0) => {
         if (!agendaEventos || !Array.isArray(agendaEventos)) return null;
         
@@ -66,7 +63,7 @@ export const usePantalla = (idPantalla) => {
     // --- FUNCIÓN PRINCIPAL DE CARGA ---
     const fetchData = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/pantalla/${idPantalla}`);
+            const response = await fetch(`${API_URL}/api/pantallas/${idPantalla}`);
             if (!response.ok) throw new Error('Error de conexión con Servidor');
             
             let result = await response.json();
