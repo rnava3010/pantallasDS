@@ -2,18 +2,14 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const pool = require('./config/db');
-
-// Importamos las rutas
-const pantallaRoutes = require('./routes/pantallaRoutes');
+const pantallaRoutes = require('./routes/pantallasRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3100;
 
-// --- MIDDLEWARES ---
 app.use(cors());
 app.use(express.json());
 
-// --- ARCHIVOS ESTÁTICOS ---
 app.use(express.static('public', {
   setHeaders: function (res, path, stat) {
     res.set("Access-Control-Allow-Origin", "*");
