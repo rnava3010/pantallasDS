@@ -2,17 +2,41 @@ import React, { useState, useEffect } from 'react';
 import MediaRenderer from '../MediaRenderer';
 import DirectionArrow from '../DirectionArrow';
 import { getIconoClima } from '../../utils/weatherUtils';
+import { TEXTOS_DIRECTORIO, TEXTOS_GENERAL } from '../../utils/diccionario'; // <--- IMPORTACIÓN
 
 export default function LayoutDirectorioVerticalPremium({ 
     config, datos, horaActual, isOnline, clima, itemActual, videoBlobUrl 
 }) {
     const [pagina, setPagina] = useState(0);
+    const [langIndex, setLangIndex] = useState(0); // <--- ESTADO IDIOMA
+    
     if (!config || !config.colores || !horaActual) return null;
 
     const { acento, texto_evento } = config.colores;
+    
+    // --- LÓGICA DE IDIOMAS ---
+    const idiomasActivos = config.idiomas_activos || ['es'];
+    const idiomaActual = idiomasActivos[langIndex];
+    
+    // Diccionarios
+    const t = TEXTOS_DIRECTORIO[idiomaActual] || TEXTOS_DIRECTORIO['es'];
+    const tGen = TEXTOS_GENERAL[idiomaActual] || TEXTOS_GENERAL['es'];
+    
     const eventos = datos?.eventos || [];
     const visibles = eventos.slice(pagina * 5, (pagina + 1) * 5);
+    const TIEMPO_ROTACION_IDIOMA = (config.tiempo_rotacion || 20) * 1000;
 
+    // --- EFECTO 1: Rotación de Idiomas ---
+    useEffect(() => {
+        if (idiomasActivos.length > 1) {
+            const int = setInterval(() => {
+                setLangIndex(prev => (prev + 1) % idiomasActivos.length);
+            }, TIEMPO_ROTACION_IDIOMA);
+            return () => clearInterval(int);
+        }
+    }, [idiomasActivos.length, TIEMPO_ROTACION_IDIOMA]);
+
+    // --- EFECTO 2: Paginación ---
     useEffect(() => {
         const total = Math.ceil(eventos.length / 5);
         if (total > 1) {
@@ -22,7 +46,7 @@ export default function LayoutDirectorioVerticalPremium({
     }, [eventos.length]);
 
     return (
-        <div className="h-screen w-screen relative overflow-hidden bg-black text-white">
+        <div className="h-screen w-screen relative overflow-hidden bg-black text-white transition-all duration-700">
             {/* Background Video de fondo completo (Muted) */}
             <div className="absolute inset-0 z-0 opacity-40 scale-110 blur-sm">
                  <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="w-full h-full object-cover" />
@@ -33,29 +57,51 @@ export default function LayoutDirectorioVerticalPremium({
                 <header className="flex flex-col items-center mb-12">
                     <img src={config.logo} className="h-16 mb-8 object-contain drop-shadow-2xl" alt="L" />
                     <div className="text-center">
-                        <h1 className="text-7xl font-mono font-black tracking-tighter drop-shadow-2xl">{horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</h1>
-                        <p className="text-xs font-black uppercase tracking-[0.8em] opacity-40 mt-2">Sincronizado</p>
+                        <h1 className="text-7xl font-mono font-black tracking-tighter drop-shadow-2xl">
+                            {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </h1>
+                        {/* Etiqueta Sincronizado Traducida (o Fecha Localizada) */}
+                        <p className="text-xs font-black uppercase tracking-[0.8em] opacity-40 mt-2">
+                             {horaActual?.toLocaleDateString(idiomaActual === 'en' ? 'en-US' : (idiomaActual === 'fr' ? 'fr-FR' : 'es-ES'), { weekday: 'long', day: 'numeric', month: 'long' })}
+                        </p>
                     </div>
                 </header>
 
                 <main className="flex-1 flex flex-col gap-6">
-                    {visibles.map((e, i) => (
-                        <div key={i} className="relative p-6 bg-white/5 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 flex items-center gap-6 animate-fade-in-right overflow-hidden shadow-2xl">
-                            <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: acento }}></div>
-                            <div className="h-20 w-20 rounded-full overflow-hidden shrink-0 border-2 border-white/10 shadow-xl bg-black/40">
-                                <img src={e.imagenes?.[0] || config.imagen_default} className="w-full h-full object-cover" alt="ev" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-3 mb-1">
-                                    <span className="text-xl font-black" style={{ color: acento }}>{new Date(e.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                    <span className="text-[10px] font-black opacity-30 uppercase tracking-widest">Inicia</span>
+                    {visibles.map((e, i) => {
+                        // --- TRADUCCIÓN DE DATOS DINÁMICOS ---
+                        const nombreEvento = (idiomaActual === 'en' && e.nombre_evento_en) ? e.nombre_evento_en : 
+                                             (idiomaActual === 'fr' && e.nombre_evento_fr) ? e.nombre_evento_fr : e.nombre_evento;
+                        
+                        const nombreSalon = (idiomaActual === 'en' && e.nombre_salon_en) ? e.nombre_salon_en : e.nombre_salon;
+
+                        return (
+                            <div key={i} className="relative p-6 bg-white/5 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 flex items-center gap-6 animate-fade-in-right overflow-hidden shadow-2xl">
+                                <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: acento }}></div>
+                                <div className="h-20 w-20 rounded-full overflow-hidden shrink-0 border-2 border-white/10 shadow-xl bg-black/40">
+                                    <img src={e.imagenes?.[0] || config.imagen_default} className="w-full h-full object-cover" alt="ev" />
                                 </div>
-                                <h2 className="text-2xl font-bold truncate leading-none mb-2" style={{ color: texto_evento }}>{e.nombre_evento}</h2>
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50">{e.nombre_salon}</span>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-3 mb-1">
+                                        <span className="text-xl font-black" style={{ color: acento }}>
+                                            {new Date(e.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                        {/* Etiqueta "Inicia" traducida */}
+                                        <span className="text-[10px] font-black opacity-30 uppercase tracking-widest animate-fade-in-right" key={`start-${idiomaActual}`}>
+                                            {idiomaActual === 'en' ? 'Start' : (idiomaActual === 'fr' ? 'Début' : 'Inicia')}
+                                        </span>
+                                    </div>
+                                    <h2 className="text-2xl font-bold truncate leading-none mb-2 transition-all duration-300" style={{ color: texto_evento }}>
+                                        {nombreEvento}
+                                    </h2>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 transition-all duration-300">
+                                        {nombreSalon}
+                                    </span>
+                                </div>
+                                <DirectionArrow direction={e.direccion_reloj} color={acento} size={32} animate />
                             </div>
-                            <DirectionArrow direction={e.direccion_reloj} color={acento} size={32} animate />
-                        </div>
-                    ))}
+                        );
+                    })}
                 </main>
 
                 <footer className="h-24 flex justify-between items-center border-t border-white/10 mt-6">
@@ -63,7 +109,10 @@ export default function LayoutDirectorioVerticalPremium({
                         <span className="text-4xl">{getIconoClima(clima?.codigo)}</span>
                         <div className="flex flex-col">
                             <span className="text-2xl font-black">{clima?.tempC}°C</span>
-                            <span className="text-[10px] uppercase opacity-40">Local Weather</span>
+                            {/* Etiqueta Clima Traducida */}
+                            <span className="text-[10px] uppercase opacity-40 animate-fade-in-right" key={`wea-${idiomaActual}`}>
+                                {t.clima || (idiomaActual === 'en' ? 'Local Weather' : (idiomaActual === 'fr' ? 'Météo Locale' : 'Clima Local'))}
+                            </span>
                         </div>
                     </div>
                     <div className="text-right">
@@ -71,6 +120,14 @@ export default function LayoutDirectorioVerticalPremium({
                     </div>
                 </footer>
             </div>
+            
+            <style>{`
+                .animate-fade-in-right { animation: fadeInRight 0.6s ease-out forwards; }
+                @keyframes fadeInRight { 
+                    from { opacity: 0; transform: translateX(-20px); } 
+                    to { opacity: 1; transform: translateX(0); } 
+                }
+            `}</style>
         </div>
     );
 }
