@@ -40,22 +40,35 @@ export default function LayoutVerticalCine({
     const mensaje = (idiomaActual === 'en' && eventoActual.mensaje_en) ? eventoActual.mensaje_en : 
                     (idiomaActual === 'fr' && eventoActual.mensaje_fr) ? eventoActual.mensaje_fr : eventoActual.mensaje;
 
-    // Fecha
-    const fechaFormateada = eventoActual.fecha_inicio 
-        ? new Date(eventoActual.fecha_inicio).toLocaleDateString(
+    // --- LÓGICA DE RECUPERACIÓN DE HORAS (SMART PARSING) ---
+    // Esto es lo que faltaba: Si no hay fecha, usa el string de horario
+    let horaInicioMostrar = '--:--';
+    let horaFinMostrar = '--:--';
+    let fechaMostrar = textoFechas; 
+
+    // INTENTO A: Usar fechas reales si existen
+    if (eventoActual.fecha_inicio && eventoActual.fecha_fin) {
+        horaInicioMostrar = new Date(eventoActual.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        horaFinMostrar = new Date(eventoActual.fecha_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        fechaMostrar = new Date(eventoActual.fecha_inicio).toLocaleDateString(
             idiomaActual === 'en' ? 'en-US' : (idiomaActual === 'fr' ? 'fr-FR' : 'es-ES'), 
             { weekday: 'short', day: 'numeric', month: 'long' }
-          )
-        : textoFechas;
-
-    // --- CÁLCULO DE HORAS ---
-    const horaInicio = eventoActual.fecha_inicio 
-        ? new Date(eventoActual.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-        : '--:--';
-    
-    const horaFin = eventoActual.fecha_fin 
-        ? new Date(eventoActual.fecha_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-        : '--:--';
+        );
+    } 
+    // INTENTO B: Parsear el string "horario" (Ej: "10:00 - 12:00")
+    else if (eventoActual.horario && eventoActual.horario.includes('-')) {
+        const partes = eventoActual.horario.split('-').map(s => s.trim());
+        if (partes.length >= 2) {
+            horaInicioMostrar = partes[0]; // "10:00"
+            horaFinMostrar = partes[1];    // "12:00"
+        } else {
+            horaInicioMostrar = eventoActual.horario;
+        }
+    } else {
+        // Fallback total
+        horaInicioMostrar = eventoActual.horario || '--:--';
+    }
 
     return (
         <div className="w-full h-full rounded-[2rem] overflow-hidden relative shadow-2xl border border-white/10 transition-all duration-500" style={{ backgroundColor: fondo }}>
@@ -94,18 +107,18 @@ export default function LayoutVerticalCine({
                     </div>
                 )}
                 
-                {/* --- SECCIÓN HORARIO CORREGIDA --- */}
+                {/* --- SECCIÓN HORARIO --- */}
                 <div className="flex items-center justify-center gap-8 mb-8 animate-fade-in-up" style={{ color: texto_evento, animationDelay: '0.2s' }}>
                      
                      {/* HORA INICIO (GRANDE) */}
                      <div className="flex flex-col items-center">
                         <span className="text-[10px] uppercase tracking-widest opacity-60 mb-1">{labelInicio}</span>
                         <span className="text-5xl font-mono font-black tracking-tighter" style={{ color: acento }}>
-                            {horaInicio}
+                            {horaInicioMostrar}
                         </span>
-                        {/* FECHA BAJO LA HORA */}
+                        {/* FECHA */}
                         <span className="text-[10px] font-bold uppercase opacity-80 mt-1">
-                            {fechaFormateada}
+                            {fechaMostrar}
                         </span>
                      </div>
 
@@ -115,7 +128,7 @@ export default function LayoutVerticalCine({
                      <div className="flex flex-col items-center">
                         <span className="text-[10px] uppercase tracking-widest opacity-60 mb-1">{labelFin}</span>
                         <span className="text-3xl font-mono font-bold opacity-80">
-                            {horaFin}
+                            {horaFinMostrar}
                         </span>
                      </div>
                 </div>
