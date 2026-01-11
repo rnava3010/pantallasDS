@@ -8,7 +8,6 @@ export default function LayoutDirectorioVertical({
 }) {
     const [pagina, setPagina] = useState(0);
 
-    // Protección de seguridad contra datos nulos
     if (!config || !config.colores || !horaActual) {
         return <div className="bg-black h-screen flex items-center justify-center text-white font-mono">CARGANDO SISTEMA...</div>;
     }
@@ -24,6 +23,8 @@ export default function LayoutDirectorioVertical({
         if (totalPaginas > 1) {
             const int = setInterval(() => setPagina(p => (p + 1) % totalPaginas), 12000);
             return () => clearInterval(int);
+        } else {
+            setPagina(0);
         }
     }, [totalPaginas]);
 
@@ -31,8 +32,6 @@ export default function LayoutDirectorioVertical({
 
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden relative" style={{ backgroundColor: fondo }}>
-            
-            {/* HEADER VERTICAL CON FECHA VISIBLE */}
             <header className="h-20 flex justify-between items-center px-6 shrink-0 z-20 bg-gradient-to-b from-black/80 to-transparent">
                 <img src={config.logo} alt="Logo" className="h-10 w-auto object-contain" />
                 <div className="px-4 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-md">
@@ -42,7 +41,6 @@ export default function LayoutDirectorioVertical({
                     <span className="text-3xl font-mono font-bold leading-none" style={{ color: texto_reloj }}>
                         {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    {/* Fecha de encabezado más legible */}
                     <span className="text-xs font-bold uppercase tracking-tighter mt-1" style={{ color: texto_reloj }}>
                         {horaActual?.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })}
                     </span>
@@ -64,7 +62,6 @@ export default function LayoutDirectorioVertical({
                                             {new Date(e.fecha_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </div>
-                                    {/* Fecha del evento resaltada en la tarjeta */}
                                     <span className="text-xs font-black uppercase tracking-wider mt-1 opacity-80" style={{ color: acento }}>
                                         {new Date(e.fecha_inicio).toLocaleDateString([], { day: 'numeric', month: 'short' })}
                                     </span>
@@ -109,8 +106,14 @@ export default function LayoutDirectorioVertical({
             </main>
 
             <footer className="h-10 border-t border-white/10 px-6 flex justify-between items-center shrink-0" style={{ backgroundColor: fondo }}>
-                <span className="text-[8px] opacity-40 uppercase tracking-tighter">Powered by narabyte.xyz</span>
-                <div className="flex items-center gap-2" style={{ color: texto_reloj }}>
+                <div className="w-1/4 opacity-40">
+                    <span className="text-[8px] uppercase tracking-tighter">Powered by narabyte.xyz</span>
+                </div>
+                {/* LEYENDA CENTRADA */}
+                <div className="flex-1 flex justify-center">
+                    <span className="text-lg font-light tracking-[0.4em] uppercase opacity-80" style={{ color: texto_evento }}>BIENVENIDOS</span>
+                </div>
+                <div className="w-1/4 flex items-center justify-end gap-2" style={{ color: texto_reloj }}>
                     <span className="text-2xl">{getIconoClima(clima?.codigo)}</span>
                     <span className="font-bold text-base">{clima?.tempC}°C</span>
                 </div>

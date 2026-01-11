@@ -8,7 +8,6 @@ export default function LayoutDirectorioHorizontal({
 }) {
     const [pagina, setPagina] = useState(0);
 
-    // Protección de seguridad contra datos nulos
     if (!config || !config.colores || !datos || !horaActual) {
         return <div className="bg-black h-screen flex items-center justify-center text-white font-mono">CARGANDO SISTEMA...</div>;
     }
@@ -31,7 +30,6 @@ export default function LayoutDirectorioHorizontal({
 
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden relative" style={{ backgroundColor: fondo }}>
-            {/* HEADER CON FECHA MEJORADA */}
             <header className="h-24 flex justify-between items-center px-10 shrink-0 z-20 bg-gradient-to-b from-black/80 to-transparent">
                 <img src={config.logo} alt="Logo" className="h-16 w-auto object-contain" />
                 <div className="px-8 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md">
@@ -41,7 +39,6 @@ export default function LayoutDirectorioHorizontal({
                     <span className="text-5xl font-mono font-bold leading-none" style={{ color: texto_reloj }}>
                         {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    {/* Fecha de encabezado más grande y negrita */}
                     <span className="text-sm font-bold uppercase tracking-[0.2em] mt-1" style={{ color: texto_reloj }}>
                         {horaActual?.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}
                     </span>
@@ -63,7 +60,6 @@ export default function LayoutDirectorioHorizontal({
                                     <span className="font-mono text-2xl font-bold">
                                         {new Date(e.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
-                                    {/* Fecha del evento resaltada */}
                                     <span className="text-xs font-black uppercase my-1 bg-white/10 px-2 py-0.5 rounded">
                                         {new Date(e.fecha_inicio).toLocaleDateString([], { day: 'numeric', month: 'short' })}
                                     </span>
@@ -114,8 +110,14 @@ export default function LayoutDirectorioHorizontal({
             </main>
             
             <footer className="h-14 border-t border-white/10 px-10 flex justify-between items-center shrink-0">
-                <span className="text-[10px] opacity-40 uppercase">Powered by narabyte.xyz</span>
-                <div className="flex items-center gap-2" style={{ color: texto_reloj }}>
+                <div className="w-1/4 opacity-40">
+                    <span className="text-[10px] uppercase">Powered by narabyte.xyz</span>
+                </div>
+                {/* LEYENDA CENTRADA */}
+                <div className="flex-1 flex justify-center">
+                    <span className="text-2xl font-light tracking-[0.5em] uppercase opacity-80" style={{ color: texto_evento }}>BIENVENIDOS</span>
+                </div>
+                <div className="w-1/4 flex items-center justify-end gap-2" style={{ color: texto_reloj }}>
                     <span className="text-3xl">{getIconoClima(clima?.codigo)}</span>
                     <span className="font-bold text-xl">{clima?.tempC}°C</span>
                 </div>
