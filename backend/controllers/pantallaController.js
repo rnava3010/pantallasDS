@@ -4,13 +4,18 @@ const noticiasController = require('./noticiasController');
 const tarifasController = require('./tarifasController');
 const salonesController = require('./salonesController'); 
 
-// --- HELPERS DE CONFIGURACIÓN ---
+// ==========================================
+// 🛠️ HELPERS DE CONFIGURACIÓN
+// ==========================================
+
 const obtenerConfiguracionBase = async (id) => {
+    // NOTA: Se eliminaron los comentarios '--' dentro del string SQL 
+    // para evitar errores de sintaxis en algunos drivers de MySQL para Node.js.
     const sql = `
         SELECT 
             t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.idAreaAsignada,
             t.idSucursal, t.orientacion, t.layoutDir, t.layoutTarifas,
-            t.idiomas_activos, t.tiempo_rotacion_idioma, -- <--- NUEVO: Configuración de idiomas
+            t.idiomas_activos, t.tiempo_rotacion_idioma,
             a.nombre as nombre_area,
             COALESCE(s.logo_url, m.logo_url) as final_logo_name, 
             s.latitud, s.longitud, s.zona_horaria, t.imagen_default_url,
@@ -33,14 +38,19 @@ const obtenerScreensaver = async (idTerminal) => {
     return rows.map(row => row.url_archivo);
 };
 
-// Helper para obtener clima
+// Helper para obtener clima de forma segura (sin romper si falla el JSON)
 const getClimaSeguro = async (idSucursal) => {
-    const [rows] = await pool.query("SELECT json_clima, updated_at FROM tbl_cache_clima WHERE idSucursal = ?", [idSucursal]);
-    if (rows.length > 0) {
-        const cache = rows[0];
-        return typeof cache.json_clima === 'string' ? JSON.parse(cache.json_clima) : cache.json_clima;
+    try {
+        const [rows] = await pool.query("SELECT json_clima, updated_at FROM tbl_cache_clima WHERE idSucursal = ?", [idSucursal]);
+        if (rows.length > 0) {
+            const cache = rows[0];
+            return typeof cache.json_clima === 'string' ? JSON.parse(cache.json_clima) : cache.json_clima;
+        }
+        return null;
+    } catch (error) {
+        console.error("⚠️ Error leyendo caché de clima:", error.message);
+        return null;
     }
-    return null;
 };
 
 // ==========================================
@@ -49,14 +59,15 @@ const getClimaSeguro = async (idSucursal) => {
 const getDatosPantalla = async (req, res) => {
     const { id } = req.params;
     try {
+        // 1. Obtener Configuración de la Terminal
         const terminal = await obtenerConfiguracionBase(id);
         if (!terminal) return res.status(404).json({ error: "Terminal no encontrada" });
 
+        // 2. Obtener Datos Comunes (Screensaver, Clima)
         const listaScreensaver = await obtenerScreensaver(terminal.idTerminal);
         const climaCache = await getClimaSeguro(terminal.idSucursal);
 
         // --- PROCESAMIENTO DE IDIOMAS ---
-        // Convertimos el JSON string de MySQL a un Array real para React
         let idiomasParsed = ["es"]; 
         try {
             if (terminal.idiomas_activos) {
@@ -77,6 +88,7 @@ const getDatosPantalla = async (req, res) => {
             logoFinal = `/logos/${fileName}`;
         }
 
+        // 3. Estructura Base de Respuesta
         let respuesta = {
             config: {
                 id: terminal.idTerminal,
@@ -84,7 +96,7 @@ const getDatosPantalla = async (req, res) => {
                 tipo_pantalla: terminal.tipo_pantalla,
                 orientacion: terminal.orientacion,
                 layoutDir: terminal.layoutDir || 0,
-                layoutTarifas: terminal.layoutTarifas || 0,
+                layoutTarifas: terminal.layoutTarifas || 0, // <--- CLAVE PARA TUS DISEÑOS NUEVOS
                 zona_horaria: terminal.zona_horaria || 'America/Mexico_City',
                 
                 // Config de Idiomas
@@ -112,7 +124,11 @@ const getDatosPantalla = async (req, res) => {
             server_time: new Date()
         };
 
-        // --- DELEGACIÓN POR TIPO DE PANTALLA ---
+        // ==========================================
+        // 🚀 DELEGACIÓN POR TIPO DE PANTALLA
+        // ==========================================
+        
+        // --- CASO 1: SALONES (AGENDA) ---
         if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
             const eventos = await salonesController.obtenerAgendaSalon(terminal.idAreaAsignada);
             const dataSalon = { 
@@ -125,6 +141,8 @@ const getDatosPantalla = async (req, res) => {
             respuesta.datos = dataSalon;
             respuesta.data = dataSalon;
         } 
+        
+        // --- CASO 2: DIRECTORIO ---
         else if (terminal.tipo_pantalla === 'DIRECTORIO') {
             const eventos = await directorioController.obtenerDatosDirectorio(terminal.idSucursal);
             const noticias = await noticiasController.fetchNoticiasRSS();
@@ -132,28 +150,31 @@ const getDatosPantalla = async (req, res) => {
             respuesta.datos = dataDir;
             respuesta.data = dataDir;
         }
-		else if (terminal.tipo_pantalla === 'TARIFAS') {
-            // Llamamos a las 3 funciones nuevas
+        
+        // --- CASO 3: TARIFAS (NUEVO FIX) ---
+        else if (terminal.tipo_pantalla === 'TARIFAS') {
+            // Llamamos a las 3 funciones independientes para armar el paquete completo
             const habitaciones = await tarifasController.obtenerHabitaciones(terminal.idSucursal);
             const divisas = await tarifasController.obtenerDivisas(terminal.idSucursal);
             const banner = await tarifasController.obtenerAviso(terminal.idSucursal);
             
-            // Empaquetamos todo
             const dataTarifas = { 
                 tipo_datos: 'TARIFAS', 
-                habitaciones, // Tus cuartos
-                divisas,      // Tus cambios (USD, EUR)
-                banner,       // Tu cintillo
+                habitaciones, // Tus cuartos (tbl_tarifas)
+                divisas,      // Tus cambios (tbl_divisas)
+                banner,       // Tu cintillo (tbl_avisos)
                 galeria: listaScreensaver 
             };
             respuesta.datos = dataTarifas;
             respuesta.data = dataTarifas;
         }
 
+        // Enviamos la respuesta final al Frontend
         res.json(respuesta);
+
     } catch (error) {
-        console.error("❌ Error en PantallaController:", error);
-        res.status(500).json({ error: "Error interno" });
+        console.error("❌ Error CRÍTICO en PantallaController:", error);
+        res.status(500).json({ error: "Error interno del servidor" });
     }
 };
 
