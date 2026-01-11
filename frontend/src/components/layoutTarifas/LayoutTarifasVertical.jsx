@@ -9,13 +9,11 @@ export default function LayoutTarifasVertical({
     const { fondo, texto_reloj, texto_evento, acento } = config.colores;
     
     const tarifas = datos?.tarifas || [];
-    const divisas = datos?.divisas || []; // Recibimos divisas
+    const divisas = datos?.divisas || []; 
     const banner = datos?.banner || "Bienvenidos";
-    const ITEMS_POR_PAGINA = 7; 
-
-    // Construimos el texto del Marquee combinando Banner + Divisas
-    const textoDivisas = divisas.map(d => `${d.bandera} ${d.codigo}: $${d.tipo_cambio}`).join("  •  ");
-    const contenidoMarquee = `${banner}  •  TIPO DE CAMBIO:  ${textoDivisas}  •  ${banner}`;
+    
+    // Reduje a 6 items para dar espacio a la barra de divisas sin apretar la pantalla
+    const ITEMS_POR_PAGINA = 6; 
 
     useEffect(() => {
         const total = Math.ceil(tarifas.length / ITEMS_POR_PAGINA);
@@ -31,7 +29,7 @@ export default function LayoutTarifasVertical({
         <div className="flex flex-col h-screen w-screen overflow-hidden p-6" style={{ backgroundColor: fondo }}>
             
             {/* HEADER */}
-            <header className="h-24 flex items-center justify-between mb-6 px-4 bg-black/20 rounded-[2rem] border border-white/5 shadow-lg">
+            <header className="h-24 flex items-center justify-between mb-4 px-4 bg-black/20 rounded-[2rem] border border-white/5 shadow-lg">
                 <div className="w-1/4 flex justify-start">
                     <img src={config.logo} alt="Logo" className="h-16 object-contain animate-float" />
                 </div>
@@ -51,8 +49,8 @@ export default function LayoutTarifasVertical({
             </header>
 
             {/* MAIN: LISTA DE TARIFAS */}
-            <main className="flex-1 flex flex-col gap-3 bg-black/20 rounded-[3rem] p-8 border border-white/5 shadow-inner relative">
-                <div className="flex justify-between items-center mb-2 px-4 text-[10px] font-black uppercase tracking-widest opacity-40 text-white">
+            <main className="flex-1 flex flex-col gap-3 bg-black/20 rounded-[2.5rem] p-6 border border-white/5 shadow-inner relative mb-4">
+                <div className="flex justify-between items-center mb-1 px-4 text-[10px] font-black uppercase tracking-widest opacity-40 text-white">
                     <span>Habitación / Detalles</span>
                     <span>Tarifa</span>
                 </div>
@@ -68,17 +66,17 @@ export default function LayoutTarifasVertical({
 
                     return (
                         <div key={i} className="flex justify-between items-center pb-3 border-b border-white/5 last:border-0 animate-fade-in-up">
-                            <div className="flex flex-col gap-1 max-w-[65%]">
-                                <span className="text-xl font-bold text-white uppercase truncate">{nombre}</span>
-                                {descripcion && <span className="text-[11px] text-white/60 font-light italic leading-tight block">{descripcion}</span>}
+                            <div className="flex flex-col gap-0.5 max-w-[65%]">
+                                <span className="text-lg font-bold text-white uppercase truncate">{nombre}</span>
+                                {descripcion && <span className="text-[10px] text-white/60 font-light italic leading-tight block truncate">{descripcion}</span>}
                             </div>
                             <div className="text-right flex flex-col items-end justify-center">
-                                <span className="text-2xl font-black" style={{ color: acento }}>
-                                    <span className="text-sm align-top opacity-60 mr-1">{moneda}</span>
+                                <span className="text-xl font-black" style={{ color: acento }}>
+                                    <span className="text-xs align-top opacity-60 mr-1">{moneda}</span>
                                     {Number(precioPrincipal).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                                 </span>
                                 {precioTachado && (
-                                    <span className="text-[10px] text-white/40 line-through decoration-white/40">
+                                    <span className="text-[9px] text-white/40 line-through decoration-white/40">
                                         Reg: ${Number(precioTachado).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                                     </span>
                                 )}
@@ -88,32 +86,55 @@ export default function LayoutTarifasVertical({
                 })}
             </main>
 
+            {/* --- SECCIÓN REGULATORIA: TIPO DE CAMBIO FIJO --- */}
+            {divisas.length > 0 && (
+                <div className="mb-4 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 px-6 py-3 flex items-center justify-around shadow-lg">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white/40 mr-4">
+                        TIPO DE CAMBIO HOY
+                    </span>
+                    <div className="flex items-center gap-8">
+                        {divisas.map((d, idx) => (
+                            <div key={idx} className="flex items-center gap-3">
+                                <span className="text-2xl">{d.bandera}</span>
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] font-bold opacity-50 uppercase tracking-widest leading-none">{d.codigo}</span>
+                                    <span className="text-lg font-mono font-black text-white leading-none">
+                                        ${d.tipo_cambio}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* GALERÍA + CLIMA */}
-            <div className="h-[25%] my-6 relative rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl group">
+            {/* Ajusté la altura a 22% para compensar la barra de divisas */}
+            <div className="h-[22%] mb-4 relative rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl group">
                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="absolute inset-0 w-full h-full object-cover transition-transform duration-[20s] ease-linear group-hover:scale-110" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                
                 {clima && (
-                    <div className="absolute bottom-6 right-8 flex items-center gap-4 bg-black/40 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 shadow-lg">
-                        <span className="text-4xl drop-shadow-lg filter grayscale-0">{getIconoClima(clima.weathercode)}</span>
+                    <div className="absolute bottom-4 right-6 flex items-center gap-3 bg-black/40 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 shadow-lg">
+                        <span className="text-3xl drop-shadow-lg filter grayscale-0">{getIconoClima(clima.weathercode)}</span>
                         <div className="flex flex-col">
-                            <span className="text-3xl font-black text-white leading-none">{clima.temperature}°</span>
-                            <span className="text-[10px] uppercase tracking-widest text-white/70">Clima Actual</span>
+                            <span className="text-2xl font-black text-white leading-none">{clima.temperature}°</span>
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* FOOTER: AVISOS + DIVISAS */}
+            {/* FOOTER: AVISOS (MARQUEE) */}
             <footer className="h-10 flex items-center bg-black/40 rounded-full border border-white/10 px-6 overflow-hidden relative">
                 <div className="animate-marquee-reverse whitespace-nowrap absolute w-full flex items-center">
                     <span className="text-xs font-bold uppercase tracking-[0.15em] text-white/90">
-                        {contenidoMarquee}
+                        {banner} <span className="mx-8 opacity-30">•</span> {banner} <span className="mx-8 opacity-30">•</span> {banner}
                     </span>
                 </div>
             </footer>
 
             <style>{`
-                .animate-marquee-reverse { animation: marqueeReverse 30s linear infinite; }
+                .animate-marquee-reverse { animation: marqueeReverse 25s linear infinite; }
                 @keyframes marqueeReverse { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
                 .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
