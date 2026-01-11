@@ -14,6 +14,7 @@ const obtenerConfiguracion = async (id) => {
             COALESCE(s.logo_url, m.logo_url) as final_logo_name, 
             m.color_primario, m.color_secundario,
             s.latitud, s.longitud,
+            s.zona_horaria, -- <--- ✅ NUEVO: Recuperamos la Zona Horaria de la Sucursal
             
             -- COLORES PERSONALIZABLES
             COALESCE(t.color_fondo, '#000000') as color_fondo,
@@ -63,7 +64,7 @@ const obtenerAgendaSalon = async (idArea) => {
 };
 
 // ==========================================
-// 🎮 CONTROLADOR PRINCIPAL (El "Dispatcher")
+// 🎮 CONTROLADOR PRINCIPAL
 // ==========================================
 const getDatosPantalla = async (req, res) => {
     const { id } = req.params;
@@ -82,7 +83,7 @@ const getDatosPantalla = async (req, res) => {
              faviconIcoUrl = `/logos/${cleanName}.ico`;
         }
 
-        // 3. Screensaver (Común para todos)
+        // 3. Screensaver (Común)
         const listaScreensaver = await obtenerScreensaver(terminal.idTerminal);
 
         // 4. Armar Respuesta Base
@@ -92,6 +93,8 @@ const getDatosPantalla = async (req, res) => {
                 nombre_interno: terminal.nombre_interno,
                 tipo_pantalla: terminal.tipo_pantalla,
                 orientacion: terminal.orientacion,
+                // ✅ Enviamos la zona horaria al Frontend (con fallback a CDMX)
+                zona_horaria: terminal.zona_horaria || 'America/Mexico_City', 
                 tema_color: terminal.tema_color || 'dark',
                 logo: logoPngUrl,
                 favicon: faviconIcoUrl,
@@ -110,9 +113,7 @@ const getDatosPantalla = async (req, res) => {
 
         // 5. DELEGACIÓN DE LÓGICA SEGÚN TIPO
         if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
-             // Lógica de Salón (Se queda aquí por ahora)
              const agenda = await obtenerAgendaSalon(terminal.idAreaAsignada);
-             
              respuesta.data = {
                 tipo_datos: 'AGENDA',
                 eventos: agenda.map(evento => ({
@@ -134,7 +135,7 @@ const getDatosPantalla = async (req, res) => {
             };
         } 
         else if (terminal.tipo_pantalla === 'DIRECTORIO') {
-            // ✅ AQUÍ USAMOS EL NUEVO CONTROLADOR DE DIRECTORIO
+            // ✅ Llamada al controlador especializado (usará la misma zona horaria internamente)
             respuesta.data = await directorioController.obtenerDatosDirectorio(terminal.idSucursal);
         }
 
