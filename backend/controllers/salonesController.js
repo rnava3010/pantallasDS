@@ -1,49 +1,76 @@
 const pool = require('../config/db');
 
 /**
- * Obtiene la agenda de eventos para un área (salón) específica
+ * Obtiene la agenda de eventos para un área específica.
+ * Incluye soporte multilenguaje y fechas crudas.
  */
 const obtenerAgendaSalon = async (idArea) => {
     try {
         const sql = `
             SELECT 
-                e.idEvento, e.nombre_evento, e.cliente_nombre, 
-                e.fecha_inicio, e.fecha_fin, 
-                e.mensaje_personalizado, e.mensaje_ticker,
-                e.imagen_full_width, e.direccion_reloj,
-                e.nombre_salon_personalizado, 
-                e.fecha_visualizacion_inicio, e.fecha_visualizacion_fin,
-                e.es_recurrente,
-                GROUP_CONCAT(em.url_archivo ORDER BY em.orden ASC SEPARATOR ',') as lista_imagenes
-            FROM tbl_eventos e
-            LEFT JOIN tbl_eventos_media em ON e.idEvento = em.idEvento AND em.tipo = 'IMAGEN'
-            WHERE e.idArea = ? AND e.estatus = 'ACTIVO'
-            AND COALESCE(e.fecha_visualizacion_fin, e.fecha_fin) >= NOW()
-            GROUP BY e.idEvento
-            ORDER BY e.fecha_inicio ASC
+                a.idEvento,
+                -- Datos Principales
+                a.nombre_evento, 
+                a.nombre_evento_en, 
+                a.nombre_evento_fr,
+                
+                -- Datos Cliente
+                a.cliente_nombre, 
+                a.cliente_en,
+                a.cliente_fr,
+                
+                -- Fechas y Horas (Crudas para manipulación en Frontend)
+                a.fecha_inicio, 
+                a.fecha_fin,
+                
+                -- Mensajes
+                a.mensaje, 
+                a.mensaje_en, 
+                a.mensaje_fr,
+                
+                -- Datos del Salón
+                s.nombre as nombre_salon,
+                -- Si tu tabla de salones tiene traducciones, agrégalas aquí:
+                -- s.nombre_en as nombre_salon_en, 
+                s.direccion_reloj, 
+                s.piso,
+                s.imagen_fondo -- Por si cada salón tiene fondo específico
+            FROM tbl_agenda_salones a
+            LEFT JOIN cat_salones s ON a.idSalon = s.idSalon
+            WHERE s.idArea = ? 
+            AND a.activo = 1
+            -- Filtramos solo eventos vigentes (de hoy)
+            AND (
+                DATE(a.fecha_inicio) = CURDATE() 
+                OR 
+                (a.fecha_inicio <= NOW() AND a.fecha_fin >= NOW())
+            )
+            ORDER BY a.fecha_inicio ASC
         `;
+
         const [rows] = await pool.query(sql, [idArea]);
         
-        // Mapeamos al formato que espera el frontend
-        return rows.map(evento => ({
-            titulo: evento.nombre_evento,
-            cliente: evento.cliente_nombre,
-            inicio_iso: evento.fecha_inicio, 
-            fin_iso: evento.fecha_fin,
-            mensaje: evento.mensaje_personalizado,
-            ticker: evento.mensaje_ticker,
-            layout_mode: evento.imagen_full_width || 0,
-            direccion: evento.direccion_reloj, 
-            recurrente: evento.es_recurrente === 1,
-            nombre_salon: evento.nombre_salon_personalizado, 
-            imagenes: evento.lista_imagenes ? evento.lista_imagenes.split(',') : []
-        }));
+        // Procesamos los datos antes de enviarlos
+        return rows.map(row => {
+            // Creamos objetos Date reales
+            const inicio = new Date(row.fecha_inicio);
+            const fin = new Date(row.fecha_fin);
+
+            return {
+                ...row, // Mantiene fecha_inicio y fecha_fin originales
+                
+                // Agregamos el string de horario formateado por si acaso un layout simple lo necesita
+                horario: `${inicio.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - ${fin.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`,
+                
+                // Formatos auxiliares (opcional, pero útil para depurar)
+                dia_mes: inicio.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+            };
+        });
+
     } catch (error) {
-        console.error("❌ Error en obtenerAgendaSalon:", error);
-        throw error;
+        console.error("❌ Error en salonesController:", error);
+        return [];
     }
 };
 
-module.exports = {
-    obtenerAgendaSalon
-};
+module.exports = { obtenerAgendaSalon };
