@@ -2,15 +2,13 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { usePantalla } from '../hooks/usePantalla'; 
 import PlayerSalon from '../components/PlayerSalon';
-import PlayerDirectorio from '../components/PlayerDirectorio'; // ✅ AHORA SÍ IMPORTADO
+import PlayerDirectorio from '../components/PlayerDirectorio';
+import PlayerTarifas from '../components/PlayerTarifas'; // ✅ 1. Importar el componente de tarifas
 
 export default function VistaPantalla() {
     const { id } = useParams();
-    
-    // El hook devuelve la configuración inicial
     const { config, loading, isOnline } = usePantalla(id);
 
-    // 1. Cargando
     if (loading && !config) {
         return (
             <div className="h-screen w-screen bg-black flex items-center justify-center text-white">
@@ -19,7 +17,6 @@ export default function VistaPantalla() {
         );
     }
 
-    // 2. Si falló la carga
     if (!config) {
         return (
             <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-white">
@@ -30,13 +27,16 @@ export default function VistaPantalla() {
         );
     }
 
-    // 3. Renderizar el Player correcto
+    // ✅ 2. Agregar 'TARIFAS' al switch
     switch (config.tipo_pantalla) {
         case 'SALON':
             return <PlayerSalon />;
             
         case 'DIRECTORIO':
-            return <PlayerDirectorio />; // ✅ AHORA MUESTRA EL DIRECTORIO REAL
+            return <PlayerDirectorio />;
+
+        case 'TARIFAS':
+            return <PlayerTarifas />; // ✅ Ahora reconocerá el tipo desde la BD
 
         default:
             return (
