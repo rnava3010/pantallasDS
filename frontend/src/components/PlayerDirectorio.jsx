@@ -7,7 +7,7 @@ import { useReloj } from '../hooks/useReloj';
 import { useCarrusel } from '../hooks/useCarrusel';
 import { useOfflineVideo } from '../hooks/useOfflineVideo';
 
-// Componentes y Utilidades
+// Componentes
 import MediaRenderer from '../components/MediaRenderer';
 import DirectionArrow from './DirectionArrow';
 import { getIconoClima } from '../utils/weatherUtils';
@@ -24,7 +24,7 @@ const lightenColor = (hex, percent) => {
     return '#' + (0x1000000 + (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 + (B < 255 ? (B < 1 ? 0 : B) : 255) * 0x100 + (G < 255 ? (G < 1 ? 0 : G) : 255)).toString(16).slice(1);
 };
 
-// --- SUB-COMPONENTE: Mini Galería Evento ---
+// --- SUB-COMPONENTE: Mini Galería ---
 const FilaGaleria = ({ imagenes }) => {
     const [indice, setIndice] = useState(0);
     useEffect(() => {
@@ -32,17 +32,41 @@ const FilaGaleria = ({ imagenes }) => {
         const timer = setInterval(() => setIndice(p => (p + 1) % imagenes.length), 4000);
         return () => clearInterval(timer);
     }, [imagenes]);
+
     if (!imagenes || imagenes.length === 0) return null;
+
     return (
-        <div className="h-24 w-36 rounded-lg overflow-hidden relative shadow-md bg-black/20 flex-shrink-0">
-             <img src={imagenes[indice]} alt="Evento" className="w-full h-full object-cover animate-fade-in" key={indice} />
+        <div className="h-24 w-36 rounded-lg overflow-hidden relative shadow-md bg-gray-700 flex-shrink-0 border border-white/10">
+             <img 
+                src={imagenes[indice]} 
+                alt="Evento" 
+                className="w-full h-full object-cover animate-fade-in" 
+                key={indice}
+                onError={(e) => { 
+                    console.warn("⚠️ Imagen rota:", imagenes[indice]); 
+                    e.target.style.display = 'none'; 
+                }}
+             />
         </div>
     );
 };
 
-// --- SUB-COMPONENTE: Ticker de Noticias Vertical ---
+// --- SUB-COMPONENTE: Ticker de Noticias ---
 const NewsTicker = ({ noticias, colorTitulo, colorTexto }) => {
-    if (!noticias || noticias.length === 0) return null;
+    // LOG DE DEBUG PARA NOTICIAS
+    useEffect(() => {
+        if (noticias && noticias.length > 0) {
+            console.log("📰 [NewsTicker] Renderizando noticias:", noticias);
+        } else {
+            console.warn("⚠️ [NewsTicker] No hay noticias para mostrar");
+        }
+    }, [noticias]);
+
+    if (!noticias || noticias.length === 0) return (
+        <div className="w-full h-full flex items-center justify-center border border-white/10 rounded-[2rem] bg-white/5">
+            <span className="opacity-50 text-sm">Sin noticias</span>
+        </div>
+    );
 
     return (
         <div className="w-full h-full relative overflow-hidden flex flex-col">
@@ -67,16 +91,7 @@ const NewsTicker = ({ noticias, colorTitulo, colorTexto }) => {
                     ))}
                 </div>
             </div>
-
-            <style>{`
-                @keyframes marquee-vertical {
-                    0% { transform: translateY(0); }
-                    100% { transform: translateY(-50%); }
-                }
-                .animate-marquee-vertical {
-                    animation: marquee-vertical 40s linear infinite;
-                }
-            `}</style>
+            <style>{`@keyframes marquee-vertical { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } } .animate-marquee-vertical { animation: marquee-vertical 40s linear infinite; }`}</style>
         </div>
     );
 };
@@ -87,10 +102,23 @@ export default function PlayerDirectorio() {
     const horaActual = useReloj(timeOffset);
     const [paginaActual, setPaginaActual] = useState(0);
 
-    // Logs
+    // Logs de Configuración
     useEffect(() => {
         if (config) logger.log(`✅ [Directorio] Configurado: "${config.nombre_interno}"`);
     }, [config]);
+
+    // ✅ LOGS DE DATOS RECIBIDOS (Aquí verás qué llega del backend)
+    useEffect(() => {
+        if (data) {
+            console.group("📡 [PlayerDirectorio] Datos Recibidos");
+            console.log("Estructura completa:", data);
+            console.log("¿Es Array?", Array.isArray(data));
+            console.log("Tipo Datos:", data.tipo_datos);
+            console.log("Eventos:", data.eventos);
+            console.log("Noticias:", data.noticias);
+            console.groupEnd();
+        }
+    }, [data]);
 
     // Screensaver
     const fotosTerminal = config?.screensaver || [];
@@ -202,7 +230,7 @@ export default function PlayerDirectorio() {
                     {hayEventos && (
                         <>
                             <div className="grid grid-cols-12 gap-4 px-6 py-2 border-b border-white/20 text-sm font-bold uppercase tracking-widest opacity-70 shrink-0" style={{ color: acento }}>
-                                <div className="col-span-2 text-center md:text-left">Horario</div>
+                                <div className="col-span-2 text-center">Horario</div>
                                 <div className="col-span-7">Evento</div>
                                 <div className="col-span-3 text-right pr-4">Ubicación</div>
                             </div>
@@ -223,18 +251,11 @@ export default function PlayerDirectorio() {
                                                 className="grid grid-cols-12 gap-4 items-center p-3 bg-white/5 border border-white/5 rounded-2xl shadow-lg backdrop-blur-sm animate-fade-in-up"
                                                 style={{ animationDelay: `${idx * 100}ms` }}
                                             >
-                                                {/* ✅ HORARIO VERTICAL (APILADO) */}
-                                                {/* Esto fuerza un salto de línea y mantiene el ancho controlado */}
-                                                <div className="col-span-2 flex flex-col justify-center items-center md:items-start" style={{ color: acento }}>
-                                                    <span className="font-mono text-xl font-bold leading-none">
-                                                        {horaInicio}
-                                                    </span>
-                                                    <span className="text-[10px] opacity-60 uppercase tracking-widest my-0.5">
-                                                        a
-                                                    </span>
-                                                    <span className="font-mono text-xl font-bold leading-none">
-                                                        {horaFin}
-                                                    </span>
+                                                {/* HORARIO VERTICAL */}
+                                                <div className="col-span-2 flex flex-col justify-center items-center" style={{ color: acento }}>
+                                                    <span className="font-mono text-xl font-bold leading-none">{horaInicio}</span>
+                                                    <span className="text-[10px] opacity-60 uppercase tracking-widest my-0.5">a</span>
+                                                    <span className="font-mono text-xl font-bold leading-none">{horaFin}</span>
                                                 </div>
 
                                                 <div className="col-span-7 flex items-center gap-5">
@@ -273,18 +294,9 @@ export default function PlayerDirectorio() {
                 {hayEventos && (
                     <div className="h-64 shrink-0 grid grid-cols-2 gap-6 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
                         
-                        {/* WIDGET IZQUIERDO: Galería */}
+                        {/* WIDGET IZQUIERDO: Galería "Limpia" */}
                         <div className="relative rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl bg-black/40">
-                             <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-cover w-full h-full opacity-80"/>
-                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-6">
-                                 <div className="flex items-center gap-3">
-                                     {config?.logo && <img src={config.logo} className="h-12 w-auto object-contain opacity-80" alt="Logo" />}
-                                     <div className="flex flex-col">
-                                         <span className="text-sm font-bold uppercase tracking-widest text-white">Nuestras Instalaciones</span>
-                                         <span className="text-xs text-white/60">Bienvenidos</span>
-                                     </div>
-                                 </div>
-                             </div>
+                             <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-cover w-full h-full"/>
                         </div>
 
                         {/* WIDGET DERECHO: Noticias */}

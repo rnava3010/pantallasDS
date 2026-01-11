@@ -1,6 +1,6 @@
 const pool = require('../config/db');
 const directorioController = require('./directorioController');
-const noticiasController = require('./noticiasController'); // ✅ Importamos el nuevo controlador
+const noticiasController = require('./noticiasController');
 
 // --- SUB-FUNCION: Obtener Configuración Base ---
 const obtenerConfiguracion = async (id) => {
@@ -62,11 +62,17 @@ const obtenerAgendaSalon = async (idArea) => {
 // ==========================================
 const getDatosPantalla = async (req, res) => {
     const { id } = req.params;
+    console.log(`\n⬇️ [PantallaController] Solicitud datos para Terminal ID: ${id}`);
     
     try {
+        // 1. Obtener Configuración
         const terminal = await obtenerConfiguracion(id);
-        if (!terminal) return res.status(404).json({ error: "Terminal no encontrada" });
+        if (!terminal) {
+            console.warn(`⚠️ Terminal ID ${id} no encontrada.`);
+            return res.status(404).json({ error: "Terminal no encontrada" });
+        }
 
+        // 2. Procesar Logos
         let logoPngUrl = null;
         let faviconIcoUrl = null;
         if (terminal.final_logo_name) {
@@ -75,8 +81,10 @@ const getDatosPantalla = async (req, res) => {
              faviconIcoUrl = `/logos/${cleanName}.ico`;
         }
 
+        // 3. Obtener Screensaver (Común para todos)
         const listaScreensaver = await obtenerScreensaver(terminal.idTerminal);
 
+        // 4. Armar Respuesta Base
         let respuesta = {
             config: {
                 id: terminal.idTerminal,
@@ -101,7 +109,9 @@ const getDatosPantalla = async (req, res) => {
             server_time: new Date()
         };
 
-        // --- DELEGACIÓN ---
+        // 5. DELEGACIÓN DE LÓGICA SEGÚN TIPO DE PANTALLA
+
+        // A) PANTALLA TIPO SALÓN (Agenda de un área específica)
         if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
              const agenda = await obtenerAgendaSalon(terminal.idAreaAsignada);
              respuesta.data = {
@@ -124,12 +134,19 @@ const getDatosPantalla = async (req, res) => {
                 }))
             };
         } 
+        // B) PANTALLA TIPO DIRECTORIO (Lista de eventos + Noticias)
         else if (terminal.tipo_pantalla === 'DIRECTORIO') {
-            // 1. Obtenemos Eventos
-            const eventos = await directorioController.obtenerDatosDirectorio(terminal.idSucursal);
+            console.log("📂 [PantallaController] Procesando como DIRECTORIO");
             
-            // 2. ✅ Obtenemos Noticias (Reutilizable)
+            // 1. Obtener Eventos Activos
+            const eventos = await directorioController.obtenerDatosDirectorio(terminal.idSucursal);
+            console.log(`   - Eventos obtenidos: ${eventos.length}`);
+            
+            // 2. Obtener Noticias RSS
+            console.time("   - Tiempo fetch Noticias");
             const noticias = await noticiasController.fetchNoticiasRSS();
+            console.timeEnd("   - Tiempo fetch Noticias");
+            console.log(`   - Noticias obtenidas: ${noticias.length}`);
 
             respuesta.data = {
                 tipo_datos: 'DIRECTORIO',
@@ -137,12 +154,11 @@ const getDatosPantalla = async (req, res) => {
                 noticias: noticias
             };
         }
-        // (Futuro: Aquí agregarás 'TARIFAS' usando también noticiasController.fetchNoticiasRSS())
 
         res.json(respuesta);
 
     } catch (error) {
-        console.error("Error en PantallaController:", error);
+        console.error("❌ Error en PantallaController:", error);
         res.status(500).json({ error: "Error interno del servidor" });
     }
 };
