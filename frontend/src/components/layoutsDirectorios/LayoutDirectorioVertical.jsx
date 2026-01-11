@@ -1,3 +1,4 @@
+// pruebas pantallas/frontend/src/components/layoutsDirectorios/LayoutDirectorioVertical.jsx
 import React, { useState, useEffect } from 'react';
 import MediaRenderer from '../MediaRenderer';
 import DirectionArrow from '../DirectionArrow';
@@ -14,15 +15,18 @@ export default function LayoutDirectorioVertical({
 }) {
     const [pagina, setPagina] = useState(0);
 
-    // ✅ PROTECCIÓN: Si la configuración aún no carga, mostramos un estado neutral
+    // ✅ VALIDACIÓN 1: Protección de Configuración (Colores)
     if (!config || !config.colores) {
         return <div className="bg-black h-screen flex items-center justify-center text-white font-mono">CARGANDO CONFIGURACIÓN...</div>;
     }
 
+    // ✅ VALIDACIÓN 2: Protección de Datos (Eventos y Noticias)
+    // Evita el error "Cannot read properties of undefined (reading 'eventos')"
+    const eventos = datos?.eventos || [];
+    const noticias = datos?.noticias || [];
+
     const { fondo, texto_reloj, texto_evento, acento } = config.colores;
     
-    const eventos = datos.eventos || [];
-    const noticias = datos.noticias || [];
     const ITEMS_POR_PAGINA = 6;
     const totalPaginas = Math.ceil(eventos.length / ITEMS_POR_PAGINA);
 
@@ -41,7 +45,7 @@ export default function LayoutDirectorioVertical({
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden relative" style={{ backgroundColor: fondo }}>
             
-            {/* 🟢 HEADER VERTICAL OPTIMIZADO */}
+            {/* 🟢 HEADER VERTICAL */}
             <header className="h-20 flex justify-between items-center px-6 shrink-0 z-20 bg-gradient-to-b from-black/80 to-transparent">
                 <div className="flex items-center gap-4">
                     {config.logo && <img src={config.logo} alt="Logo" className="h-10 w-auto object-contain" />}
@@ -52,7 +56,6 @@ export default function LayoutDirectorioVertical({
                 </div>
 
                 <div className="flex flex-col items-end">
-                    {/* HORA AJUSTADA PARA DISEÑO VERTICAL */}
                     <span className="text-3xl font-mono font-bold leading-none" style={{ color: texto_reloj }}>
                         {horaActual.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
@@ -65,7 +68,7 @@ export default function LayoutDirectorioVertical({
             {/* 🔵 CUERPO DE EVENTOS */}
             <main className="flex-1 px-6 py-2 flex flex-col gap-3 overflow-hidden">
                 <div className="flex-1 flex flex-col gap-2 min-h-0">
-                    {visibles.map((e, i) => (
+                    {visibles.length > 0 ? visibles.map((e, i) => (
                         <div 
                             key={i} 
                             className="p-3 bg-white/5 border border-white/5 rounded-2xl flex flex-col gap-2 animate-fade-in-up"
@@ -100,21 +103,19 @@ export default function LayoutDirectorioVertical({
                                         <span className="text-[9px] font-bold uppercase bg-white/10 px-1.5 py-0.5 rounded" style={{ color: acento }}>
                                             {e.nombre_salon}
                                         </span>
-                                        {e.cliente_nombre && (
-                                            <span className="text-[9px] opacity-40 truncate italic" style={{ color: texto_reloj }}>
-                                                {e.cliente_nombre}
-                                            </span>
-                                        )}
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    ))}
+                    )) : (
+                        <div className="flex-1 flex items-center justify-center opacity-30 text-white uppercase tracking-widest text-sm">
+                            No hay eventos programados
+                        </div>
+                    )}
                 </div>
 
                 {/* 🟠 WIDGETS INFERIORES */}
                 <div className="h-[35%] flex flex-col gap-3 shrink-0 mb-2">
-                    {/* Media (Screensaver) */}
                     <div className="flex-1 rounded-2xl overflow-hidden border border-white/10 relative bg-black/40">
                         <MediaRenderer 
                             url={itemActual} 
@@ -123,26 +124,27 @@ export default function LayoutDirectorioVertical({
                         />
                     </div>
                     
-                    {/* Noticias Verticales */}
                     <div className="flex-1 rounded-2xl overflow-hidden border border-white/10 bg-white/5 flex flex-col">
                         <div className="px-3 py-1 border-b border-white/10 bg-black/20 text-[9px] font-bold tracking-widest" style={{ color: acento }}>
                             NOTICIAS
                         </div>
                         <div className="flex-1 relative overflow-hidden">
                             <div className="absolute top-0 w-full animate-marquee-vertical">
-                                {[...noticias, ...noticias].map((n, i) => (
+                                {noticias.length > 0 ? [...noticias, ...noticias].map((n, i) => (
                                     <div key={i} className="p-2 border-b border-white/5">
                                         <h3 className="text-xs font-bold leading-tight" style={{ color: acento }}>{n.titulo}</h3>
                                         <p className="text-[10px] opacity-60 leading-snug mt-1" style={{ color: texto_evento }}>{n.descripcion}</p>
                                     </div>
-                                ))}
+                                )) : (
+                                    <div className="p-4 text-center text-[10px] opacity-40 text-white">Cargando noticias...</div>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
             </main>
 
-            {/* 🔴 FOOTER VERTICAL */}
+            {/* 🔴 FOOTER */}
             <footer className="h-10 border-t border-white/10 px-6 flex justify-between items-center shrink-0" style={{ backgroundColor: fondo }}>
                 <span className="text-[8px] opacity-40 uppercase tracking-tighter">Powered by narabyte.xyz</span>
                 <div className="flex items-center gap-2" style={{ color: texto_reloj }}>
@@ -151,7 +153,6 @@ export default function LayoutDirectorioVertical({
                 </div>
             </footer>
 
-            {/* Animación del Marquee */}
             <style>{`
                 @keyframes marquee-vertical {
                     0% { transform: translateY(0); }
