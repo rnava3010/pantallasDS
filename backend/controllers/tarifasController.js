@@ -1,25 +1,20 @@
 const pool = require('../config/db');
 
-// 1. Obtener HABITACIONES (Con Alias de Compatibilidad)
+// 1. OBTENER TARIFAS (Habitaciones)
 const obtenerHabitaciones = async (idSucursal) => {
     try {
         const sql = `
             SELECT 
-                -- 1. Datos Originales
-                nombre_habitacion,
-                precio_rack,
-                precio_promocion,
+                idTarifa,
+                nombre_habitacion, 
+                nombre_habitacion_en,
+                descripcion,
+                descripcion_en,
+                precio_rack, 
+                precio_promocion, 
+                moneda,
                 url_imagen_fondo,
-
-                -- 2. Alias para Layout Viejo (LayoutTarifasHorizontal)
-                nombre_habitacion AS nombre_es,
-                
-                -- 3. Alias para Layout Nuevo (Grid/Glass - Tarjetas)
-                nombre_habitacion AS moneda,    -- Se usa como Título
-                precio_rack AS compra,          -- Se usa como precio tachado
-                precio_promocion AS venta,      -- Se usa como precio principal
-                url_imagen_fondo AS icono_url,  -- Se usa como imagen
-                'MXN' AS descripcion            -- Texto extra
+                activo
             FROM tbl_tarifas 
             WHERE idSucursal = ? AND activo = 1
             ORDER BY idTarifa ASC
@@ -32,15 +27,52 @@ const obtenerHabitaciones = async (idSucursal) => {
     }
 };
 
-// 2. Obtener DIVISAS
-const obtenerDivisas = async (idSucursal) => {
+// 2. OBTENER AVISOS (Noticias)
+const obtenerAvisos = async (idSucursal) => {
     try {
         const sql = `
             SELECT 
-                nombre as moneda,
-                codigo,
-                tipo_cambio, 
-                bandera as icono_url
+                texto, 
+                texto_en, 
+                texto_fr 
+            FROM tbl_avisos 
+            WHERE idSucursal = ? AND activo = 1
+            ORDER BY orden ASC, idAviso DESC
+        `;
+        const [rows] = await pool.query(sql, [idSucursal]);
+        return rows;
+    } catch (error) {
+        console.error("❌ Error avisos:", error.message);
+        return [];
+    }
+};
+
+// 3. OBTENER GALERÍA (Específica de la Terminal)
+const obtenerGaleria = async (idTerminal) => {
+    try {
+        const sql = `
+            SELECT 
+                tipo, 
+                url_archivo, 
+                duracion_segundos 
+            FROM tbl_galeria_terminal 
+            WHERE idTerminal = ? 
+            ORDER BY orden ASC
+        `;
+        const [rows] = await pool.query(sql, [idTerminal]);
+        return rows;
+    } catch (error) {
+        console.error("❌ Error galería:", error.message);
+        return [];
+    }
+};
+
+// 4. OBTENER DIVISAS (Tipo de Cambio)
+const obtenerDivisas = async (idSucursal) => {
+    try {
+        // Asumiendo tabla tbl_divisas estándar
+        const sql = `
+            SELECT nombre, codigo, simbolo, tipo_cambio, bandera 
             FROM tbl_divisas 
             WHERE idSucursal = ? AND activo = 1
             ORDER BY orden ASC
@@ -48,23 +80,14 @@ const obtenerDivisas = async (idSucursal) => {
         const [rows] = await pool.query(sql, [idSucursal]);
         return rows;
     } catch (error) {
+        // Si no existe la tabla, retornamos vacío para no romper nada
         return [];
     }
 };
 
-// 3. Obtener BANNER
-const obtenerAviso = async (idSucursal) => {
-    try {
-        const sql = `
-            SELECT texto as mensaje, texto_en as mensaje_en 
-            FROM tbl_avisos WHERE idSucursal = ? AND activo = 1 
-            ORDER BY idAviso DESC LIMIT 1
-        `;
-        const [rows] = await pool.query(sql, [idSucursal]);
-        // Devolvemos objeto con idiomas
-        if (rows.length > 0) return { es: rows[0].mensaje, en: rows[0].mensaje_en };
-        return { es: "", en: "" };
-    } catch (error) { return null; }
+module.exports = { 
+    obtenerHabitaciones, 
+    obtenerAvisos, 
+    obtenerGaleria, 
+    obtenerDivisas 
 };
-
-module.exports = { obtenerHabitaciones, obtenerDivisas, obtenerAviso };
