@@ -7,12 +7,16 @@ export default function LayoutDirectorioHorizontalModern({
     config, datos, horaActual, isOnline, clima, itemActual, videoBlobUrl 
 }) {
     const [pagina, setPagina] = useState(0);
+    
+    // Protección de carga
     if (!config || !config.colores || !datos || !horaActual) return null;
 
     const { fondo, texto_reloj, texto_evento, acento } = config.colores;
     const eventos = datos?.eventos || [];
     const noticias = datos?.noticias || [];
-    const visibles = eventos.slice(pagina * 3, (pagina + 1) * 3); // 3 eventos para que luzcan más grandes
+    
+    // Mostramos 3 eventos por página para este diseño cinematográfico
+    const visibles = eventos.slice(pagina * 3, (pagina + 1) * 3);
 
     useEffect(() => {
         const totalPaginas = Math.ceil(eventos.length / 3);
@@ -24,26 +28,38 @@ export default function LayoutDirectorioHorizontalModern({
 
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden p-8" style={{ backgroundColor: fondo }}>
-            <header className="flex justify-between items-start mb-8">
-                <div>
-                    <img src={config.logo} alt="Logo" className="h-16 mb-4 object-contain" />
-                    <h1 className="text-5xl font-black italic tracking-tighter uppercase" style={{ color: acento }}>Directorio de Eventos</h1>
+            
+            {/* 🟢 HEADER REORGANIZADO: Logo | Título | Hora y Fecha */}
+            <header className="flex justify-between items-center mb-8 bg-white/5 p-6 rounded-[2rem] border border-white/10 shadow-2xl">
+                {/* Logo a la izquierda */}
+                <div className="w-1/4">
+                    <img src={config.logo} alt="Logo" className="h-16 object-contain" />
                 </div>
-                <div className="text-right">
-                    <span className="text-7xl font-mono font-black" style={{ color: texto_reloj }}>
+
+                {/* Título centrado */}
+                <div className="flex-1 text-center">
+                    <h1 className="text-4xl font-black italic tracking-tighter uppercase" style={{ color: acento }}>
+                        Directorio de Eventos
+                    </h1>
+                </div>
+
+                {/* Hora y Fecha a la derecha */}
+                <div className="w-1/4 text-right">
+                    <span className="text-5xl font-mono font-black block leading-none" style={{ color: texto_reloj }}>
                         {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <p className="text-xl opacity-60 font-bold uppercase tracking-widest" style={{ color: texto_reloj }}>
-                        {horaActual?.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}
+                    <p className="text-sm font-bold uppercase tracking-widest mt-1 opacity-60" style={{ color: texto_reloj }}>
+                        {horaActual?.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })}
                     </p>
                 </div>
             </header>
 
+            {/* 🔵 CUERPO: Tarjetas Cinematográficas */}
             <main className="flex-1 grid grid-cols-3 gap-8 mb-8">
                 {visibles.map((e, i) => (
-                    <div key={i} className="relative group rounded-[3rem] overflow-hidden border-2 border-white/5 bg-white/5 flex flex-col animate-fade-in-up shadow-2xl">
+                    <div key={i} className="relative rounded-[3rem] overflow-hidden border-2 border-white/5 bg-white/5 flex flex-col animate-fade-in-up shadow-2xl">
                         <div className="h-1/2 relative">
-                            <img src={e.imagenes?.[0] || config.imagen_default} className="absolute inset-0 w-full h-full object-cover" />
+                            <img src={e.imagenes?.[0] || config.imagen_default} className="absolute inset-0 w-full h-full object-cover" alt="img" />
                             <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20">
                                 <span className="text-xl font-mono font-bold" style={{ color: acento }}>
                                     {new Date(e.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -64,14 +80,40 @@ export default function LayoutDirectorioHorizontalModern({
                 ))}
             </main>
 
-            <footer className="h-20 flex items-center justify-between border-t border-white/10">
-                <div className="flex items-center gap-6">
-                    <span className="text-3xl">{getIconoClima(clima?.codigo)}</span>
-                    <span className="text-4xl font-bold" style={{ color: texto_reloj }}>{clima?.tempC}°C</span>
+            {/* 🔴 FOOTER CON NOTICIAS DE DERECHA A IZQUIERDA */}
+            <footer className="h-24 flex flex-col justify-between">
+                {/* Fila superior del footer: Clima y Bienvenidos */}
+                <div className="flex items-center justify-between px-4 mb-2">
+                    <div className="flex items-center gap-4">
+                        <span className="text-3xl">{getIconoClima(clima?.codigo)}</span>
+                        <span className="text-2xl font-bold" style={{ color: texto_reloj }}>{clima?.tempC}°C</span>
+                    </div>
+                    <span className="text-2xl font-light tracking-[0.8em] opacity-40" style={{ color: texto_evento }}>BIENVENIDOS</span>
+                    <span className="text-[10px] opacity-30 uppercase tracking-widest">Powered by narabyte.xyz</span>
                 </div>
-                <span className="text-4xl font-light tracking-[0.8em] opacity-40" style={{ color: texto_evento }}>BIENVENIDOS</span>
-                <span className="text-sm opacity-30 uppercase tracking-widest">Powered by narabyte.xyz</span>
+
+                {/* Cinta de noticias (Marquee Horizontal) */}
+                <div className="h-12 bg-white/5 rounded-full border border-white/10 flex items-center overflow-hidden">
+                    <div className="flex whitespace-nowrap animate-marquee-horizontal">
+                        {[...noticias, ...noticias].map((n, i) => (
+                            <span key={i} className="text-lg font-bold mx-12 flex items-center gap-4" style={{ color: texto_reloj }}>
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: acento }} />
+                                {n.titulo}: <span className="font-normal opacity-70">{n.descripcion}</span>
+                            </span>
+                        ))}
+                    </div>
+                </div>
             </footer>
+
+            <style>{`
+                @keyframes marquee-horizontal { 
+                    0% { transform: translateX(0); } 
+                    100% { transform: translateX(-50%); } 
+                }
+                .animate-marquee-horizontal { 
+                    animation: marquee-horizontal 40s linear infinite; 
+                }
+            `}</style>
         </div>
     );
 }
