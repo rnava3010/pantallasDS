@@ -26,7 +26,7 @@ export default function LayoutDirectorioHorizontalModern({
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden p-8" style={{ backgroundColor: fondo }}>
             
-            {/* HEADER: Logo | Directorio | Hora */}
+            {/* HEADER */}
             <header className="flex justify-between items-center mb-8 bg-black/40 backdrop-blur-xl p-6 rounded-[2.5rem] border border-white/10 shadow-2xl">
                 <div className="w-1/4">
                     {config.logo && <img src={config.logo} alt="Logo" className="h-14 object-contain" />}
@@ -54,32 +54,34 @@ export default function LayoutDirectorioHorizontalModern({
                         <div className="h-1/2 relative">
                             <img src={e.imagenes?.[0] || config.imagen_default} className="absolute inset-0 w-full h-full object-cover opacity-80" alt="img" />
                             
-                            {/* HORARIO Y FECHA CORREGIDOS (Bloque elegante) */}
-                            <div className="absolute top-6 left-6 flex flex-col items-start gap-1">
-                                <div className="bg-black/70 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20 flex items-center gap-2">
-                                    <span className="text-xl font-mono font-black" style={{ color: acento }}>
+                            {/* HORARIO Y FECHA MEJORADOS EN CONTRASTE */}
+                            <div className="absolute top-6 left-6 flex flex-col items-start gap-2">
+                                {/* Fondo casi negro y letras en negrita extrema */}
+                                <div className="bg-black/90 backdrop-blur-xl px-5 py-2 rounded-2xl border border-white/30 flex items-center gap-2 shadow-2xl">
+                                    <span className="text-2xl font-mono font-black drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" style={{ color: acento }}>
                                         {new Date(e.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
-                                    <span className="text-[10px] opacity-40 font-bold">A</span>
-                                    <span className="text-lg font-mono font-bold opacity-70" style={{ color: acento }}>
+                                    <span className="text-[10px] font-black text-white/50">A</span>
+                                    <span className="text-xl font-mono font-black drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" style={{ color: acento }}>
                                         {new Date(e.fecha_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 </div>
-                                <div className="bg-white/10 backdrop-blur-sm px-4 py-1 rounded-xl border border-white/10 ml-1">
-                                    <span className="text-xs font-black uppercase tracking-widest text-white">
+                                {/* Etiqueta de fecha más sólida */}
+                                <div className="bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-xl border border-white/20 ml-1 shadow-lg">
+                                    <span className="text-xs font-black uppercase tracking-[0.2em] text-white">
                                         {new Date(e.fecha_inicio).toLocaleDateString([], { day: 'numeric', month: 'short' })}
                                     </span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex-1 p-8 flex flex-col justify-between backdrop-blur-sm bg-black/20">
+                        <div className="flex-1 p-8 flex flex-col justify-between backdrop-blur-sm bg-black/40">
                             <div>
                                 <h2 className="text-3xl font-black mb-2 leading-tight drop-shadow-md" style={{ color: texto_evento }}>{e.nombre_evento}</h2>
-                                <p className="text-lg opacity-60 uppercase font-bold tracking-widest truncate" style={{ color: texto_reloj }}>{e.cliente_nombre}</p>
+                                <p className="text-lg opacity-80 uppercase font-black tracking-widest truncate" style={{ color: texto_reloj }}>{e.cliente_nombre}</p>
                             </div>
                             <div className="flex justify-between items-center mt-4">
-                                <span className="text-sm font-black bg-white/10 px-6 py-2 rounded-full border border-white/10 shadow-inner" style={{ color: texto_reloj }}>
+                                <span className="text-sm font-black bg-white/10 px-6 py-2 rounded-full border border-white/20 shadow-inner" style={{ color: texto_reloj }}>
                                     {e.nombre_salon}
                                 </span>
                                 <DirectionArrow direction={e.direccion_reloj} color={acento} size={40} animate />
@@ -99,7 +101,6 @@ export default function LayoutDirectorioHorizontalModern({
                     <span className="text-[10px] font-bold opacity-30 uppercase tracking-widest">Powered by narabyte.xyz</span>
                 </div>
 
-                {/* MARQUEE EXTRA LENTO (120s) */}
                 <div className="h-14 bg-black/40 backdrop-blur-xl rounded-full border border-white/10 flex items-center overflow-hidden shadow-2xl">
                     <div className="flex whitespace-nowrap animate-marquee-horizontal">
                         {[...noticias, ...noticias].map((n, i) => (
