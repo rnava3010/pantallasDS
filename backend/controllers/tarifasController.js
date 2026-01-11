@@ -28,6 +28,21 @@ const obtenerTarifasPorSucursal = async (idSucursal) => {
         throw error;
     }
 };
+const obtenerDivisasPorSucursal = async (idSucursal) => {
+    try {
+        const sql = `
+            SELECT nombre, codigo, simbolo, tipo_cambio, bandera 
+            FROM tbl_divisas 
+            WHERE idSucursal = ? AND activo = 1 
+            ORDER BY orden ASC
+        `;
+        const [rows] = await pool.query(sql, [idSucursal]);
+        return rows;
+    } catch (error) {
+        console.error("❌ Error obteniendo divisas:", error);
+        return []; // Retornar array vacío en caso de error para no romper la app
+    }
+};
 
 /**
  * Obtiene los banners de texto informativos para el módulo de tarifas.
@@ -41,5 +56,6 @@ const obtenerBannersTarifas = async (idSucursal) => {
 
 module.exports = {
     obtenerTarifasPorSucursal,
-    obtenerBannersTarifas
+    obtenerBannersTarifas,
+    obtenerDivisasPorSucursal
 };

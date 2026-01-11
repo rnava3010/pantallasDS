@@ -116,7 +116,14 @@ const getDatosPantalla = async (req, res) => {
         else if (terminal.tipo_pantalla === 'TARIFAS') {
             const tarifas = await tarifasController.obtenerTarifasPorSucursal(terminal.idSucursal);
             const banner = await tarifasController.obtenerBannersTarifas(terminal.idSucursal);
-            const dataTarifas = { tipo_datos: 'TARIFAS', tarifas, banner, galeria: listaScreensaver };
+			const divisas = await tarifasController.obtenerDivisasPorSucursal(terminal.idSucursal);
+            const dataTarifas = { 
+                tipo_datos: 'TARIFAS', 
+                tarifas, 
+                banner, 
+                divisas,
+                galeria: listaScreensaver 
+            };
             respuesta.datos = dataTarifas;
             respuesta.data = dataTarifas;
         }
