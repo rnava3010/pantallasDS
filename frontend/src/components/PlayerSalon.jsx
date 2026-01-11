@@ -68,16 +68,17 @@ export default function PlayerSalon() {
         acento = '#EAB308' 
     } = config?.colores || {};
 
-    // Generamos el estilo "Shiny" (Degradado Metálico) basado en el color de acento
-    const colorBrillante = lightenColor(acento, 40); // 40% más claro
+    // Estilo "Shiny"
+    const colorBrillante = lightenColor(acento, 40); 
     const shinyStyle = {
         backgroundImage: `linear-gradient(to right, ${acento}, ${colorBrillante}, ${acento})`,
         WebkitBackgroundClip: 'text',
         backgroundClip: 'text',
         color: 'transparent',
-        filter: `drop-shadow(0 0 2px ${acento})` // Un pequeño resplandor del mismo color
+        filter: `drop-shadow(0 0 2px ${acento})`
     };
 
+    // --- LÓGICA DE LAYOUT ---
     let layoutMode = 0;
     if (eventoActual?.layout_mode !== undefined) {
         layoutMode = eventoActual.layout_mode;
@@ -105,7 +106,6 @@ export default function PlayerSalon() {
                 </div>
                 <div className="flex-1 flex justify-center">
                     <div className="px-12 py-3 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl">
-                        {/* 🎨 1. NOMBRE DEL SALON CON EFECTO BRILLO RESTAURADO */}
                         <h1 
                             className="text-4xl md:text-5xl font-bold tracking-widest uppercase drop-shadow-sm whitespace-nowrap text-ellipsis overflow-hidden"
                             style={shinyStyle} 
@@ -154,7 +154,18 @@ export default function PlayerSalon() {
                 {eventoActual && (
                     <div className="w-full h-full h-full relative">
                         
-                        {/* === MODO POSTER === */}
+                        {/* === MODO 3: FULL SCREEN LIMPIO (Sin texto, sin flecha) === */}
+                        {layoutMode === 3 && (
+                             <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-white/10" style={{ backgroundColor: fondo }}>
+                                {/* Usamos object-contain para asegurar que el flyer se vea completo. 
+                                    Si prefieres que llene todo sin bordes (aunque recorte), cambia a object-cover */}
+                                <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10"/>
+                                
+                                {/* Sin textos ni flechas, solo la imagen */}
+                            </div>
+                        )}
+
+                        {/* === MODO 2: POSTER (Con Flecha) === */}
                         {layoutMode === 2 && (
                              <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-white/10" style={{ backgroundColor: fondo }}>
                                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10"/>
@@ -167,7 +178,7 @@ export default function PlayerSalon() {
                             </div>
                         )}
 
-                        {/* === MODO CINE === */}
+                        {/* === MODO 1: CINE (Full + Texto) === */}
                         {layoutMode === 1 && (
                             <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-white/10" style={{ backgroundColor: fondo }}>
                                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-cover z-0 opacity-90"/>
@@ -197,6 +208,7 @@ export default function PlayerSalon() {
                                     {eventoActual.mensaje && <p className="mt-6 text-2xl font-serif italic max-w-2xl drop-shadow-md opacity-90" style={{ color: texto_evento }}>"{eventoActual.mensaje}"</p>}
                                 </div>
 
+                                {/* FLECHA GRANDE */}
                                 {eventoActual.direccion && (
                                     <div className="absolute bottom-10 right-10 z-30 bg-white/10 p-4 rounded-full border border-white/20 backdrop-blur-md shadow-2xl animate-fade-in-up">
                                         <DirectionArrow direccion={eventoActual.direccion} size="w-40 h-40" color={acento} />
@@ -205,13 +217,14 @@ export default function PlayerSalon() {
                             </div>
                         )}
 
-                        {/* === MODO SPLIT === */}
+                        {/* === MODO 0: NORMAL (Split + Flecha Chica) === */}
                         {layoutMode === 0 && (
                             <div className="flex w-full h-full gap-8">
                                 <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-white/10" style={{ backgroundColor: fondo }}>
                                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10"/>
                                     {!itemActual && <div className="absolute inset-0 flex items-center justify-center opacity-10"><img src={config?.logo} className="w-1/3 grayscale" alt="Logo" /></div>}
                                     
+                                    {/* Carrusel Dots */}
                                     {fotosActivas.length > 1 && (
                                         <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
                                             {fotosActivas.map((_, idx) => (
@@ -256,10 +269,11 @@ export default function PlayerSalon() {
                                             </div>
                                         )}
                                         
+                                        {/* FLECHA CHICA (Solo en Modo 0) */}
                                         {eventoActual.direccion && (
                                             <div className="absolute bottom-0 right-0 p-4">
-                                                <div className="bg-white/5 p-4 rounded-full border-2 shadow-lg animate-bounce" style={{ borderColor: `${acento}50` }}>
-                                                    <DirectionArrow direccion={eventoActual.direccion} size="w-32 h-32" color={acento} />
+                                                <div className="bg-white/5 p-3 rounded-full border-2 shadow-lg animate-bounce" style={{ borderColor: `${acento}50` }}>
+                                                    <DirectionArrow direccion={eventoActual.direccion} size="w-20 h-20" color={acento} />
                                                 </div>
                                             </div>
                                         )}
