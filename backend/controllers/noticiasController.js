@@ -1,24 +1,33 @@
+const iconv = require('iconv-lite');
+
 /**
- * Controlador de Noticias RSS - Edici√≥n Reforma Negocios
+ * Controlador de Noticias RSS - Edici®Æn Reforma Negocios con Correcci®Æn de Acentos
  */
 const fetchNoticiasRSS = async () => {
     try {
         const RSS_URL = "https://www.reforma.com/rss/negocios.xml";
         
-        console.log("üåê [Noticias] Conectando a Reforma Negocios...");
+        console.log("?? [Noticias] Conectando a Reforma Negocios...");
         
         const response = await fetch(RSS_URL, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'application/xml, text/xml, */*'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
         });
 
-        if (!response.ok) {
-            throw new Error(`Reforma rechaz√≥ la conexi√≥n (Status: ${response.status})`);
+        if (!response.ok) throw new Error(`Status: ${response.status}`);
+
+        // ? PASO CLAVE: Recibir como ArrayBuffer para manejar la codificaci®Æn manualmente
+        const buffer = await response.arrayBuffer();
+        
+        // Decodificamos el buffer de Reforma (que suele ser win1252 o iso-8859-1) a UTF-8
+        let text = iconv.decode(Buffer.from(buffer), 'iso-8859-1');
+
+        // Si Reforma llegara a cambiar a UTF-8, esto asegura que no lo rompamos
+        if (text.includes('')) {
+            text = iconv.decode(Buffer.from(buffer), 'utf-8');
         }
 
-        const text = await response.text();
         const items = [];
         const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
         
@@ -26,7 +35,6 @@ const fetchNoticiasRSS = async () => {
         while ((match = itemRegex.exec(text)) !== null) {
             const itemContent = match[1];
             
-            // Extraer T√≠tulo y Descripci√≥n con soporte para CDATA
             const tMatch = /<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/i.exec(itemContent) || /<title>([\s\S]*?)<\/title>/i.exec(itemContent);
             const dMatch = /<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/i.exec(itemContent) || /<description>([\s\S]*?)<\/description>/i.exec(itemContent);
 
@@ -36,31 +44,27 @@ const fetchNoticiasRSS = async () => {
                     return str
                         .replace(/<!\[CDATA\[/g, '').replace(/\]\]>/g, '')
                         .replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ')
-                        .replace(/&aacute;/g, '√°').replace(/&eacute;/g, '√©').replace(/&iacute;/g, '√≠').replace(/&oacute;/g, '√≥').replace(/&uacute;/g, '√∫')
-                        .replace(/&Aacute;/g, '√Å').replace(/&Eacute;/g, '√â').replace(/&Iacute;/g, '√ç').replace(/&Oacute;/g, '√ì').replace(/&Uacute;/g, '√ö')
-                        .replace(/&ntilde;/g, '√±').replace(/&Ntilde;/g, '√ë')
+                        // Decodificar entidades HTML comunes que a veces vienen mezcladas
+                        .replace(/&#225;/g, '®¢').replace(/&#233;/g, '®¶').replace(/&#237;/g, '®™').replace(/&#243;/g, '®Æ').replace(/&#250;/g, '®≤')
+                        .replace(/&#241;/g, '?').replace(/&#209;/g, '?')
                         .trim();
                 };
 
                 items.push({
                     titulo: limpiar(tMatch[1]),
-                    descripcion: dMatch ? limpiar(dMatch[1]) : ""
+                    descripcion: limpiar(dMatch ? dMatch[1] : "")
                 });
             }
             if (items.length >= 15) break; 
         }
 
-        console.log(`‚úÖ [Noticias] Reforma: ${items.length} titulares obtenidos.`);
+        console.log(`? [Noticias] Reforma decodificado correctamente: ${items.length} titulares.`);
         return items;
 
     } catch (error) {
-        console.error("‚ö†Ô∏è [Noticias] Fallo al obtener RSS de Reforma:", error.message);
-        return [
-            { titulo: "Noticias en actualizaci√≥n", descripcion: "Consulte los indicadores econ√≥micos en un momento." },
-            { titulo: "Servicio Reforma Negocios", descripcion: "Siga la informaci√≥n financiera m√°s relevante aqu√≠." }
-        ];
+        console.error("?? [Noticias] Error:", error.message);
+        return [{ titulo: "Error de conexi®Æn", descripcion: "No se pudieron cargar las noticias." }];
     }
 };
 
-// ‚úÖ ESTO ES LO M√ÅS IMPORTANTE PARA EL ERROR "is not a function"
 module.exports = { fetchNoticiasRSS };
