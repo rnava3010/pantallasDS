@@ -124,6 +124,7 @@ app.get('/api/pantalla/:id', async (req, res) => {
                     e.mensaje_personalizado,
                     e.mensaje_ticker,
                     e.imagen_full_width,
+                    e.direccion_reloj,   -- <--- CAMPO NUEVO PARA LA FLECHA
                     
                     e.fecha_visualizacion_inicio,
                     e.fecha_visualizacion_fin,
@@ -154,7 +155,8 @@ app.get('/api/pantalla/:id', async (req, res) => {
                 ticker: evento.mensaje_ticker,
                 layout_mode: evento.imagen_full_width || 0,
                 
-                // Mapeo de campos nuevos
+                direccion: evento.direccion_reloj, // <--- MAPEO NUEVO
+
                 recurrente: evento.es_recurrente === 1,
                 mostrar_inicio_iso: evento.fecha_visualizacion_inicio || evento.fecha_inicio,
                 mostrar_fin_iso: evento.fecha_visualizacion_fin || evento.fecha_fin,
