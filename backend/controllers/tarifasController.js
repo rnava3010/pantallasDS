@@ -1,17 +1,17 @@
 const pool = require('../config/db');
 
 /**
- * Obtiene la lista de tarifas activas para una sucursal específica.
- * @param {number} idSucursal - El ID de la sucursal a consultar.
- * @returns {Promise<Array>} - Lista de tarifas encontradas.
+ * Obtiene la lista de tarifas activas con traducciones.
  */
 const obtenerTarifasPorSucursal = async (idSucursal) => {
     try {
         const sql = `
             SELECT 
                 idTarifa, 
-                nombre_habitacion as nombre, 
-                descripcion,
+                nombre_habitacion as nombre_es, 
+                nombre_habitacion_en as nombre_en, 
+                descripcion as descripcion_es,
+                descripcion_en,
                 precio_rack, 
                 precio_promocion as precio, 
                 moneda, 
@@ -29,13 +29,10 @@ const obtenerTarifasPorSucursal = async (idSucursal) => {
 };
 
 /**
- * Obtiene los banners activos combinando avisos de Sucursal, Marca y Propiedad.
- * @param {number} idSucursal - El ID de la sucursal actual.
- * @returns {Promise<string>} - Texto concatenado de los avisos.
+ * Obtiene los banners con traducciones.
  */
 const obtenerBannersTarifas = async (idSucursal) => {
     try {
-        // 1. Averiguamos la Marca y Propiedad de esta Sucursal
         const sqlInfo = `
             SELECT s.idSucursal, s.idMarca, m.idPropiedad 
             FROM cat_sucursales s
@@ -44,13 +41,12 @@ const obtenerBannersTarifas = async (idSucursal) => {
         `;
         const [info] = await pool.query(sqlInfo, [idSucursal]);
         
-        if (info.length === 0) return "Bienvenidos"; 
+        if (info.length === 0) return { es: "Bienvenidos", en: "Welcome" }; 
 
         const { idMarca, idPropiedad } = info[0];
 
-        // 2. Buscamos avisos jerárquicos (Sucursal -> Marca -> Propiedad)
         const sqlAvisos = `
-            SELECT texto 
+            SELECT texto as texto_es, texto_en 
             FROM tbl_avisos 
             WHERE 
                 activo = 1 
@@ -67,21 +63,23 @@ const obtenerBannersTarifas = async (idSucursal) => {
         const [rows] = await pool.query(sqlAvisos, [idSucursal, idMarca || 0, idPropiedad || 0]);
 
         if (rows.length > 0) {
-            return rows.map(r => r.texto).join("  •  ");
+            return {
+                es: rows.map(r => r.texto_es).join("  •  "),
+                en: rows.map(r => r.texto_en || r.texto_es).join("  •  ") // Fallback a español si no hay inglés
+            };
         }
 
-        return "Bienvenidos - Consulte nuestras promociones en recepción.";
+        return { 
+            es: "Bienvenidos - Consulte nuestras promociones", 
+            en: "Welcome - Check our promotions at the front desk" 
+        };
 
     } catch (error) {
         console.error("❌ Error obteniendo banners:", error);
-        // Retornamos un texto default en caso de error (ej. tabla no existe)
-        return "Bienvenidos"; 
+        return { es: "Bienvenidos", en: "Welcome" }; 
     }
 };
 
-/**
- * Obtiene los tipos de cambio activos para una sucursal.
- */
 const obtenerDivisasPorSucursal = async (idSucursal) => {
     try {
         const sql = `
@@ -94,7 +92,6 @@ const obtenerDivisasPorSucursal = async (idSucursal) => {
         return rows;
     } catch (error) {
         console.error("❌ Error obteniendo divisas:", error);
-        // Si la tabla no existe o falla, retornamos array vacío para no romper la pantalla
         return []; 
     }
 };

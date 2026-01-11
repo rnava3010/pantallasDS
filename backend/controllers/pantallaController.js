@@ -10,6 +10,7 @@ const obtenerConfiguracionBase = async (id) => {
         SELECT 
             t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.idAreaAsignada,
             t.idSucursal, t.orientacion, t.layoutDir, t.layoutTarifas,
+            t.idiomas_activos, t.tiempo_rotacion_idioma,  -- <--- NUEVOS CAMPOS
             a.nombre as nombre_area,
             COALESCE(s.logo_url, m.logo_url) as final_logo_name, 
             s.latitud, s.longitud, s.zona_horaria, t.imagen_default_url,
@@ -71,6 +72,11 @@ const getDatosPantalla = async (req, res) => {
                 layoutDir: terminal.layoutDir || 0,
                 layoutTarifas: terminal.layoutTarifas || 0,
                 zona_horaria: terminal.zona_horaria || 'America/Mexico_City',
+                
+                // Configuración de Idiomas
+                idiomas_activos: terminal.idiomas_activos || ["es"], // Default a español si es null
+                tiempo_rotacion: terminal.tiempo_rotacion_idioma || 20, // Default 20 segundos
+
                 logo: logoFinal, // ✅ Logo con extensión corregida
                 imagen_default: terminal.imagen_default_url,
                 screensaver: listaScreensaver,
@@ -116,7 +122,8 @@ const getDatosPantalla = async (req, res) => {
         else if (terminal.tipo_pantalla === 'TARIFAS') {
             const tarifas = await tarifasController.obtenerTarifasPorSucursal(terminal.idSucursal);
             const banner = await tarifasController.obtenerBannersTarifas(terminal.idSucursal);
-			const divisas = await tarifasController.obtenerDivisasPorSucursal(terminal.idSucursal);
+            const divisas = await tarifasController.obtenerDivisasPorSucursal(terminal.idSucursal);
+            
             const dataTarifas = { 
                 tipo_datos: 'TARIFAS', 
                 tarifas, 
