@@ -130,7 +130,7 @@ const getDatosPantalla = async (req, res) => {
                 tipo_pantalla: terminal.tipo_pantalla,
                 orientacion: terminal.orientacion,
                 layoutDir: terminal.layoutDir || 0,
-                layoutTarifas: terminal.layoutTarifas || 0, // ✅ Enviado al frontend
+                layoutTarifas: terminal.layoutTarifas || 0,
                 zona_horaria: terminal.zona_horaria || 'America/Mexico_City', 
                 logo: logoPngUrl,
                 imagen_default: terminal.imagen_default_url,
@@ -144,7 +144,8 @@ const getDatosPantalla = async (req, res) => {
                 }
             },
             clima_backend: climaCache,
-            datos: null, // Sincronizado para ser consumido por useTarifas y useDirectorio
+            data: null,  // Para compatibilidad con Salones/Directorio antiguos
+            datos: null, // Para compatibilidad con useTarifas nuevo
             timeOffset: 0,
             server_time: new Date()
         };
@@ -153,7 +154,7 @@ const getDatosPantalla = async (req, res) => {
 
         if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
              const agenda = await obtenerAgendaSalon(terminal.idAreaAsignada);
-             respuesta.datos = {
+             const eventosMapeados = {
                 tipo_datos: 'AGENDA',
                 eventos: agenda.map(evento => ({
                     titulo: evento.nombre_evento,
@@ -169,26 +170,31 @@ const getDatosPantalla = async (req, res) => {
                     imagenes: evento.lista_imagenes ? evento.lista_imagenes.split(',') : []
                 }))
             };
+            respuesta.data = eventosMapeados;
+            respuesta.datos = eventosMapeados;
         } 
         else if (terminal.tipo_pantalla === 'DIRECTORIO') {
             const eventos = await directorioController.obtenerDatosDirectorio(terminal.idSucursal);
             const noticias = await getNoticiasSeguras();
-            respuesta.datos = {
+            const dataDirectorio = {
                 tipo_datos: 'DIRECTORIO',
                 eventos: eventos,
                 noticias: noticias
             };
+            respuesta.data = dataDirectorio;
+            respuesta.datos = dataDirectorio;
         }
-        // ✅ NUEVA LÓGICA DE TARIFAS
         else if (terminal.tipo_pantalla === 'TARIFAS') {
             const tarifas = await tarifasController.obtenerTarifasPorSucursal(terminal.idSucursal);
             const banner = await tarifasController.obtenerBannersTarifas(terminal.idSucursal);
-            respuesta.datos = {
+            const dataTarifas = {
                 tipo_datos: 'TARIFAS',
                 tarifas: tarifas,
                 banner: banner,
-                galeria: listaScreensaver // Se usa el screensaver de la terminal como galería base
+                galeria: listaScreensaver 
             };
+            respuesta.datos = dataTarifas;
+            respuesta.data = dataTarifas; // También enviamos a data por si acaso
         }
 
         res.json(respuesta);
