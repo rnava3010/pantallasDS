@@ -1,15 +1,10 @@
 const pool = require('../config/db');
 
-/**
- * Helper para obtener la hora actual en la Zona Horaria de la Sucursal.
- */
 const getZonedNow = (timeZone) => {
     try {
         const zona = timeZone || 'America/Mexico_City';
-        // Formato sueco ISO 'YYYY-MM-DD HH:mm:ss'
         const nowString = new Date().toLocaleString('sv-SE', { timeZone: zona });
         const [fecha, hora] = nowString.split(' ');
-        
         return { dateOnly: fecha, full: nowString };
     } catch (error) {
         console.error("Error zona horaria:", error);
@@ -26,52 +21,52 @@ const obtenerDatosDirectorio = async (idSucursal) => {
     // 2. Calcular "AHORA"
     const tiempoActual = getZonedNow(zonaHoraria);
     
-    console.log(`\n==================================================`);
-    console.log(`🔍 [DEBUG] SUCURSAL ID: ${idSucursal} | ZONA: ${zonaHoraria}`);
-    console.log(`🕒 [DEBUG] HORA ACTUAL SISTEMA (REF): "${tiempoActual.full}"`);
-    console.log(`==================================================`);
+    console.log(`\n--- CONSULTA DIRECTORIO (Sucursal ${idSucursal}) ---`);
 
-    // 3. CONSULTA SQL (Trae todo lo de HOY)
+    // 3. CONSULTA SQL (Con Imágenes y Flechas)
     const sql = `
         SELECT 
+            e.idEvento,
             e.nombre_evento, 
+            e.cliente_nombre,
+            e.tipo_evento,       -- ✅ Nuevo campo (Asegúrate de que exista en tu BD)
+            e.direccion_reloj,   -- ✅ Campo para la flecha
             e.fecha_inicio, 
-            e.fecha_fin, 
+            e.fecha_fin,
             
-            -- FORZAMOS FORMATO DE TEXTO PARA COMPARAR EXACTAMENTE LO QUE VES EN SQL
             DATE_FORMAT(e.fecha_fin, '%Y-%m-%d %H:%i:%s') as fin_str,
-            
-            a.nombre as nombre_salon
+            a.nombre as nombre_salon,
+
+            -- ✅ Agrupamos todas las imágenes (NO videos) en una lista separada por comas
+            GROUP_CONCAT(em.url_archivo ORDER BY em.orden ASC SEPARATOR ',') as imagenes_lista
+
         FROM tbl_eventos e
         JOIN cat_areas a ON e.idArea = a.idArea
+        LEFT JOIN tbl_eventos_media em ON e.idEvento = em.idEvento AND em.tipo = 'IMAGEN' -- Solo Imágenes
+        
         WHERE e.idSucursal = ? 
           AND e.estatus = 'ACTIVO' 
           AND DATE(e.fecha_inicio) = ? 
+        
+        GROUP BY e.idEvento -- Necesario para el GROUP_CONCAT
         ORDER BY e.fecha_inicio ASC
     `;
     
     const [eventosDelDia] = await pool.query(sql, [idSucursal, tiempoActual.dateOnly]);
     
-    console.log(`📥 [DEBUG] Eventos encontrados en BD para hoy (${tiempoActual.dateOnly}): ${eventosDelDia.length}`);
-
-    // 4. FILTRADO JS CON LOGS
-    const eventosVigentes = eventosDelDia.filter((evento, index) => {
-        // Comparación de cadenas de texto (ISO format)
-        // Ejemplo: "2026-01-10 23:59:00" > "2026-01-10 23:35:00"
+    // 4. FILTRADO JS (Vigencia)
+    const eventosVigentes = eventosDelDia.filter(evento => {
         const sigueVigente = evento.fin_str > tiempoActual.full;
-        
-        console.log(`\n   🔎 [Evento #${index + 1}] "${evento.nombre_evento}"`);
-        console.log(`      📅 Termina BD:   "${evento.fin_str}"`);
-        console.log(`      ⏰ Hora Actual:  "${tiempoActual.full}"`);
-        console.log(`      ⚖️  ¿Vigente?    ${sigueVigente ? '✅ SÍ' : '❌ NO (Se oculta)'}`);
-
         return sigueVigente;
     });
 
-    console.log(`\n🚀 [DEBUG] Total enviados al Frontend: ${eventosVigentes.length}`);
-    console.log(`==================================================\n`);
+    // Procesamos la lista de imágenes para que sea un Array real
+    const eventosFinales = eventosVigentes.map(evt => ({
+        ...evt,
+        imagenes: evt.imagenes_lista ? evt.imagenes_lista.split(',') : []
+    }));
 
-    return eventosVigentes;
+    return eventosFinales;
 };
 
 module.exports = { obtenerDatosDirectorio };

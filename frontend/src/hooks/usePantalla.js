@@ -12,7 +12,6 @@ export const usePantalla = (idPantalla) => {
     const [clima, setClima] = useState({ tempC: 0, tempF: 0, codigo: 0 });
 
     // --- HELPER: PROCESAR URLS ---
-    // Convierte rutas relativas (/logos/foto.png) en absolutas (https://midominio.com/logos/foto.png)
     const procesarUrl = (url) => {
         if (!url) return null;
         if (url.startsWith('http') || url.startsWith('data:')) return url;
@@ -35,7 +34,7 @@ export const usePantalla = (idPantalla) => {
             // 1. Validar fecha general
             if (ahora < inicio || ahora > fin) return false;
 
-            // 2. Validar recurrencia (si es recurrente, checar solo hora del día)
+            // 2. Validar recurrencia
             if (evt.recurrente) {
                 const minutosAhora = ahora.getHours() * 60 + ahora.getMinutes();
                 const minutosInicio = inicio.getHours() * 60 + inicio.getMinutes();
@@ -45,7 +44,6 @@ export const usePantalla = (idPantalla) => {
                     return false; 
                 }
             }
-
             return true;
         }) || null;
     };
@@ -77,9 +75,15 @@ export const usePantalla = (idPantalla) => {
             
             let result = await response.json();
 
-            // 1. Procesamos todas las URLs para que apunten al backend correcto
+            // 1. Procesamos todas las URLs
             if (result.config) {
                 if (result.config.logo) result.config.logo = procesarUrl(result.config.logo);
+                
+                // ✅ PROCESAMOS LA IMAGEN DEFAULT AQUI
+                if (result.config.imagen_default) {
+                    result.config.imagen_default = procesarUrl(result.config.imagen_default);
+                }
+
                 if (result.config.screensaver && Array.isArray(result.config.screensaver)) {
                     result.config.screensaver = result.config.screensaver.map(url => procesarUrl(url));
                 }
@@ -91,24 +95,37 @@ export const usePantalla = (idPantalla) => {
                     imagenes: evt.imagenes ? evt.imagenes.map(url => procesarUrl(url)) : []
                 }));
             }
+            
+            // Para Directorio también procesamos las imágenes de los eventos si vienen
+            if (Array.isArray(result.data)) {
+                 result.data = result.data.map(evt => ({
+                    ...evt,
+                    imagenes: evt.imagenes ? evt.imagenes.map(url => procesarUrl(url)) : []
+                }));
+            } else if (result.data && Array.isArray(result.data.eventos)) {
+                 // Estructura alternativa
+                 result.data.eventos = result.data.eventos.map(evt => ({
+                    ...evt,
+                    imagenes: evt.imagenes ? evt.imagenes.map(url => procesarUrl(url)) : []
+                }));
+            }
 			
-            // 2. Calculamos diferencia de hora con el servidor
+            // 2. Calculamos diferencia de hora
             let currentOffset = 0;
             if (result.server_time) {
                 currentOffset = new Date(result.server_time).getTime() - new Date().getTime();
                 setTimeOffset(currentOffset);
             }
 
-            // 3. Guardado Ligero en LocalStorage (Solo Texto JSON)
+            // 3. Guardado LocalStorage
             try {
                 localStorage.setItem(`narabyte_cache_${idPantalla}`, JSON.stringify(result));
                 localStorage.setItem('narabyte_time_offset', currentOffset);
             } catch (e) {
-                // Si la memoria se llena, solo avisamos en consola y seguimos funcionando
-                console.warn("⚠️ Caché llena, el modo offline podría no tener los últimos datos.", e);
+                console.warn("⚠️ Caché llena");
             }
             
-            // 4. Actualizamos el Estado
+            // 4. Actualizamos Estado
             setConfig(result.config);
 
             if (result.config?.ubicacion) {
@@ -124,10 +141,8 @@ export const usePantalla = (idPantalla) => {
             setIsOnline(true);
 
         } catch (err) {
-            console.warn("⚠️ Modo Offline Activo: Usando datos guardados");
+            console.warn("⚠️ Modo Offline Activo");
             setIsOnline(false);
-
-            // Recuperación de emergencia (Offline)
             try {
                 const cachedRaw = localStorage.getItem(`narabyte_cache_${idPantalla}`);
                 const cachedOffset = localStorage.getItem('narabyte_time_offset');
@@ -137,27 +152,21 @@ export const usePantalla = (idPantalla) => {
                 if (cachedRaw) {
                     const cachedResult = JSON.parse(cachedRaw);
                     setConfig(cachedResult.config);
-                    
                     if (cachedResult.data?.tipo_datos === 'AGENDA') {
                         setEventoActual(determinarEventoActual(cachedResult.data.eventos, savedOffset));
+                    } else {
+                        setEventoActual(cachedResult.data);
                     }
                 }
-            } catch (e) {
-                console.error("Error crítico recuperando caché:", e);
-            }
+            } catch (e) { console.error("Error caché", e); }
         } finally {
             setLoading(false);
         }
     };
 
-    // --- EFECTOS ---
     useEffect(() => {
-        fetchData(); // Carga inicial
-
-        // Recargar datos del servidor cada 5 minutos
+        fetchData();
         const intervalDescarga = setInterval(fetchData, 300000);
-
-        // Recalcular evento actual cada 30 segundos (sin descargar todo de nuevo)
         const intervalReloj = setInterval(() => {
             const cachedRaw = localStorage.getItem(`narabyte_cache_${idPantalla}`);
             const cachedOffset = localStorage.getItem('narabyte_time_offset');

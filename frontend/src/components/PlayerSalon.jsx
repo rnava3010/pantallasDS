@@ -49,8 +49,19 @@ export default function PlayerSalon() {
         if (config) logger.log(`✅ [PlayerSalon] Configurado: "${config.nombre_interno}" Orientación: ${config.orientacion === 1 ? 'Vertical' : 'Horizontal'}`);
     }, [config]);
 
-    // Contenido
-    const fotosActivas = (eventoActual?.imagenes?.length > 0) ? eventoActual.imagenes : (config?.screensaver || []);
+    // --- CONTENIDO VISUAL (Lógica Mejorada) ---
+    // 1. Si el evento tiene imágenes, úsalas.
+    // 2. Si no tiene, usa la imagen default de la terminal (si existe).
+    // 3. Si tampoco existe, usa el screensaver (galería general).
+    let fotosActivas = [];
+    if (eventoActual?.imagenes?.length > 0) {
+        fotosActivas = eventoActual.imagenes;
+    } else if (config?.imagen_default) {
+        fotosActivas = [config.imagen_default];
+    } else {
+        fotosActivas = config?.screensaver || [];
+    }
+
     const { itemActual, indice } = useCarrusel(fotosActivas, 8000);
     const { videoBlobUrl } = useOfflineVideo(fotosActivas);
 
@@ -115,16 +126,9 @@ export default function PlayerSalon() {
                     {config?.logo && <img src={config.logo} alt="Logo" className={`${isVertical ? 'h-16' : 'h-24'} w-auto object-contain animate-float`} />}
                 </div>
                 
-                {/* Título Central (Mejorado) */}
+                {/* Título Central */}
                 <div className="flex justify-center w-full px-2">
                     <div className={`py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl w-full flex justify-center items-center ${isVertical ? 'px-2' : 'px-8'}`}>
-                        {/* CAMBIOS AQUI:
-                           - Quitamos whitespace-nowrap
-                           - Agregamos leading-none o leading-tight para que las líneas estén juntas
-                           - break-words para evitar desbordes feos
-                           - line-clamp-2 limita a máximo 2 líneas
-                           - Tamaños de fuente mucho más grandes
-                        */}
                         <h1 
                             className={`font-bold tracking-widest uppercase drop-shadow-sm text-center leading-none break-words line-clamp-2 ${isVertical ? 'text-2xl' : 'text-5xl'}`}
                             style={shinyStyle}

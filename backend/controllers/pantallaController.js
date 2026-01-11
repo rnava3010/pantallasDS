@@ -1,6 +1,4 @@
 const pool = require('../config/db');
-
-// Importamos el especialista en Directorios
 const directorioController = require('./directorioController');
 
 // --- SUB-FUNCION: Obtener Configuración Base ---
@@ -9,14 +7,17 @@ const obtenerConfiguracion = async (id) => {
         SELECT 
             t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.tema_color, t.idAreaAsignada,
             t.idSucursal,
-            t.orientacion, -- 0=Horizontal, 1=Vertical
+            t.orientacion,
             a.nombre as nombre_area,
             COALESCE(s.logo_url, m.logo_url) as final_logo_name, 
             m.color_primario, m.color_secundario,
             s.latitud, s.longitud,
-            s.zona_horaria, -- <--- ✅ NUEVO: Recuperamos la Zona Horaria de la Sucursal
+            s.zona_horaria,
             
-            -- COLORES PERSONALIZABLES
+            -- ✅ NUEVO CAMPO: Imagen Default
+            t.imagen_default_url,
+
+            -- COLORES
             COALESCE(t.color_fondo, '#000000') as color_fondo,
             COALESCE(t.color_texto_evento, '#FFFFFF') as color_texto_evento,
             COALESCE(t.color_texto_reloj, '#FFFFFF') as color_texto_reloj,
@@ -32,14 +33,12 @@ const obtenerConfiguracion = async (id) => {
     return rows[0];
 };
 
-// --- SUB-FUNCION: Obtener Screensaver ---
 const obtenerScreensaver = async (idTerminal) => {
     const sql = `SELECT url_archivo FROM tbl_galeria_terminal WHERE idTerminal = ? ORDER BY orden ASC`;
     const [rows] = await pool.query(sql, [idTerminal]);
     return rows.map(row => row.url_archivo);
 };
 
-// --- SUB-FUNCION: Obtener Agenda (EXCLUSIVO PARA SALÓN) ---
 const obtenerAgendaSalon = async (idArea) => {
     const sql = `
         SELECT 
@@ -48,7 +47,6 @@ const obtenerAgendaSalon = async (idArea) => {
             e.mensaje_personalizado, e.mensaje_ticker,
             e.imagen_full_width, e.direccion_reloj,
             e.nombre_salon_personalizado, 
-            
             e.fecha_visualizacion_inicio, e.fecha_visualizacion_fin,
             e.es_recurrente,
             GROUP_CONCAT(em.url_archivo ORDER BY em.orden ASC SEPARATOR ',') as lista_imagenes
@@ -70,11 +68,9 @@ const getDatosPantalla = async (req, res) => {
     const { id } = req.params;
     
     try {
-        // 1. Configuración Principal
         const terminal = await obtenerConfiguracion(id);
         if (!terminal) return res.status(404).json({ error: "Terminal no encontrada" });
 
-        // 2. Procesar Logos
         let logoPngUrl = null;
         let faviconIcoUrl = null;
         if (terminal.final_logo_name) {
@@ -83,21 +79,22 @@ const getDatosPantalla = async (req, res) => {
              faviconIcoUrl = `/logos/${cleanName}.ico`;
         }
 
-        // 3. Screensaver (Común)
         const listaScreensaver = await obtenerScreensaver(terminal.idTerminal);
 
-        // 4. Armar Respuesta Base
         let respuesta = {
             config: {
                 id: terminal.idTerminal,
                 nombre_interno: terminal.nombre_interno,
                 tipo_pantalla: terminal.tipo_pantalla,
                 orientacion: terminal.orientacion,
-                // ✅ Enviamos la zona horaria al Frontend (con fallback a CDMX)
                 zona_horaria: terminal.zona_horaria || 'America/Mexico_City', 
                 tema_color: terminal.tema_color || 'dark',
                 logo: logoPngUrl,
                 favicon: faviconIcoUrl,
+                
+                // ✅ ENVIAMOS LA IMAGEN DEFAULT (Si existe, limpiamos ruta si es necesario)
+                imagen_default: terminal.imagen_default_url,
+
                 screensaver: listaScreensaver,
                 ubicacion: { lat: terminal.latitud || '19.43', lon: terminal.longitud || '-99.13' },
                 colores: {
@@ -111,7 +108,6 @@ const getDatosPantalla = async (req, res) => {
             server_time: new Date()
         };
 
-        // 5. DELEGACIÓN DE LÓGICA SEGÚN TIPO
         if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
              const agenda = await obtenerAgendaSalon(terminal.idAreaAsignada);
              respuesta.data = {
@@ -135,7 +131,6 @@ const getDatosPantalla = async (req, res) => {
             };
         } 
         else if (terminal.tipo_pantalla === 'DIRECTORIO') {
-            // ✅ Llamada al controlador especializado (usará la misma zona horaria internamente)
             respuesta.data = await directorioController.obtenerDatosDirectorio(terminal.idSucursal);
         }
 
