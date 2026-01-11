@@ -27,7 +27,7 @@ export default function LayoutDirectorioHorizontalModern({
         <div className="flex flex-col h-screen w-screen overflow-hidden p-8" style={{ backgroundColor: fondo }}>
             
             {/* HEADER: Logo | Directorio | Hora */}
-            <header className="flex justify-between items-center mb-8 bg-white/5 p-6 rounded-[2.5rem] border border-white/10 shadow-2xl">
+            <header className="flex justify-between items-center mb-8 bg-black/40 backdrop-blur-xl p-6 rounded-[2.5rem] border border-white/10 shadow-2xl">
                 <div className="w-1/4">
                     {config.logo && <img src={config.logo} alt="Logo" className="h-14 object-contain" />}
                 </div>
@@ -42,30 +42,46 @@ export default function LayoutDirectorioHorizontalModern({
                     <span className="text-5xl font-mono font-black block leading-none" style={{ color: texto_reloj }}>
                         {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <p className="text-xs font-bold uppercase tracking-widest mt-1 opacity-60" style={{ color: texto_reloj }}>
-                        {horaActual?.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })}
+                    <p className="text-sm font-bold uppercase tracking-widest mt-1 opacity-60" style={{ color: texto_reloj }}>
+                        {horaActual?.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}
                     </p>
                 </div>
             </header>
 
             <main className="flex-1 grid grid-cols-3 gap-8 mb-8">
                 {visibles.map((e, i) => (
-                    <div key={i} className="relative rounded-[3rem] overflow-hidden border-2 border-white/5 bg-white/5 flex flex-col animate-fade-in-up shadow-2xl">
+                    <div key={i} className="relative rounded-[3rem] overflow-hidden border border-white/10 bg-gradient-to-br from-white/10 to-black/60 flex flex-col animate-fade-in-up shadow-[inset_0_0_20px_rgba(255,255,255,0.05),0_20px_50px_rgba(0,0,0,0.5)] border-t-white/20">
                         <div className="h-1/2 relative">
-                            <img src={e.imagenes?.[0] || config.imagen_default} className="absolute inset-0 w-full h-full object-cover" alt="img" />
-                            <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20">
-                                <span className="text-xl font-mono font-bold" style={{ color: acento }}>
-                                    {new Date(e.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
+                            <img src={e.imagenes?.[0] || config.imagen_default} className="absolute inset-0 w-full h-full object-cover opacity-80" alt="img" />
+                            
+                            {/* HORARIO Y FECHA CORREGIDOS (Bloque elegante) */}
+                            <div className="absolute top-6 left-6 flex flex-col items-start gap-1">
+                                <div className="bg-black/70 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20 flex items-center gap-2">
+                                    <span className="text-xl font-mono font-black" style={{ color: acento }}>
+                                        {new Date(e.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                    <span className="text-[10px] opacity-40 font-bold">A</span>
+                                    <span className="text-lg font-mono font-bold opacity-70" style={{ color: acento }}>
+                                        {new Date(e.fecha_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                </div>
+                                <div className="bg-white/10 backdrop-blur-sm px-4 py-1 rounded-xl border border-white/10 ml-1">
+                                    <span className="text-xs font-black uppercase tracking-widest text-white">
+                                        {new Date(e.fecha_inicio).toLocaleDateString([], { day: 'numeric', month: 'short' })}
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                        <div className="flex-1 p-8 flex flex-col justify-between">
+
+                        <div className="flex-1 p-8 flex flex-col justify-between backdrop-blur-sm bg-black/20">
                             <div>
-                                <h2 className="text-3xl font-black mb-2 leading-tight" style={{ color: texto_evento }}>{e.nombre_evento}</h2>
-                                <p className="text-lg opacity-60 uppercase font-bold tracking-widest" style={{ color: texto_reloj }}>{e.cliente_nombre}</p>
+                                <h2 className="text-3xl font-black mb-2 leading-tight drop-shadow-md" style={{ color: texto_evento }}>{e.nombre_evento}</h2>
+                                <p className="text-lg opacity-60 uppercase font-bold tracking-widest truncate" style={{ color: texto_reloj }}>{e.cliente_nombre}</p>
                             </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-lg font-bold bg-white/10 px-6 py-2 rounded-full border border-white/10" style={{ color: texto_reloj }}>{e.nombre_salon}</span>
+                            <div className="flex justify-between items-center mt-4">
+                                <span className="text-sm font-black bg-white/10 px-6 py-2 rounded-full border border-white/10 shadow-inner" style={{ color: texto_reloj }}>
+                                    {e.nombre_salon}
+                                </span>
                                 <DirectionArrow direction={e.direccion_reloj} color={acento} size={40} animate />
                             </div>
                         </div>
@@ -73,24 +89,24 @@ export default function LayoutDirectorioHorizontalModern({
                 ))}
             </main>
 
-            <footer className="h-24 flex flex-col justify-between">
-                <div className="flex items-center justify-between px-4">
+            <footer className="h-28 flex flex-col justify-between">
+                <div className="flex items-center justify-between px-6">
                     <div className="flex items-center gap-4">
-                        <span className="text-3xl">{getIconoClima(clima?.codigo)}</span>
-                        <span className="text-2xl font-bold" style={{ color: texto_reloj }}>{clima?.tempC}°C</span>
+                        <span className="text-4xl drop-shadow-lg">{getIconoClima(clima?.codigo)}</span>
+                        <span className="text-3xl font-black" style={{ color: texto_reloj }}>{clima?.tempC}°C</span>
                     </div>
-                    {/* LEYENDA CENTRADA */}
-                    <span className="text-2xl font-light tracking-[0.8em] uppercase opacity-40" style={{ color: texto_evento }}>BIENVENIDOS</span>
-                    <span className="text-[10px] opacity-30 uppercase">Powered by narabyte.xyz</span>
+                    <span className="text-3xl font-light tracking-[1em] uppercase opacity-40 ml-20" style={{ color: texto_evento }}>BIENVENIDOS</span>
+                    <span className="text-[10px] font-bold opacity-30 uppercase tracking-widest">Powered by narabyte.xyz</span>
                 </div>
 
-                {/* MARQUEE LENTO (80s) */}
-                <div className="h-12 bg-white/5 rounded-full border border-white/10 flex items-center overflow-hidden">
+                {/* MARQUEE EXTRA LENTO (120s) */}
+                <div className="h-14 bg-black/40 backdrop-blur-xl rounded-full border border-white/10 flex items-center overflow-hidden shadow-2xl">
                     <div className="flex whitespace-nowrap animate-marquee-horizontal">
                         {[...noticias, ...noticias].map((n, i) => (
-                            <span key={i} className="text-lg font-bold mx-12 flex items-center gap-4" style={{ color: texto_reloj }}>
-                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: acento }} />
-                                {n.titulo}: <span className="font-normal opacity-70">{n.descripcion}</span>
+                            <span key={i} className="text-xl font-bold mx-16 flex items-center gap-4" style={{ color: texto_reloj }}>
+                                <span className="w-3 h-3 rounded-full shadow-[0_0_10px_white]" style={{ backgroundColor: acento }} />
+                                <span style={{ color: acento }}>{n.titulo}:</span>
+                                <span className="font-medium opacity-80 text-white">{n.descripcion}</span>
                             </span>
                         ))}
                     </div>
@@ -99,8 +115,10 @@ export default function LayoutDirectorioHorizontalModern({
 
             <style>{`
                 @keyframes marquee-horizontal { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-                .animate-marquee-horizontal { animation: marquee-horizontal 80s linear infinite; }
-            `}`}</style>
+                .animate-marquee-horizontal { animation: marquee-horizontal 120s linear infinite; }
+                .animate-fade-in-up { animation: fadeInUp 0.7s ease-out forwards; }
+                @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+            `}</style>
         </div>
     );
 }
