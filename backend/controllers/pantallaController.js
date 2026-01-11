@@ -2,7 +2,7 @@ const pool = require('../config/db');
 const directorioController = require('./directorioController');
 const noticiasController = require('./noticiasController');
 const tarifasController = require('./tarifasController');
-const salonesController = require('./salonesController'); // ✅ Nuevo Import
+const salonesController = require('./salonesController'); 
 
 // --- HELPERS DE CONFIGURACIÓN ---
 const obtenerConfiguracionBase = async (id) => {
@@ -32,6 +32,16 @@ const obtenerScreensaver = async (idTerminal) => {
     return rows.map(row => row.url_archivo);
 };
 
+// Helper para obtener clima (si lo usas en este controlador)
+const getClimaSeguro = async (idSucursal) => {
+    const [rows] = await pool.query("SELECT json_clima, updated_at FROM tbl_cache_clima WHERE idSucursal = ?", [idSucursal]);
+    if (rows.length > 0) {
+        const cache = rows[0];
+        return typeof cache.json_clima === 'string' ? JSON.parse(cache.json_clima) : cache.json_clima;
+    }
+    return null;
+};
+
 // ==========================================
 // 🎮 CONTROLADOR PRINCIPAL
 // ==========================================
@@ -42,44 +52,73 @@ const getDatosPantalla = async (req, res) => {
         if (!terminal) return res.status(404).json({ error: "Terminal no encontrada" });
 
         const listaScreensaver = await obtenerScreensaver(terminal.idTerminal);
+        const climaCache = await getClimaSeguro(terminal.idSucursal);
+
+        // --- PROCESAMIENTO CORRECTO DEL LOGO ---
+        // Esto evita el error 404 al mantener la extensión (.png, .jpg, etc)
+        let logoFinal = null;
+        if (terminal.final_logo_name) {
+            const fileName = terminal.final_logo_name.split('/').pop(); 
+            logoFinal = `/logos/${fileName}`;
+        }
 
         let respuesta = {
             config: {
                 id: terminal.idTerminal,
+                nombre_interno: terminal.nombre_interno,
                 tipo_pantalla: terminal.tipo_pantalla,
                 orientacion: terminal.orientacion,
                 layoutDir: terminal.layoutDir || 0,
                 layoutTarifas: terminal.layoutTarifas || 0,
-                logo: terminal.final_logo_name ? `/logos/${terminal.final_logo_name.split('/').pop()}` : null,
+                zona_horaria: terminal.zona_horaria || 'America/Mexico_City',
+                logo: logoFinal, // ✅ Logo con extensión corregida
+                imagen_default: terminal.imagen_default_url,
                 screensaver: listaScreensaver,
+                ubicacion: { 
+                    lat: terminal.latitud || '19.43', 
+                    lon: terminal.longitud || '-99.13' 
+                },
                 colores: {
                     fondo: terminal.color_fondo,
                     texto_evento: terminal.color_texto_evento,
+                    texto_reloj: terminal.color_texto_reloj,
                     acento: terminal.color_acento 
                 }
             },
-            data: null,  // Para pantallas viejas
-            datos: null, // Para pantallas nuevas
+            clima_backend: climaCache,
+            data: null,  
+            datos: null, 
+            timeOffset: 0,
             server_time: new Date()
         };
 
         // --- DELEGACIÓN POR TIPO DE PANTALLA ---
         if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
             const eventos = await salonesController.obtenerAgendaSalon(terminal.idAreaAsignada);
-            respuesta.datos = { tipo_datos: 'AGENDA', eventos };
-            respuesta.data = respuesta.datos;
+            // Formateamos los eventos específicamente para lo que PlayerSalon espera
+            const dataSalon = { 
+                tipo_datos: 'AGENDA', 
+                eventos: eventos.map(e => ({
+                    ...e,
+                    nombre_salon: e.nombre_salon || terminal.nombre_area
+                }))
+            };
+            respuesta.datos = dataSalon;
+            respuesta.data = dataSalon;
         } 
         else if (terminal.tipo_pantalla === 'DIRECTORIO') {
             const eventos = await directorioController.obtenerDatosDirectorio(terminal.idSucursal);
             const noticias = await noticiasController.fetchNoticiasRSS();
-            respuesta.datos = { tipo_datos: 'DIRECTORIO', eventos, noticias };
-            respuesta.data = respuesta.datos;
+            const dataDir = { tipo_datos: 'DIRECTORIO', eventos, noticias };
+            respuesta.datos = dataDir;
+            respuesta.data = dataDir;
         }
         else if (terminal.tipo_pantalla === 'TARIFAS') {
             const tarifas = await tarifasController.obtenerTarifasPorSucursal(terminal.idSucursal);
             const banner = await tarifasController.obtenerBannersTarifas(terminal.idSucursal);
-            respuesta.datos = { tipo_datos: 'TARIFAS', tarifas, banner, galeria: listaScreensaver };
-            respuesta.data = respuesta.datos;
+            const dataTarifas = { tipo_datos: 'TARIFAS', tarifas, banner, galeria: listaScreensaver };
+            respuesta.datos = dataTarifas;
+            respuesta.data = dataTarifas;
         }
 
         res.json(respuesta);
