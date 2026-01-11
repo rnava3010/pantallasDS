@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState, useLayoutEffect } from 'react'; // ✅ NUEVO: Importamos useRef, useState, useLayoutEffect
 import { useParams } from 'react-router-dom';
 
 // Hooks
@@ -13,13 +13,13 @@ import { getIconoClima } from '../utils/weatherUtils';
 import logger from '../utils/logger';
 
 // --- IMPORTAMOS LOS LAYOUTS ---
-import LayoutSplit from './layoutsSalones/LayoutSplit';         // Modo 0
-import LayoutCine from './layoutsSalones/LayoutCine';           // Modo 1
-import LayoutPoster from './layoutsSalones/LayoutPoster';       // Modo 2
-import LayoutClean from './layoutsSalones/LayoutClean';         // Modo 3
-import LayoutVertical from './layoutsSalones/LayoutVertical';           // Modo 5
-import LayoutVerticalCine from './layoutsSalones/LayoutVerticalCine';   // Modo 6
-import LayoutVerticalFull from './layoutsSalones/LayoutVerticalFull';   // Modo 7
+import LayoutSplit from './layoutsSalones/LayoutSplit';
+import LayoutCine from './layoutsSalones/LayoutCine';
+import LayoutPoster from './layoutsSalones/LayoutPoster';
+import LayoutClean from './layoutsSalones/LayoutClean';
+import LayoutVertical from './layoutsSalones/LayoutVertical';
+import LayoutVerticalCine from './layoutsSalones/LayoutVerticalCine';
+import LayoutVerticalFull from './layoutsSalones/LayoutVerticalFull';
 
 // Helper de color (Brillo)
 const lightenColor = (hex, percent) => {
@@ -63,9 +63,55 @@ export default function PlayerSalon() {
         }
     }, [config?.favicon]);
 
+    // --- DETECCIÓN INTELIGENTE DE ORIENTACIÓN ---
+    let layoutMode = 0;
+    if (eventoActual?.layout_mode !== undefined) { layoutMode = eventoActual.layout_mode; } 
+    else if (eventoActual?.full_width) { layoutMode = 1; }
+    const isEventVertical = (layoutMode === 5 || layoutMode === 6 || layoutMode === 7);
+    const isConfigVertical = config?.orientacion === 1;
+    const isVertical = eventoActual ? isEventVertical : isConfigVertical;
+
+    // =====================================================================
+    // ✅ NUEVO: LÓGICA DE AUTO-REDIMENSIONAMIENTO DEL TÍTULO
+    // =====================================================================
+    const titleRef = useRef(null);
+    // Definimos el tamaño base ideal: 24px para vertical, 48px para horizontal
+    const baseFontSize = isVertical ? 24 : 48; 
+    const [dynamicFontSize, setDynamicFontSize] = useState(baseFontSize);
+
+    // useLayoutEffect se ejecuta antes de que el usuario vea el cambio, evitando parpadeos
+    useLayoutEffect(() => {
+        const element = titleRef.current;
+        if (!element || !config) return;
+
+        // 1. Reseteamos al tamaño base para medir correctamente
+        element.style.fontSize = `${baseFontSize}px`;
+
+        // 2. Medimos: scrollWidth es el ancho real del texto, clientWidth es el ancho disponible
+        const textWidth = element.scrollWidth;
+        const containerWidth = element.parentElement.clientWidth; // Medimos el ancho de la "píldora" contenedora
+
+        // 3. Si el texto es más ancho que el contenedor, calculamos la reducción
+        if (textWidth > containerWidth) {
+            const ratio = containerWidth / textWidth;
+            // Multiplicamos por el ratio y un 0.95 de seguridad para que no quede pegado a los bordes
+            let newSize = Math.floor(baseFontSize * ratio * 0.95);
+            // Establecemos un tamaño mínimo legible (ej. 14px)
+            newSize = Math.max(newSize, 14); 
+            setDynamicFontSize(newSize);
+        } else {
+            // Si cabe bien, usamos el tamaño base
+            setDynamicFontSize(baseFontSize);
+        }
+    // Ejecutamos esto cada vez que cambie el nombre, la orientación o el tamaño base
+    }, [nombreSalon, isVertical, baseFontSize]);
+    // =====================================================================
+
+
     if (loading && !config) return <div className="bg-black h-screen flex items-center justify-center text-white animate-pulse">Iniciando...</div>;
 
     // --- VARIABLES DE CONFIGURACIÓN ---
+    // NOTA: Movemos nombreSalon antes de la lógica nueva para poder usarlo en el dependency array
     const nombreSalon = eventoActual?.nombre_salon || config?.nombre_interno || "Sala de Eventos";
     const tickerText = eventoActual?.ticker || null;
     const { fondo = '#000000', texto_evento = '#FFFFFF', texto_reloj = '#FFFFFF', acento = '#EAB308' } = config?.colores || {};
@@ -77,7 +123,9 @@ export default function PlayerSalon() {
         WebkitBackgroundClip: 'text',
         backgroundClip: 'text',
         color: 'transparent',
-        filter: `drop-shadow(0 0 2px ${acento})`
+        filter: `drop-shadow(0 0 2px ${acento})`,
+        // ✅ NUEVO: Aplicamos el tamaño de fuente dinámico calculado
+        fontSize: `${dynamicFontSize}px` 
     };
 
     // --- LÓGICA DE FECHAS ---
@@ -88,21 +136,7 @@ export default function PlayerSalon() {
         if (fInicio === fFin) { textoFechas = fInicio; } 
         else { textoFechas = `${fInicio} al ${fFin}`; }
     }
-
-    // --- DETECCIÓN INTELIGENTE DE ORIENTACIÓN ---
-    let layoutMode = 0;
-    if (eventoActual?.layout_mode !== undefined) { layoutMode = eventoActual.layout_mode; } 
-    else if (eventoActual?.full_width) { layoutMode = 1; }
-
-    // 1. ¿Es un layout de evento vertical?
-    const isEventVertical = (layoutMode === 5 || layoutMode === 6 || layoutMode === 7);
     
-    // 2. ¿La terminal está configurada físicamente como vertical?
-    const isConfigVertical = config?.orientacion === 1;
-
-    // 3. Decisión Final: Si hay evento, manda el evento. Si no, manda la configuración física.
-    const isVertical = eventoActual ? isEventVertical : isConfigVertical;
-
     // Ajustes de CSS basados en la decisión
     const paddingX = isVertical ? 'px-4' : 'px-10';
     const radioBorde = isVertical ? 'rounded-[2rem]' : 'rounded-[3rem]';
@@ -113,15 +147,27 @@ export default function PlayerSalon() {
             
             <div className={`absolute bottom-32 right-6 z-50 w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] transition-colors duration-500 ${isOnline ? 'bg-green-500/40 text-green-500' : 'bg-red-600 text-red-600 animate-pulse'}`}></div>
 
-            {/* HEADER (Se adapta automáticamente si es Vertical u Horizontal) */}
+            {/* HEADER */}
             <header className={`h-24 grid grid-cols-3 items-center ${paddingX} relative z-20 bg-gradient-to-b from-black/90 to-transparent`}>
                 <div className="flex justify-start">
                     {config?.logo && <img src={config.logo} alt="Logo" className={`${isVertical ? 'h-16' : 'h-20'} w-auto object-contain animate-float`} />}
                 </div>
                 
-                <div className="flex justify-center overflow-hidden w-full">
-                    <div className={`py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl ${isVertical ? 'px-6 max-w-full' : 'px-12'}`}>
-                        <h1 className={`${isVertical ? 'text-2xl' : 'text-4xl md:text-5xl'} font-bold tracking-widest uppercase drop-shadow-sm whitespace-nowrap text-ellipsis overflow-hidden`} style={shinyStyle}>
+                {/* ✅ NUEVO: Contenedor del Título ajustado */}
+                <div className="flex justify-center overflow-hidden w-full px-2">
+                     {/* Usamos w-full y max-w para que la píldora use el espacio disponible */}
+                    <div className={`py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl w-full flex justify-center ${isVertical ? 'px-2 max-w-[95%]' : 'px-8 max-w-[80%]'}`}>
+                        {/* ✅ NUEVO H1: 
+                            1. Agregamos ref={titleRef}
+                            2. Quitamos las clases de tamaño fijo (text-2xl, text-4xl)
+                            3. Quitamos 'text-ellipsis' (ya no queremos los puntos)
+                            4. El tamaño se controla ahora vía el estilo 'shinyStyle' que incluye el fontSize dinámico.
+                        */}
+                        <h1 
+                            ref={titleRef}
+                            className="font-bold tracking-widest uppercase drop-shadow-sm whitespace-nowrap overflow-hidden text-center leading-none py-1"
+                            style={shinyStyle}
+                        >
                             {nombreSalon}
                         </h1>
                     </div>
@@ -137,16 +183,13 @@ export default function PlayerSalon() {
                 </div>
             </header>
 
-            {/* CONTENIDO */}
+            {/* CONTENIDO (Resto del archivo igual) */}
             <div className={`flex-1 ${paddingX} pt-2 relative z-10 w-full h-full min-h-0 ${tickerText ? 'pb-14' : ''}`}>
                 
-                {/* A. SCREENSAVER (ADAPTABLE) */}
+                {/* A. SCREENSAVER */}
                 {!eventoActual && (
                      <div className={`w-full h-full ${radioBorde} overflow-hidden relative border border-white/10 shadow-2xl`} style={{ backgroundColor: fondo }}>
-                        {/* Usamos object-contain para no cortar imágenes, u object-cover si queremos llenar todo */}
                         <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10 w-full h-full"/>
-                        
-                        {/* Logo de fondo (Marca de agua) */}
                         {!itemActual && <div className="absolute inset-0 flex items-center justify-center opacity-10"><img src={config?.logo} className="w-1/3 grayscale animate-pulse" alt="Logo" /></div>}
                      </div>
                 )}
@@ -168,7 +211,7 @@ export default function PlayerSalon() {
                 )}
             </div>
 
-            {/* FOOTER (Se adapta automáticamente) */}
+            {/* FOOTER */}
             <footer className={`h-16 relative z-20 grid grid-cols-3 items-center ${paddingX} border-t transition-all`} style={{ backgroundColor: fondo, borderColor: `${texto_evento}20` }}>
                 <div className="flex justify-start opacity-50"><p className="text-[10px] tracking-widest uppercase">Powered by <span className="font-bold" style={{ color: acento }}>narabyte.xyz</span></p></div>
                 <div className="flex justify-center">{!eventoActual && <h2 className={`${isVertical ? 'text-2xl' : 'text-4xl'} font-light tracking-[0.3em] uppercase`} style={{ color: texto_evento }}>BIENVENIDOS</h2>}</div>
