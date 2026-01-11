@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 3100;
 app.use(cors());
 app.use(express.json());
 
+// Servir archivos estáticos con cabeceras CORS para imágenes y videos
 app.use(express.static('public', {
   setHeaders: function (res, path, stat) {
     res.set("Access-Control-Allow-Origin", "*");
@@ -19,9 +20,9 @@ app.use(express.static('public', {
 }));
 
 // --- RUTAS API ---
-app.use('/api/pantalla', pantallaRoutes); // Aquí conectamos todo
+// Cambiado a '/api/pantallas' para coincidir con la llamada del frontend
+app.use('/api/pantallas', pantallaRoutes); 
 
-// --- RUTA TEST (Opcional, la puedes dejar o mover) ---
 app.get('/', (req, res) => res.send('🚀 Servidor Digital Signage: ACTIVO'));
 
 app.get('/api/test-db', async (req, res) => {
@@ -38,6 +39,6 @@ app.listen(PORT, () => {
     console.log(`\n=============================================`);
     console.log(`🚀 Servidor corriendo en: http://localhost:${PORT}`);
     console.log(`=============================================`);
-	
-	iniciarCrons();
+    
+    iniciarCrons();
 });
