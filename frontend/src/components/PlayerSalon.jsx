@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useLayoutEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
 // Hooks
@@ -63,8 +63,7 @@ export default function PlayerSalon() {
         }
     }, [config?.favicon]);
 
-    // 1. PRIMERO: Definimos las variables base (nombreSalon, isVertical, etc.)
-    // Esto evita el error "Cannot access before initialization"
+    // --- VARIABLES ---
     const nombreSalon = eventoActual?.nombre_salon || config?.nombre_interno || "Sala de Eventos";
     
     // Detección de Orientación
@@ -80,34 +79,8 @@ export default function PlayerSalon() {
     const paddingX = isVertical ? 'px-4' : 'px-10';
     const radioBorde = isVertical ? 'rounded-[2rem]' : 'rounded-[3rem]';
 
-    // 2. SEGUNDO: Hooks de Redimensionamiento (Ahora sí pueden leer nombreSalon e isVertical)
-    const titleRef = useRef(null);
-    const baseFontSize = isVertical ? 24 : 48; 
-    const [dynamicFontSize, setDynamicFontSize] = useState(baseFontSize);
-
-    useLayoutEffect(() => {
-        const element = titleRef.current;
-        if (!element || !config) return;
-
-        element.style.fontSize = `${baseFontSize}px`;
-
-        const textWidth = element.scrollWidth;
-        const containerWidth = element.parentElement.clientWidth;
-
-        if (textWidth > containerWidth) {
-            const ratio = containerWidth / textWidth;
-            let newSize = Math.floor(baseFontSize * ratio * 0.95);
-            newSize = Math.max(newSize, 14); 
-            setDynamicFontSize(newSize);
-        } else {
-            setDynamicFontSize(baseFontSize);
-        }
-    }, [nombreSalon, isVertical, baseFontSize, config]); // Ahora nombreSalon ya existe aquí
-
-    // 3. TERCERO: Loading Check
     if (loading && !config) return <div className="bg-black h-screen flex items-center justify-center text-white animate-pulse">Iniciando...</div>;
 
-    // 4. CUARTO: Variables dependientes de config (Colores y Estilos)
     const tickerText = eventoActual?.ticker || null;
     const { fondo = '#000000', texto_evento = '#FFFFFF', texto_reloj = '#FFFFFF', acento = '#EAB308' } = config?.colores || {};
     
@@ -117,8 +90,7 @@ export default function PlayerSalon() {
         WebkitBackgroundClip: 'text',
         backgroundClip: 'text',
         color: 'transparent',
-        filter: `drop-shadow(0 0 2px ${acento})`,
-        fontSize: `${dynamicFontSize}px` // Usamos el tamaño calculado
+        filter: `drop-shadow(0 0 2px ${acento})`
     };
 
     // Lógica de fechas
@@ -130,7 +102,6 @@ export default function PlayerSalon() {
         else { textoFechas = `${fInicio} al ${fFin}`; }
     }
 
-    // 5. RENDER
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden font-sans relative transition-colors duration-1000" style={{ backgroundColor: fondo }}>
             <style>{`@keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } } .animate-marquee { animation: marquee 30s linear infinite; white-space: nowrap; display: inline-block; padding-left: 100%; }`}</style>
@@ -138,17 +109,24 @@ export default function PlayerSalon() {
             <div className={`absolute bottom-32 right-6 z-50 w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] transition-colors duration-500 ${isOnline ? 'bg-green-500/40 text-green-500' : 'bg-red-600 text-red-600 animate-pulse'}`}></div>
 
             {/* HEADER */}
-            <header className={`h-24 grid grid-cols-3 items-center ${paddingX} relative z-20 bg-gradient-to-b from-black/90 to-transparent`}>
+            <header className={`h-28 grid grid-cols-3 items-center ${paddingX} relative z-20 bg-gradient-to-b from-black/90 to-transparent`}>
+                {/* Logo */}
                 <div className="flex justify-start">
-                    {config?.logo && <img src={config.logo} alt="Logo" className={`${isVertical ? 'h-16' : 'h-20'} w-auto object-contain animate-float`} />}
+                    {config?.logo && <img src={config.logo} alt="Logo" className={`${isVertical ? 'h-16' : 'h-24'} w-auto object-contain animate-float`} />}
                 </div>
                 
-                {/* Contenedor del Título con Auto-Resize */}
-                <div className="flex justify-center overflow-hidden w-full px-2">
-                    <div className={`py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl w-full flex justify-center ${isVertical ? 'px-2 max-w-[95%]' : 'px-8 max-w-[80%]'}`}>
+                {/* Título Central (Mejorado) */}
+                <div className="flex justify-center w-full px-2">
+                    <div className={`py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl w-full flex justify-center items-center ${isVertical ? 'px-2' : 'px-8'}`}>
+                        {/* CAMBIOS AQUI:
+                           - Quitamos whitespace-nowrap
+                           - Agregamos leading-none o leading-tight para que las líneas estén juntas
+                           - break-words para evitar desbordes feos
+                           - line-clamp-2 limita a máximo 2 líneas
+                           - Tamaños de fuente mucho más grandes
+                        */}
                         <h1 
-                            ref={titleRef}
-                            className="font-bold tracking-widest uppercase drop-shadow-sm whitespace-nowrap overflow-hidden text-center leading-none py-1"
+                            className={`font-bold tracking-widest uppercase drop-shadow-sm text-center leading-none break-words line-clamp-2 ${isVertical ? 'text-2xl' : 'text-5xl'}`}
                             style={shinyStyle}
                         >
                             {nombreSalon}
@@ -156,11 +134,12 @@ export default function PlayerSalon() {
                     </div>
                 </div>
 
+                {/* Reloj */}
                 <div className="flex flex-col items-end whitespace-nowrap">
-                    <span className={`${isVertical ? 'text-4xl' : 'text-5xl'} font-mono font-bold drop-shadow-lg tracking-tighter leading-none`} style={{ color: texto_reloj }}>
+                    <span className={`${isVertical ? 'text-4xl' : 'text-6xl'} font-mono font-bold drop-shadow-lg tracking-tighter leading-none`} style={{ color: texto_reloj }}>
                         {horaActual.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <span className={`${isVertical ? 'text-xs' : 'text-sm'} font-medium uppercase tracking-widest mt-1 opacity-80`} style={{ color: texto_reloj }}>
+                    <span className={`${isVertical ? 'text-xs' : 'text-base'} font-medium uppercase tracking-widest mt-1 opacity-80`} style={{ color: texto_reloj }}>
                         {horaActual.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}
                     </span>
                 </div>
@@ -195,12 +174,12 @@ export default function PlayerSalon() {
             </div>
 
             {/* FOOTER */}
-            <footer className={`h-16 relative z-20 grid grid-cols-3 items-center ${paddingX} border-t transition-all`} style={{ backgroundColor: fondo, borderColor: `${texto_evento}20` }}>
+            <footer className={`h-20 relative z-20 grid grid-cols-3 items-center ${paddingX} border-t transition-all`} style={{ backgroundColor: fondo, borderColor: `${texto_evento}20` }}>
                 <div className="flex justify-start opacity-50"><p className="text-[10px] tracking-widest uppercase">Powered by <span className="font-bold" style={{ color: acento }}>narabyte.xyz</span></p></div>
                 <div className="flex justify-center">{!eventoActual && <h2 className={`${isVertical ? 'text-2xl' : 'text-4xl'} font-light tracking-[0.3em] uppercase`} style={{ color: texto_evento }}>BIENVENIDOS</h2>}</div>
                 <div className="flex justify-end items-center gap-2" style={{ color: texto_reloj }}>
-                    <div className={`${isVertical ? 'text-3xl' : 'text-4xl'} pb-1`}>{getIconoClima(clima.codigo)}</div>
-                    <span className={`${isVertical ? 'text-2xl' : 'text-3xl'} font-bold`}>{clima.tempC}°C</span>
+                    <div className={`${isVertical ? 'text-3xl' : 'text-5xl'} pb-1`}>{getIconoClima(clima.codigo)}</div>
+                    <span className={`${isVertical ? 'text-2xl' : 'text-4xl'} font-bold`}>{clima.tempC}°C</span>
                 </div>
             </footer>
              
