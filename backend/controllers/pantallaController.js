@@ -1,7 +1,7 @@
 const pool = require('../config/db');
 const directorioController = require('./directorioController');
 const noticiasController = require('./noticiasController');
-const tarifasController = require('./tarifasController'); // ✅ Importado
+const tarifasController = require('./tarifasController'); // ✅ Importado correctamente
 
 // --- SUB-FUNCIONES DE APOYO ---
 
@@ -11,7 +11,7 @@ const obtenerConfiguracion = async (id) => {
             t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.tema_color, t.idAreaAsignada,
             t.idSucursal, t.orientacion,
             t.layoutDir, 
-            t.layoutTarifas, -- ✅ Importante para el Player de Tarifas
+            t.layoutTarifas, -- ✅ Nueva columna para selección de diseño de tarifas
             a.nombre as nombre_area,
             COALESCE(s.logo_url, m.logo_url) as final_logo_name, 
             m.color_primario, m.color_secundario,
@@ -144,7 +144,7 @@ const getDatosPantalla = async (req, res) => {
                 }
             },
             clima_backend: climaCache,
-            datos: null, // Cambiado de 'data' a 'datos' para consistencia con useTarifas
+            datos: null, // Sincronizado para ser consumido por useTarifas y useDirectorio
             timeOffset: 0,
             server_time: new Date()
         };
@@ -187,7 +187,7 @@ const getDatosPantalla = async (req, res) => {
                 tipo_datos: 'TARIFAS',
                 tarifas: tarifas,
                 banner: banner,
-                galeria: listaScreensaver
+                galeria: listaScreensaver // Se usa el screensaver de la terminal como galería base
             };
         }
 

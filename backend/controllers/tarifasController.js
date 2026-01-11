@@ -1,7 +1,9 @@
 const pool = require('../config/db');
 
 /**
- * Obtiene la lista de tarifas activas para una sucursal
+ * Obtiene la lista de tarifas activas para una sucursal específica.
+ * @param {number} idSucursal - El ID de la sucursal a consultar.
+ * @returns {Promise<Array>} - Lista de tarifas encontradas.
  */
 const obtenerTarifasPorSucursal = async (idSucursal) => {
     try {
@@ -25,7 +27,13 @@ const obtenerTarifasPorSucursal = async (idSucursal) => {
     }
 };
 
+/**
+ * Obtiene los banners de texto informativos para el módulo de tarifas.
+ * @param {number} idSucursal - El ID de la sucursal.
+ * @returns {Promise<string>} - Texto del banner.
+ */
 const obtenerBannersTarifas = async (idSucursal) => {
+    // Por ahora devuelve un texto estático, pero se puede extender para consultar la BD
     return "Consulte nuestras promociones de temporada en recepción. • Tarifas vigentes para el día de hoy.";
 };
 
