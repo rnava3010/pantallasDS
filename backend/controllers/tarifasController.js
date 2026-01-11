@@ -7,7 +7,6 @@ const pool = require('../config/db');
  */
 const obtenerTarifasPorSucursal = async (idSucursal) => {
     try {
-        // AGREGAMOS 'descripcion' AL SELECT
         const sql = `
             SELECT 
                 idTarifa, 
@@ -28,21 +27,6 @@ const obtenerTarifasPorSucursal = async (idSucursal) => {
         throw error;
     }
 };
-const obtenerDivisasPorSucursal = async (idSucursal) => {
-    try {
-        const sql = `
-            SELECT nombre, codigo, simbolo, tipo_cambio, bandera 
-            FROM tbl_divisas 
-            WHERE idSucursal = ? AND activo = 1 
-            ORDER BY orden ASC
-        `;
-        const [rows] = await pool.query(sql, [idSucursal]);
-        return rows;
-    } catch (error) {
-        console.error("❌ Error obteniendo divisas:", error);
-        return []; // Retornar array vacío en caso de error para no romper la app
-    }
-};
 
 /**
  * Obtiene los banners activos combinando avisos de Sucursal, Marca y Propiedad.
@@ -51,9 +35,7 @@ const obtenerDivisasPorSucursal = async (idSucursal) => {
  */
 const obtenerBannersTarifas = async (idSucursal) => {
     try {
-        // 1. Primero averiguamos la Marca y Propiedad de esta Sucursal
-        // (Asumimos que cat_sucursales tiene idMarca y cat_marcas tiene idPropiedad, 
-        // o que cat_sucursales tiene ambos. Ajustamos con LEFT JOIN para asegurar datos).
+        // 1. Averiguamos la Marca y Propiedad de esta Sucursal
         const sqlInfo = `
             SELECT s.idSucursal, s.idMarca, m.idPropiedad 
             FROM cat_sucursales s
@@ -62,13 +44,11 @@ const obtenerBannersTarifas = async (idSucursal) => {
         `;
         const [info] = await pool.query(sqlInfo, [idSucursal]);
         
-        if (info.length === 0) return "Bienvenidos"; // Fallback si no existe sucursal
+        if (info.length === 0) return "Bienvenidos"; 
 
         const { idMarca, idPropiedad } = info[0];
 
-        // 2. Buscamos avisos que coincidan con CUALQUIERA de los niveles jerárquicos
-        // Se muestran si coinciden con la Sucursal O la Marca O la Propiedad.
-        // También validamos fechas si existen.
+        // 2. Buscamos avisos jerárquicos (Sucursal -> Marca -> Propiedad)
         const sqlAvisos = `
             SELECT texto 
             FROM tbl_avisos 
@@ -87,27 +67,36 @@ const obtenerBannersTarifas = async (idSucursal) => {
         const [rows] = await pool.query(sqlAvisos, [idSucursal, idMarca || 0, idPropiedad || 0]);
 
         if (rows.length > 0) {
-            // Unimos todos los avisos con un separador
             return rows.map(r => r.texto).join("  •  ");
         }
 
-        // Texto por defecto si no hay nada en BD
         return "Bienvenidos - Consulte nuestras promociones en recepción.";
 
     } catch (error) {
         console.error("❌ Error obteniendo banners:", error);
-        return "Bienvenidos";
+        // Retornamos un texto default en caso de error (ej. tabla no existe)
+        return "Bienvenidos"; 
     }
 };
 
 /**
- * Obtiene los banners de texto informativos para el módulo de tarifas.
- * @param {number} idSucursal - El ID de la sucursal.
- * @returns {Promise<string>} - Texto del banner.
+ * Obtiene los tipos de cambio activos para una sucursal.
  */
-const obtenerBannersTarifas = async (idSucursal) => {
-    // Por ahora devuelve un texto estático, pero se puede extender para consultar la BD
-    return "Consulte nuestras promociones de temporada en recepción. • Tarifas vigentes para el día de hoy.";
+const obtenerDivisasPorSucursal = async (idSucursal) => {
+    try {
+        const sql = `
+            SELECT nombre, codigo, simbolo, tipo_cambio, bandera 
+            FROM tbl_divisas 
+            WHERE idSucursal = ? AND activo = 1 
+            ORDER BY orden ASC
+        `;
+        const [rows] = await pool.query(sql, [idSucursal]);
+        return rows;
+    } catch (error) {
+        console.error("❌ Error obteniendo divisas:", error);
+        // Si la tabla no existe o falla, retornamos array vacío para no romper la pantalla
+        return []; 
+    }
 };
 
 module.exports = {
