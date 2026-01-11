@@ -202,7 +202,7 @@ export default function PlayerDirectorio() {
                     {hayEventos && (
                         <>
                             <div className="grid grid-cols-12 gap-4 px-6 py-2 border-b border-white/20 text-sm font-bold uppercase tracking-widest opacity-70 shrink-0" style={{ color: acento }}>
-                                <div className="col-span-2">Horario</div>
+                                <div className="col-span-2 text-center md:text-left">Horario</div>
                                 <div className="col-span-7">Evento</div>
                                 <div className="col-span-3 text-right pr-4">Ubicación</div>
                             </div>
@@ -210,7 +210,6 @@ export default function PlayerDirectorio() {
                             <div className="flex-1 relative overflow-y-auto scrollbar-hide">
                                 <div className="flex flex-col gap-3">
                                     {eventosVisibles.map((evento, idx) => {
-                                        // ✅ CÁLCULO DE HORARIO COMPLETO (Inicio - Fin)
                                         const horaInicio = new Date(evento.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                                         const horaFin = new Date(evento.fecha_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                                         
@@ -224,10 +223,17 @@ export default function PlayerDirectorio() {
                                                 className="grid grid-cols-12 gap-4 items-center p-3 bg-white/5 border border-white/5 rounded-2xl shadow-lg backdrop-blur-sm animate-fade-in-up"
                                                 style={{ animationDelay: `${idx * 100}ms` }}
                                             >
-                                                {/* ✅ HORARIO COMPLETO */}
-                                                <div className="col-span-2 flex flex-col justify-center" style={{ color: acento }}>
-                                                    <span className="font-mono text-lg font-bold leading-tight whitespace-nowrap">
-                                                        {horaInicio} - {horaFin}
+                                                {/* ✅ HORARIO VERTICAL (APILADO) */}
+                                                {/* Esto fuerza un salto de línea y mantiene el ancho controlado */}
+                                                <div className="col-span-2 flex flex-col justify-center items-center md:items-start" style={{ color: acento }}>
+                                                    <span className="font-mono text-xl font-bold leading-none">
+                                                        {horaInicio}
+                                                    </span>
+                                                    <span className="text-[10px] opacity-60 uppercase tracking-widest my-0.5">
+                                                        a
+                                                    </span>
+                                                    <span className="font-mono text-xl font-bold leading-none">
+                                                        {horaFin}
                                                     </span>
                                                 </div>
 
