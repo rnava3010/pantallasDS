@@ -28,9 +28,6 @@ const obtenerTarifasPorSucursal = async (idSucursal) => {
     }
 };
 
-/**
- * Obtiene los banners con traducciones.
- */
 const obtenerBannersTarifas = async (idSucursal) => {
     try {
         const sqlInfo = `
@@ -41,12 +38,14 @@ const obtenerBannersTarifas = async (idSucursal) => {
         `;
         const [info] = await pool.query(sqlInfo, [idSucursal]);
         
-        if (info.length === 0) return { es: "Bienvenidos", en: "Welcome" }; 
+        // Retorno por defecto trilingüe si no se encuentra la sucursal
+        if (info.length === 0) return { es: "Bienvenidos", en: "Welcome", fr: "Bienvenue" }; 
 
         const { idMarca, idPropiedad } = info[0];
 
+        // ACTUALIZACIÓN: Se agrega 'texto_fr' a la consulta
         const sqlAvisos = `
-            SELECT texto as texto_es, texto_en 
+            SELECT texto as texto_es, texto_en, texto_fr 
             FROM tbl_avisos 
             WHERE 
                 activo = 1 
@@ -65,18 +64,23 @@ const obtenerBannersTarifas = async (idSucursal) => {
         if (rows.length > 0) {
             return {
                 es: rows.map(r => r.texto_es).join("  •  "),
-                en: rows.map(r => r.texto_en || r.texto_es).join("  •  ") // Fallback a español si no hay inglés
+                // Si no hay inglés, usa español
+                en: rows.map(r => r.texto_en || r.texto_es).join("  •  "), 
+                // Si no hay francés, usa español
+                fr: rows.map(r => r.texto_fr || r.texto_es).join("  •  ")  
             };
         }
 
+        // Retorno por defecto trilingüe si no hay avisos en BD
         return { 
             es: "Bienvenidos - Consulte nuestras promociones", 
-            en: "Welcome - Check our promotions at the front desk" 
+            en: "Welcome - Check our promotions at the front desk",
+            fr: "Bienvenue - Consultez nos promotions à la réception"
         };
 
     } catch (error) {
         console.error("❌ Error obteniendo banners:", error);
-        return { es: "Bienvenidos", en: "Welcome" }; 
+        return { es: "Bienvenidos", en: "Welcome", fr: "Bienvenue" }; 
     }
 };
 
