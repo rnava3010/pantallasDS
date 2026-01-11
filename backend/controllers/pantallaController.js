@@ -57,22 +57,51 @@ const obtenerAgendaSalon = async (idArea) => {
     return rows;
 };
 
+// --- HELPERS PARA CACHÉ (Noticias y Clima) ---
+const getNoticiasSeguras = async () => {
+    const [rows] = await pool.query("SELECT lista_noticias, updated_at FROM tbl_cache_noticias WHERE id = 1");
+    let noticias = [];
+    let necesitaActualizar = true;
+
+    if (rows.length > 0) {
+        const cache = rows[0];
+        const diferenciaHoras = (new Date() - new Date(cache.updated_at)) / 1000 / 60 / 60;
+        if (diferenciaHoras < 2) {
+            noticias = typeof cache.lista_noticias === 'string' ? JSON.parse(cache.lista_noticias) : cache.lista_noticias;
+            necesitaActualizar = false;
+        }
+    }
+
+    if (necesitaActualizar) {
+        noticias = await noticiasController.fetchNoticiasRSS();
+        pool.query("INSERT INTO tbl_cache_noticias (id, lista_noticias, updated_at) VALUES (1, ?, NOW()) ON DUPLICATE KEY UPDATE lista_noticias = VALUES(lista_noticias), updated_at = NOW()", [JSON.stringify(noticias)]);
+    }
+    return noticias;
+};
+
+const getClimaSeguro = async (idSucursal) => {
+    const [rows] = await pool.query("SELECT json_clima, updated_at FROM tbl_cache_clima WHERE idSucursal = ?", [idSucursal]);
+    if (rows.length > 0) {
+        const cache = rows[0];
+        const diferenciaHoras = (new Date() - new Date(cache.updated_at)) / 1000 / 60 / 60;
+        if (diferenciaHoras < 2) {
+            return typeof cache.json_clima === 'string' ? JSON.parse(cache.json_clima) : cache.json_clima;
+        }
+    }
+    return null;
+};
+
 // ==========================================
 // 🎮 CONTROLADOR PRINCIPAL
 // ==========================================
 const getDatosPantalla = async (req, res) => {
     const { id } = req.params;
-    console.log(`\n⬇️ [PantallaController] Solicitud datos para Terminal ID: ${id}`);
+    console.log(`\n⬇️ [PantallaController] Solicitud ID: ${id}`);
     
     try {
-        // 1. Obtener Configuración
         const terminal = await obtenerConfiguracion(id);
-        if (!terminal) {
-            console.warn(`⚠️ Terminal ID ${id} no encontrada.`);
-            return res.status(404).json({ error: "Terminal no encontrada" });
-        }
+        if (!terminal) return res.status(404).json({ error: "Terminal no encontrada" });
 
-        // 2. Procesar Logos
         let logoPngUrl = null;
         let faviconIcoUrl = null;
         if (terminal.final_logo_name) {
@@ -81,10 +110,9 @@ const getDatosPantalla = async (req, res) => {
              faviconIcoUrl = `/logos/${cleanName}.ico`;
         }
 
-        // 3. Obtener Screensaver (Común para todos)
         const listaScreensaver = await obtenerScreensaver(terminal.idTerminal);
+        const climaCache = await getClimaSeguro(terminal.idSucursal);
 
-        // 4. Armar Respuesta Base
         let respuesta = {
             config: {
                 id: terminal.idTerminal,
@@ -92,7 +120,6 @@ const getDatosPantalla = async (req, res) => {
                 tipo_pantalla: terminal.tipo_pantalla,
                 orientacion: terminal.orientacion,
                 zona_horaria: terminal.zona_horaria || 'America/Mexico_City', 
-                tema_color: terminal.tema_color || 'dark',
                 logo: logoPngUrl,
                 favicon: faviconIcoUrl,
                 imagen_default: terminal.imagen_default_url,
@@ -105,13 +132,11 @@ const getDatosPantalla = async (req, res) => {
                     acento: terminal.color_acento 
                 }
             },
+            clima_backend: climaCache,
             data: null,
             server_time: new Date()
         };
 
-        // 5. DELEGACIÓN DE LÓGICA SEGÚN TIPO DE PANTALLA
-
-        // A) PANTALLA TIPO SALÓN (Agenda de un área específica)
         if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
              const agenda = await obtenerAgendaSalon(terminal.idAreaAsignada);
              respuesta.data = {
@@ -134,19 +159,14 @@ const getDatosPantalla = async (req, res) => {
                 }))
             };
         } 
-        // B) PANTALLA TIPO DIRECTORIO (Lista de eventos + Noticias)
-        else if (terminal.tipo_pantalla === 'DIRECTORIO') {
+		else if (terminal.tipo_pantalla === 'DIRECTORIO') {
             console.log("📂 [PantallaController] Procesando como DIRECTORIO");
             
-            // 1. Obtener Eventos Activos
             const eventos = await directorioController.obtenerDatosDirectorio(terminal.idSucursal);
-            console.log(`   - Eventos obtenidos: ${eventos.length}`);
             
-            // 2. Obtener Noticias RSS
-            console.time("   - Tiempo fetch Noticias");
-            const noticias = await noticiasController.fetchNoticiasRSS();
-            console.timeEnd("   - Tiempo fetch Noticias");
-            console.log(`   - Noticias obtenidas: ${noticias.length}`);
+            // ✅ Usa la función que lee de la Base de Datos (Caché)
+            // Si quieres probar sin cron, usa: const noticias = await noticiasController.fetchNoticiasRSS();
+            const noticias = await getNoticiasSeguras(); 
 
             respuesta.data = {
                 tipo_datos: 'DIRECTORIO',
