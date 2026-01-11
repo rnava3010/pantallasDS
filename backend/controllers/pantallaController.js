@@ -35,6 +35,8 @@ const obtenerAgendaSalon = async (idArea) => {
             e.fecha_inicio, e.fecha_fin, 
             e.mensaje_personalizado, e.mensaje_ticker,
             e.imagen_full_width, e.direccion_reloj,
+            e.nombre_salon_personalizado,  -- <--- ¡NUEVO CAMPO AGREGADO!
+            
             e.fecha_visualizacion_inicio, e.fecha_visualizacion_fin,
             e.es_recurrente,
             GROUP_CONCAT(em.url_archivo ORDER BY em.orden ASC SEPARATOR ',') as lista_imagenes
@@ -122,7 +124,11 @@ const getDatosPantalla = async (req, res) => {
                     recurrente: evento.es_recurrente === 1,
                     mostrar_inicio_iso: evento.fecha_visualizacion_inicio || evento.fecha_inicio,
                     mostrar_fin_iso: evento.fecha_visualizacion_fin || evento.fecha_fin,
-                    nombre_salon: terminal.nombre_area,
+                    
+                    // --- AQUÍ ESTÁ EL TRUCO ---
+                    // Si hay nombre personalizado, úsalo. Si no, usa el nombre normal del área.
+                    nombre_salon: evento.nombre_salon_personalizado || terminal.nombre_area, 
+                    
                     imagenes: evento.lista_imagenes ? evento.lista_imagenes.split(',') : []
                 }))
             };
