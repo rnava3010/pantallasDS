@@ -2,44 +2,17 @@ import React, { useState, useEffect } from 'react';
 import MediaRenderer from '../MediaRenderer';
 import DirectionArrow from '../DirectionArrow';
 import { getIconoClima } from '../../utils/weatherUtils';
-import { TEXTOS_DIRECTORIO, TEXTOS_GENERAL } from '../../utils/diccionario'; // <--- IMPORTACIÓN
 
 export default function LayoutDirectorioHorizontalPremium({ 
     config, datos, horaActual, isOnline, clima, itemActual, videoBlobUrl 
 }) {
     const [pagina, setPagina] = useState(0);
-    const [langIndex, setLangIndex] = useState(0); // <--- ESTADO IDIOMA
-    
     if (!config || !config.colores || !datos || !horaActual) return null;
 
     const { fondo, texto_reloj, texto_evento, acento } = config.colores;
-    
-    // --- LÓGICA DE IDIOMAS ---
-    const idiomasActivos = config.idiomas_activos || ['es'];
-    const idiomaActual = idiomasActivos[langIndex];
-    
-    // Diccionarios
-    const t = TEXTOS_DIRECTORIO[idiomaActual] || TEXTOS_DIRECTORIO['es'];
-    const tGen = TEXTOS_GENERAL[idiomaActual] || TEXTOS_GENERAL['es'];
-
-    // Etiqueta manual para "Bienvenidos" si queremos variar el texto por defecto del diccionario
-    const labelBienvenidos = tGen.bienvenidos;
-
     const eventos = datos?.eventos || [];
     const visibles = eventos.slice(pagina * 3, (pagina + 1) * 3);
-    const TIEMPO_ROTACION_IDIOMA = (config.tiempo_rotacion || 20) * 1000;
 
-    // --- EFECTO 1: Rotación de Idiomas ---
-    useEffect(() => {
-        if (idiomasActivos.length > 1) {
-            const int = setInterval(() => {
-                setLangIndex(prev => (prev + 1) % idiomasActivos.length);
-            }, TIEMPO_ROTACION_IDIOMA);
-            return () => clearInterval(int);
-        }
-    }, [idiomasActivos.length, TIEMPO_ROTACION_IDIOMA]);
-
-    // --- EFECTO 2: Paginación ---
     useEffect(() => {
         const total = Math.ceil(eventos.length / 3);
         if (total > 1) {
@@ -49,7 +22,7 @@ export default function LayoutDirectorioHorizontalPremium({
     }, [eventos.length]);
 
     return (
-        <div className="flex flex-col h-screen w-screen overflow-hidden p-10 relative bg-black transition-all duration-700">
+        <div className="flex flex-col h-screen w-screen overflow-hidden p-10 relative bg-black">
             
             {/* 🎥 GALERÍA/VIDEO DE FONDO */}
             <div className="absolute inset-0 z-0 opacity-40 scale-105 animate-slow-zoom">
@@ -68,15 +41,9 @@ export default function LayoutDirectorioHorizontalPremium({
                     <div className="animate-logo-float">
                         <img src={config.logo} alt="Logo" className="h-16 w-fit object-contain brightness-110 drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
                     </div>
-                    {/* Título Traducido con estilo Premium */}
-                    <h1 className="text-6xl font-black tracking-tighter uppercase leading-none animate-fade-in-up" 
-                        key={`tit-${idiomaActual}`} 
-                        style={{ color: '#fff' }}>
-                        {t.titulo.split(' ')[0]} {/* Primera palabra (DIRECTORIO) en blanco */}
-                        <span style={{ color: acento }}>
-                             {/* Resto del título en color acento */}
-                             {' ' + t.titulo.split(' ').slice(1).join(' ')}
-                        </span>
+                    {/* POSICIÓN ACTUALIZADA: Directorio de Eventos con el estilo de Agenda Exclusiva */}
+                    <h1 className="text-6xl font-black tracking-tighter uppercase leading-none" style={{ color: '#fff' }}>
+                        Directorio <span style={{ color: acento }}>de Eventos</span>
                     </h1>
                 </div>
 
@@ -84,59 +51,47 @@ export default function LayoutDirectorioHorizontalPremium({
                     <span className="text-8xl font-mono font-black leading-none tracking-tighter drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]" style={{ color: texto_reloj }}>
                         {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    {/* Fecha Localizada */}
                     <p className="text-sm font-black uppercase tracking-[0.5em] mt-2 opacity-40" style={{ color: texto_reloj }}>
-                        {horaActual?.toLocaleDateString(idiomaActual === 'en' ? 'en-US' : (idiomaActual === 'fr' ? 'fr-FR' : 'es-ES'), { weekday: 'long', day: 'numeric', month: 'long' })}
+                        {horaActual?.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}
                     </p>
                 </div>
             </header>
 
             <main className="flex-1 grid grid-cols-3 gap-10 z-10">
-                {visibles.map((e, i) => {
-                    // --- TRADUCCIÓN DE DATOS DINÁMICOS ---
-                    const nombreEvento = (idiomaActual === 'en' && e.nombre_evento_en) ? e.nombre_evento_en : 
-                                         (idiomaActual === 'fr' && e.nombre_evento_fr) ? e.nombre_evento_fr : e.nombre_evento;
-                    
-                    const nombreSalon = (idiomaActual === 'en' && e.nombre_salon_en) ? e.nombre_salon_en : e.nombre_salon;
-
-                    return (
-                        <div key={i} className="group relative rounded-[4rem] p-0.5 bg-gradient-to-br from-white/30 to-transparent shadow-2xl animate-fade-in-up">
-                            <div className="h-full w-full bg-black/60 backdrop-blur-3xl rounded-[3.9rem] overflow-hidden flex flex-col border border-white/10">
-                                <div className="h-48 relative">
-                                    <img src={e.imagenes?.[0] || config.imagen_default} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="img" />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent" />
-                                    <div className="absolute bottom-6 left-8 bg-black/50 backdrop-blur-md px-4 py-1 rounded-full border border-white/20 text-[10px] font-black uppercase tracking-widest text-white">
-                                        {/* Fecha Evento Localizada */}
-                                        {new Date(e.fecha_inicio).toLocaleDateString(idiomaActual === 'en' ? 'en-US' : (idiomaActual === 'fr' ? 'fr-FR' : 'es-ES'), { day: 'numeric', month: 'short' })}
-                                    </div>
+                {visibles.map((e, i) => (
+                    <div key={i} className="group relative rounded-[4rem] p-0.5 bg-gradient-to-br from-white/30 to-transparent shadow-2xl animate-fade-in-up">
+                        <div className="h-full w-full bg-black/60 backdrop-blur-3xl rounded-[3.9rem] overflow-hidden flex flex-col border border-white/10">
+                            <div className="h-48 relative">
+                                <img src={e.imagenes?.[0] || config.imagen_default} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="img" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent" />
+                                <div className="absolute bottom-6 left-8 bg-black/50 backdrop-blur-md px-4 py-1 rounded-full border border-white/20 text-[10px] font-black uppercase tracking-widest text-white">
+                                    {new Date(e.fecha_inicio).toLocaleDateString([], { day: 'numeric', month: 'short' })}
                                 </div>
-                                <div className="flex-1 p-8 flex flex-col justify-between">
-                                    <div>
-                                        <div className="flex items-center gap-3 mb-4">
-                                            <span className="text-3xl font-black" style={{ color: acento }}>
-                                                {new Date(e.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                            <span className="w-8 h-px bg-white/20"></span>
-                                            <span className="text-xl font-bold opacity-40 text-white">
-                                                {new Date(e.fecha_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </div>
-                                        <h2 className="text-3xl font-bold leading-tight mb-2 transition-all duration-300" style={{ color: texto_evento }}>
-                                            {nombreEvento}
-                                        </h2>
-                                        <p className="text-sm font-black uppercase opacity-40 tracking-widest text-white">{e.cliente_nombre}</p>
-                                    </div>
-                                    <div className="flex justify-between items-center border-t border-white/10 pt-6">
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] py-2 px-5 rounded-full bg-white/5 border border-white/10 text-white transition-all duration-300">
-                                            {nombreSalon}
+                            </div>
+                            <div className="flex-1 p-8 flex flex-col justify-between">
+                                <div>
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <span className="text-3xl font-black" style={{ color: acento }}>
+                                            {new Date(e.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>
-                                        <DirectionArrow direction={e.direccion_reloj} color={acento} size={44} animate />
+                                        <span className="w-8 h-px bg-white/20"></span>
+                                        <span className="text-xl font-bold opacity-40 text-white">
+                                            {new Date(e.fecha_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
                                     </div>
+                                    <h2 className="text-3xl font-bold leading-tight mb-2" style={{ color: texto_evento }}>{e.nombre_evento}</h2>
+                                    <p className="text-sm font-black uppercase opacity-40 tracking-widest text-white">{e.cliente_nombre}</p>
+                                </div>
+                                <div className="flex justify-between items-center border-t border-white/10 pt-6">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] py-2 px-5 rounded-full bg-white/5 border border-white/10 text-white">
+                                        {e.nombre_salon}
+                                    </span>
+                                    <DirectionArrow direction={e.direccion_reloj} color={acento} size={44} animate />
                                 </div>
                             </div>
                         </div>
-                    );
-                })}
+                    </div>
+                ))}
             </main>
 
             <footer className="h-20 flex items-center justify-between border-t border-white/5 mt-8 px-4 z-10">
@@ -145,10 +100,7 @@ export default function LayoutDirectorioHorizontalPremium({
                         <span className="text-4xl drop-shadow-lg">{getIconoClima(clima?.codigo)}</span>
                         <span className="text-3xl font-black text-white">{clima?.tempC}°C</span>
                     </div>
-                    {/* Bienvenidos Traducido */}
-                    <span className="text-xl font-thin tracking-[1.5em] text-white/30 uppercase animate-pulse" key={`wel-${idiomaActual}`}>
-                        {labelBienvenidos}
-                    </span>
+                    <span className="text-xl font-thin tracking-[1.5em] text-white/30 uppercase">Bienvenidos</span>
                 </div>
                 <div className="text-right">
                     <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-50 text-white">

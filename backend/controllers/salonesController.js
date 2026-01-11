@@ -1,29 +1,16 @@
 const pool = require('../config/db');
 
 /**
- * Obtiene la agenda de eventos para un área (salón) específica.
- * VERSIÓN MEJORADA: Soporte multilenguaje y fechas exactas.
+ * Obtiene la agenda de eventos para un área (salón) específica
  */
 const obtenerAgendaSalon = async (idArea) => {
     try {
         const sql = `
             SELECT 
-                e.idEvento, 
-                -- Datos Base
-                e.nombre_evento, 
-                e.nombre_evento_en, e.nombre_evento_fr, -- Nuevos campos
-                
-                e.cliente_nombre, 
-                e.cliente_en, e.cliente_fr, -- Nuevos campos
-                
+                e.idEvento, e.nombre_evento, e.cliente_nombre, 
                 e.fecha_inicio, e.fecha_fin, 
-                
-                e.mensaje_personalizado, 
-                e.mensaje_personalizado_en, e.mensaje_personalizado_fr, -- Nuevos campos
-                
-                e.mensaje_ticker,
-                e.imagen_full_width, 
-                e.direccion_reloj,
+                e.mensaje_personalizado, e.mensaje_ticker,
+                e.imagen_full_width, e.direccion_reloj,
                 e.nombre_salon_personalizado, 
                 e.fecha_visualizacion_inicio, e.fecha_visualizacion_fin,
                 e.es_recurrente,
@@ -39,30 +26,11 @@ const obtenerAgendaSalon = async (idArea) => {
         
         // Mapeamos al formato que espera el frontend
         return rows.map(evento => ({
-            // Mapeo Clásico (para que no se rompa nada antiguo)
             titulo: evento.nombre_evento,
             cliente: evento.cliente_nombre,
-            mensaje: evento.mensaje_personalizado,
-            
-            // Mapeo Multilenguaje (NUEVO)
-            titulo_en: evento.nombre_evento_en,
-            titulo_fr: evento.nombre_evento_fr,
-            cliente_en: evento.cliente_en,
-            cliente_fr: evento.cliente_fr,
-            mensaje_en: evento.mensaje_personalizado_en,
-            mensaje_fr: evento.mensaje_personalizado_fr,
-
-            // Fechas Crudas (Importante para el Frontend)
-            fecha_inicio: evento.fecha_inicio,
-            fecha_fin: evento.fecha_fin,
-            
-            // Compatibilidad
             inicio_iso: evento.fecha_inicio, 
             fin_iso: evento.fecha_fin,
-            
-            // Formato texto simple (Fallback)
-            horario: `${new Date(evento.fecha_inicio).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - ${new Date(evento.fecha_fin).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`,
-
+            mensaje: evento.mensaje_personalizado,
             ticker: evento.mensaje_ticker,
             layout_mode: evento.imagen_full_width || 0,
             direccion: evento.direccion_reloj, 

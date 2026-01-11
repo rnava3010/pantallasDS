@@ -1,84 +1,65 @@
 import React from 'react';
+import { useParams } from 'react-router-dom';
 
-// --- 1. IMPORTAMOS LOS LAYOUTS CLÁSICOS (Los que ya tenías) ---
+// --- Hooks ---
+import { useTarifas } from '../hooks/useTarifas'; 
+import { useReloj } from '../hooks/useReloj'; //
+import { useCarrusel } from '../hooks/useCarrusel';
+import { useOfflineVideo } from '../hooks/useOfflineVideo';
+
+// --- Layouts de Tarifas ---
 import LayoutTarifasHorizontal from './layoutTarifas/LayoutTarifasHorizontal';
 import LayoutTarifasVertical from './layoutTarifas/LayoutTarifasVertical';
 
-// --- 2. IMPORTAMOS LOS NUEVOS LAYOUTS (Grid, Split, Glass, Stack) ---
-// Asegúrate de haber creado estos archivos en la carpeta layoutTarifas
-import LayoutTarifasHorizontalGrid from './layoutTarifas/LayoutTarifasHorizontalGrid';
-import LayoutTarifasHorizontalSplit from './layoutTarifas/LayoutTarifasHorizontalSplit';
-import LayoutTarifasVerticalGlass from './layoutTarifas/LayoutTarifasVerticalGlass';
-import LayoutTarifasVerticalStack from './layoutTarifas/LayoutTarifasVerticalStack';
+export default function PlayerTarifas() {
+    const { id } = useParams();
+    
+    // 1. Obtención de datos y configuración de Tarifas
+    const { config, datos, loading, timeOffset } = useTarifas(id); //
+    
+    // 2. Gestión del tiempo (ESTA ES LA LÍNEA QUE FALTABA)
+    const horaActual = useReloj(timeOffset); //
 
-export default function PlayerTarifas({ datos, config }) {
-    // --- VALIDACIÓN DE CARGA ---
-    // Si aún no llegan los datos del backend, mostramos pantalla de espera
-    if (!datos || (!datos.habitaciones && !datos.tarifas)) {
+    // 3. Gestión de la Galería del Footer (Screensaver)
+    const listaGaleria = datos?.galeria?.length > 0 ? datos.galeria : (config?.screensaver || []);
+    const { itemActual } = useCarrusel(listaGaleria, 10000);
+    const { videoBlobUrl } = useOfflineVideo(listaGaleria);
+
+    // 4. Pantalla de carga
+    if (loading || !config) { //
         return (
-            <div className="w-full h-full flex items-center justify-center bg-black text-white">
-                <div className="flex flex-col items-center animate-pulse">
-                    {config?.logo && <img src={config.logo} className="h-20 mb-6 opacity-50" alt="Logo" />}
-                    <span className="text-2xl font-light tracking-widest uppercase">Cargando Tarifas...</span>
-                </div>
+            <div className="bg-[#050505] h-screen w-screen flex flex-col items-center justify-center text-white">
+                <div className="w-10 h-10 border-2 border-white/10 border-t-white rounded-full animate-spin mb-4"></div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.5em] opacity-40">Cargando Tarifas...</p>
             </div>
         );
     }
 
-    // --- DESESTRUCTURACIÓN DE DATOS ---
-    /* El Backend ahora envía:
-       - habitaciones: Array de cuartos (tbl_tarifas)
-       - divisas: Array de monedas (tbl_divisas)
-       - banner: Texto del cintillo (tbl_avisos)
-       - galeria: Imágenes de fondo
-    */
-    const { habitaciones, divisas, banner, galeria } = datos;
-    const layoutMode = config.layoutTarifas || 0; // Leemos la configuración de la BD
+    // 5. Selección de Layout (layoutTarifas de la DB)
+    const layoutId = config?.layoutTarifas ?? 0; //
 
-    // --- PREPARACIÓN DE PROPS ---
-    /* Empaquetamos todo en un solo objeto para pasarlo a cualquier layout.
-       NOTA CLAVE: Pasamos 'habitaciones' en la prop 'tarifas' porque 
-       tus componentes viejos esperan recibir algo llamado 'tarifas'.
-    */
-    const commonProps = {
-        tarifas: habitaciones || datos.tarifas || [], // Compatibilidad total
-        divisas: divisas || [],
-        banner: banner || "",
-        galeria: galeria || [],
-        config: config
+    const layoutProps = {
+        config,
+        datos,
+        horaActual, // Ahora ya está definida
+        itemActual,
+        videoBlobUrl
     };
 
-    // --- SELECCIÓN DE DISEÑO ---
+    // 6. Router de Diseños
     const renderLayout = () => {
-        switch (layoutMode) {
-            // === HORIZONTALES ===
-            case 0: 
-                return <LayoutTarifasHorizontal {...commonProps} />;
-            case 1: 
-                // Grid: Ideal para muchas habitaciones o estilo moderno
-                return <LayoutTarifasHorizontalGrid {...commonProps} />;
-            case 2: 
-                // Split: Mitad Foto / Mitad Precios
-                return <LayoutTarifasHorizontalSplit {...commonProps} />;
-            
-            // === VERTICALES ===
-            case 5: 
-                return <LayoutTarifasVertical {...commonProps} />;
-            case 6: 
-                // Glass: Tarjeta flotante sobre video de fondo
-                return <LayoutTarifasVerticalGlass {...commonProps} />;
-            case 7: 
-                // Stack: Bloques grandes apilados
-                return <LayoutTarifasVerticalStack {...commonProps} />;
-
-            // === DEFAULT ===
-            default: 
-                return <LayoutTarifasHorizontal {...commonProps} />;
+        switch (layoutId) {
+            case 0:
+                return <LayoutTarifasHorizontal {...layoutProps} />;
+            case 1:
+                return <LayoutTarifasVertical {...layoutProps} />;
+            default:
+                return <LayoutTarifasHorizontal {...layoutProps} />;
         }
     };
 
     return (
-        <div className="w-full h-full bg-black text-white overflow-hidden">
+        <div className="w-screen h-screen bg-black overflow-hidden select-none cursor-none">
             {renderLayout()}
         </div>
     );

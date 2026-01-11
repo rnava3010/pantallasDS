@@ -1,19 +1,24 @@
 const pool = require('../config/db');
+const directorioController = require('./directorioController');
+const noticiasController = require('./noticiasController');
 const tarifasController = require('./tarifasController');
-// ... importa tus otros controladores si los necesitas (salones, directorio)
+const salonesController = require('./salonesController'); 
 
+// --- HELPERS DE CONFIGURACIÓN ---
 const obtenerConfiguracionBase = async (id) => {
-    // Consulta limpia sin comentarios para evitar errores
     const sql = `
         SELECT 
-            t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.idSucursal,
-            t.idiomas_activos, t.tiempo_rotacion_idioma, t.layoutTarifas,
-            COALESCE(s.logo_url, m.logo_url) as logo_url,
+            t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.idAreaAsignada,
+            t.idSucursal, t.orientacion, t.layoutDir, t.layoutTarifas,
+            a.nombre as nombre_area,
+            COALESCE(s.logo_url, m.logo_url) as final_logo_name, 
+            s.latitud, s.longitud, s.zona_horaria, t.imagen_default_url,
             COALESCE(t.color_fondo, '#000000') as color_fondo,
             COALESCE(t.color_texto_evento, '#FFFFFF') as color_texto_evento,
-            COALESCE(t.color_acento, '#EAB308') as color_acento,
-            s.zona_horaria
+            COALESCE(t.color_texto_reloj, '#FFFFFF') as color_texto_reloj,
+            COALESCE(t.color_acento, '#EAB308') as color_acento
         FROM cat_terminales t
+        LEFT JOIN cat_areas a ON t.idAreaAsignada = a.idArea
         LEFT JOIN cat_sucursales s ON t.idSucursal = s.idSucursal
         LEFT JOIN cat_marcas m ON t.idMarca = m.idMarca
         WHERE t.idTerminal = ?
@@ -22,60 +27,103 @@ const obtenerConfiguracionBase = async (id) => {
     return rows[0];
 };
 
+const obtenerScreensaver = async (idTerminal) => {
+    const [rows] = await pool.query(`SELECT url_archivo FROM tbl_galeria_terminal WHERE idTerminal = ? ORDER BY orden ASC`, [idTerminal]);
+    return rows.map(row => row.url_archivo);
+};
+
+// Helper para obtener clima (si lo usas en este controlador)
+const getClimaSeguro = async (idSucursal) => {
+    const [rows] = await pool.query("SELECT json_clima, updated_at FROM tbl_cache_clima WHERE idSucursal = ?", [idSucursal]);
+    if (rows.length > 0) {
+        const cache = rows[0];
+        return typeof cache.json_clima === 'string' ? JSON.parse(cache.json_clima) : cache.json_clima;
+    }
+    return null;
+};
+
+// ==========================================
+// 🎮 CONTROLADOR PRINCIPAL
+// ==========================================
 const getDatosPantalla = async (req, res) => {
     const { id } = req.params;
     try {
         const terminal = await obtenerConfiguracionBase(id);
         if (!terminal) return res.status(404).json({ error: "Terminal no encontrada" });
 
-        // Parseo seguro de idiomas
-        let idiomas = ['es'];
-        try {
-            if (terminal.idiomas_activos) {
-                idiomas = typeof terminal.idiomas_activos === 'string' 
-                    ? JSON.parse(terminal.idiomas_activos) 
-                    : terminal.idiomas_activos;
-            }
-        } catch (e) {}
+        const listaScreensaver = await obtenerScreensaver(terminal.idTerminal);
+        const climaCache = await getClimaSeguro(terminal.idSucursal);
 
-        // Estructura Base
+        // --- PROCESAMIENTO CORRECTO DEL LOGO ---
+        // Esto evita el error 404 al mantener la extensión (.png, .jpg, etc)
+        let logoFinal = null;
+        if (terminal.final_logo_name) {
+            const fileName = terminal.final_logo_name.split('/').pop(); 
+            logoFinal = `/logos/${fileName}`;
+        }
+
         let respuesta = {
             config: {
                 id: terminal.idTerminal,
+                nombre_interno: terminal.nombre_interno,
                 tipo_pantalla: terminal.tipo_pantalla,
+                orientacion: terminal.orientacion,
+                layoutDir: terminal.layoutDir || 0,
                 layoutTarifas: terminal.layoutTarifas || 0,
-                idiomas_activos: idiomas,
-                tiempo_rotacion: terminal.tiempo_rotacion_idioma || 20,
-                logo: terminal.logo_url ? `/logos/${terminal.logo_url.split('/').pop()}` : null,
                 zona_horaria: terminal.zona_horaria || 'America/Mexico_City',
+                logo: logoFinal, // ✅ Logo con extensión corregida
+                imagen_default: terminal.imagen_default_url,
+                screensaver: listaScreensaver,
+                ubicacion: { 
+                    lat: terminal.latitud || '19.43', 
+                    lon: terminal.longitud || '-99.13' 
+                },
                 colores: {
                     fondo: terminal.color_fondo,
-                    texto: terminal.color_texto_evento,
-                    acento: terminal.color_acento
+                    texto_evento: terminal.color_texto_evento,
+                    texto_reloj: terminal.color_texto_reloj,
+                    acento: terminal.color_acento 
                 }
             },
-            datos: null
+            clima_backend: climaCache,
+            data: null,  
+            datos: null, 
+            timeOffset: 0,
+            server_time: new Date()
         };
 
-        // Lógica Exclusiva para TARIFAS
-        if (terminal.tipo_pantalla === 'TARIFAS') {
-            const habitaciones = await tarifasController.obtenerHabitaciones(terminal.idSucursal);
-            const avisos = await tarifasController.obtenerAvisos(terminal.idSucursal);
-            const galeria = await tarifasController.obtenerGaleria(terminal.idTerminal);
-            const divisas = await tarifasController.obtenerDivisas(terminal.idSucursal);
-
-            respuesta.datos = {
-                habitaciones,
-                avisos,
-                galeria,
-                divisas
+        // --- DELEGACIÓN POR TIPO DE PANTALLA ---
+        if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
+            const eventos = await salonesController.obtenerAgendaSalon(terminal.idAreaAsignada);
+            // Formateamos los eventos específicamente para lo que PlayerSalon espera
+            const dataSalon = { 
+                tipo_datos: 'AGENDA', 
+                eventos: eventos.map(e => ({
+                    ...e,
+                    nombre_salon: e.nombre_salon || terminal.nombre_area
+                }))
             };
+            respuesta.datos = dataSalon;
+            respuesta.data = dataSalon;
+        } 
+        else if (terminal.tipo_pantalla === 'DIRECTORIO') {
+            const eventos = await directorioController.obtenerDatosDirectorio(terminal.idSucursal);
+            const noticias = await noticiasController.fetchNoticiasRSS();
+            const dataDir = { tipo_datos: 'DIRECTORIO', eventos, noticias };
+            respuesta.datos = dataDir;
+            respuesta.data = dataDir;
+        }
+        else if (terminal.tipo_pantalla === 'TARIFAS') {
+            const tarifas = await tarifasController.obtenerTarifasPorSucursal(terminal.idSucursal);
+            const banner = await tarifasController.obtenerBannersTarifas(terminal.idSucursal);
+            const dataTarifas = { tipo_datos: 'TARIFAS', tarifas, banner, galeria: listaScreensaver };
+            respuesta.datos = dataTarifas;
+            respuesta.data = dataTarifas;
         }
 
         res.json(respuesta);
-
     } catch (error) {
-        console.error("Error en getDatosPantalla:", error);
+        console.error("❌ Error en PantallaController:", error);
         res.status(500).json({ error: "Error interno" });
     }
 };

@@ -1,20 +1,20 @@
 const pool = require('../config/db');
 
-// 1. OBTENER TARIFAS (Habitaciones)
-const obtenerHabitaciones = async (idSucursal) => {
+/**
+ * Obtiene la lista de tarifas activas para una sucursal específica.
+ * @param {number} idSucursal - El ID de la sucursal a consultar.
+ * @returns {Promise<Array>} - Lista de tarifas encontradas.
+ */
+const obtenerTarifasPorSucursal = async (idSucursal) => {
     try {
         const sql = `
             SELECT 
-                idTarifa,
-                nombre_habitacion, 
-                nombre_habitacion_en,
-                descripcion,
-                descripcion_en,
+                idTarifa, 
+                nombre_habitacion as nombre, 
                 precio_rack, 
-                precio_promocion, 
-                moneda,
-                url_imagen_fondo,
-                activo
+                precio_promocion as precio, 
+                moneda, 
+                url_imagen_fondo as imagen
             FROM tbl_tarifas 
             WHERE idSucursal = ? AND activo = 1
             ORDER BY idTarifa ASC
@@ -22,72 +22,22 @@ const obtenerHabitaciones = async (idSucursal) => {
         const [rows] = await pool.query(sql, [idSucursal]);
         return rows;
     } catch (error) {
-        console.error("❌ Error habitaciones:", error.message);
-        return [];
+        console.error("❌ Error en obtenerTarifasPorSucursal:", error);
+        throw error;
     }
 };
 
-// 2. OBTENER AVISOS (Noticias)
-const obtenerAvisos = async (idSucursal) => {
-    try {
-        const sql = `
-            SELECT 
-                texto, 
-                texto_en, 
-                texto_fr 
-            FROM tbl_avisos 
-            WHERE idSucursal = ? AND activo = 1
-            ORDER BY orden ASC, idAviso DESC
-        `;
-        const [rows] = await pool.query(sql, [idSucursal]);
-        return rows;
-    } catch (error) {
-        console.error("❌ Error avisos:", error.message);
-        return [];
-    }
+/**
+ * Obtiene los banners de texto informativos para el módulo de tarifas.
+ * @param {number} idSucursal - El ID de la sucursal.
+ * @returns {Promise<string>} - Texto del banner.
+ */
+const obtenerBannersTarifas = async (idSucursal) => {
+    // Por ahora devuelve un texto estático, pero se puede extender para consultar la BD
+    return "Consulte nuestras promociones de temporada en recepción. • Tarifas vigentes para el día de hoy.";
 };
 
-// 3. OBTENER GALERÍA (Específica de la Terminal)
-const obtenerGaleria = async (idTerminal) => {
-    try {
-        const sql = `
-            SELECT 
-                tipo, 
-                url_archivo, 
-                duracion_segundos 
-            FROM tbl_galeria_terminal 
-            WHERE idTerminal = ? 
-            ORDER BY orden ASC
-        `;
-        const [rows] = await pool.query(sql, [idTerminal]);
-        return rows;
-    } catch (error) {
-        console.error("❌ Error galería:", error.message);
-        return [];
-    }
-};
-
-// 4. OBTENER DIVISAS (Tipo de Cambio)
-const obtenerDivisas = async (idSucursal) => {
-    try {
-        // Asumiendo tabla tbl_divisas estándar
-        const sql = `
-            SELECT nombre, codigo, simbolo, tipo_cambio, bandera 
-            FROM tbl_divisas 
-            WHERE idSucursal = ? AND activo = 1
-            ORDER BY orden ASC
-        `;
-        const [rows] = await pool.query(sql, [idSucursal]);
-        return rows;
-    } catch (error) {
-        // Si no existe la tabla, retornamos vacío para no romper nada
-        return [];
-    }
-};
-
-module.exports = { 
-    obtenerHabitaciones, 
-    obtenerAvisos, 
-    obtenerGaleria, 
-    obtenerDivisas 
+module.exports = {
+    obtenerTarifasPorSucursal,
+    obtenerBannersTarifas
 };
