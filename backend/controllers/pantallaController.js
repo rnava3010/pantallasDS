@@ -132,10 +132,20 @@ const getDatosPantalla = async (req, res) => {
             respuesta.datos = dataDir;
             respuesta.data = dataDir;
         }
-        else if (terminal.tipo_pantalla === 'TARIFAS') {
-            const tarifas = await tarifasController.obtenerTarifasPorSucursal(terminal.idSucursal);
-            const banner = await tarifasController.obtenerBannersTarifas(terminal.idSucursal);
-            const dataTarifas = { tipo_datos: 'TARIFAS', tarifas, banner, galeria: listaScreensaver };
+		else if (terminal.tipo_pantalla === 'TARIFAS') {
+            // Llamamos a las 3 funciones nuevas
+            const habitaciones = await tarifasController.obtenerHabitaciones(terminal.idSucursal);
+            const divisas = await tarifasController.obtenerDivisas(terminal.idSucursal);
+            const banner = await tarifasController.obtenerAviso(terminal.idSucursal);
+            
+            // Empaquetamos todo
+            const dataTarifas = { 
+                tipo_datos: 'TARIFAS', 
+                habitaciones, // Tus cuartos
+                divisas,      // Tus cambios (USD, EUR)
+                banner,       // Tu cintillo
+                galeria: listaScreensaver 
+            };
             respuesta.datos = dataTarifas;
             respuesta.data = dataTarifas;
         }
