@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const directorioController = require('./directorioController');
+const noticiasController = require('./noticiasController'); // ✅ Importamos el nuevo controlador
 
 // --- SUB-FUNCION: Obtener Configuración Base ---
 const obtenerConfiguracion = async (id) => {
@@ -13,16 +14,11 @@ const obtenerConfiguracion = async (id) => {
             m.color_primario, m.color_secundario,
             s.latitud, s.longitud,
             s.zona_horaria,
-            
-            -- ✅ NUEVO CAMPO: Imagen Default
             t.imagen_default_url,
-
-            -- COLORES
             COALESCE(t.color_fondo, '#000000') as color_fondo,
             COALESCE(t.color_texto_evento, '#FFFFFF') as color_texto_evento,
             COALESCE(t.color_texto_reloj, '#FFFFFF') as color_texto_reloj,
             COALESCE(t.color_acento, '#EAB308') as color_acento
-
         FROM cat_terminales t
         LEFT JOIN cat_areas a ON t.idAreaAsignada = a.idArea
         LEFT JOIN cat_sucursales s ON t.idSucursal = s.idSucursal
@@ -91,10 +87,7 @@ const getDatosPantalla = async (req, res) => {
                 tema_color: terminal.tema_color || 'dark',
                 logo: logoPngUrl,
                 favicon: faviconIcoUrl,
-                
-                // ✅ ENVIAMOS LA IMAGEN DEFAULT (Si existe, limpiamos ruta si es necesario)
                 imagen_default: terminal.imagen_default_url,
-
                 screensaver: listaScreensaver,
                 ubicacion: { lat: terminal.latitud || '19.43', lon: terminal.longitud || '-99.13' },
                 colores: {
@@ -108,6 +101,7 @@ const getDatosPantalla = async (req, res) => {
             server_time: new Date()
         };
 
+        // --- DELEGACIÓN ---
         if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
              const agenda = await obtenerAgendaSalon(terminal.idAreaAsignada);
              respuesta.data = {
@@ -131,8 +125,19 @@ const getDatosPantalla = async (req, res) => {
             };
         } 
         else if (terminal.tipo_pantalla === 'DIRECTORIO') {
-            respuesta.data = await directorioController.obtenerDatosDirectorio(terminal.idSucursal);
+            // 1. Obtenemos Eventos
+            const eventos = await directorioController.obtenerDatosDirectorio(terminal.idSucursal);
+            
+            // 2. ✅ Obtenemos Noticias (Reutilizable)
+            const noticias = await noticiasController.fetchNoticiasRSS();
+
+            respuesta.data = {
+                tipo_datos: 'DIRECTORIO',
+                eventos: eventos,
+                noticias: noticias
+            };
         }
+        // (Futuro: Aquí agregarás 'TARIFAS' usando también noticiasController.fetchNoticiasRSS())
 
         res.json(respuesta);
 

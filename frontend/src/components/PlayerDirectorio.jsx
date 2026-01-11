@@ -9,7 +9,7 @@ import { useOfflineVideo } from '../hooks/useOfflineVideo';
 
 // Componentes y Utilidades
 import MediaRenderer from '../components/MediaRenderer';
-import DirectionArrow from './DirectionArrow'; 
+import DirectionArrow from './DirectionArrow';
 import { getIconoClima } from '../utils/weatherUtils';
 import logger from '../utils/logger';
 
@@ -24,33 +24,59 @@ const lightenColor = (hex, percent) => {
     return '#' + (0x1000000 + (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 + (B < 255 ? (B < 1 ? 0 : B) : 255) * 0x100 + (G < 255 ? (G < 1 ? 0 : G) : 255)).toString(16).slice(1);
 };
 
-// --- SUB-COMPONENTE: Mini Galería para la Fila ---
+// --- SUB-COMPONENTE: Mini Galería Evento ---
 const FilaGaleria = ({ imagenes }) => {
     const [indice, setIndice] = useState(0);
-
     useEffect(() => {
         if (!imagenes || imagenes.length <= 1) return;
-        const timer = setInterval(() => {
-            setIndice(prev => (prev + 1) % imagenes.length);
-        }, 4000); 
+        const timer = setInterval(() => setIndice(p => (p + 1) % imagenes.length), 4000);
         return () => clearInterval(timer);
     }, [imagenes]);
-
     if (!imagenes || imagenes.length === 0) return null;
-
     return (
         <div className="h-24 w-36 rounded-lg overflow-hidden relative shadow-md bg-black/20 flex-shrink-0">
-             <img 
-                src={imagenes[indice]} 
-                alt="Evento" 
-                className="w-full h-full object-cover animate-fade-in"
-                key={indice} 
-             />
-             {imagenes.length > 1 && (
-                 <div className="absolute bottom-1 right-1 text-[8px] bg-black/50 text-white px-1 rounded font-mono">
-                     {indice + 1}/{imagenes.length}
-                 </div>
-             )}
+             <img src={imagenes[indice]} alt="Evento" className="w-full h-full object-cover animate-fade-in" key={indice} />
+        </div>
+    );
+};
+
+// --- SUB-COMPONENTE: Ticker de Noticias Vertical ---
+const NewsTicker = ({ noticias, colorTitulo, colorTexto }) => {
+    if (!noticias || noticias.length === 0) return null;
+
+    return (
+        <div className="w-full h-full relative overflow-hidden flex flex-col">
+            <div className="px-4 py-2 border-b border-white/10 flex items-center gap-2 bg-black/20">
+                <span className="text-xs font-bold uppercase tracking-widest px-2 py-0.5 rounded" style={{ backgroundColor: colorTitulo, color: '#000' }}>
+                    NOTICIAS
+                </span>
+                <span className="text-xs opacity-70 uppercase tracking-wide" style={{ color: colorTexto }}>
+                    Al momento
+                </span>
+            </div>
+            
+            <div className="flex-1 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full animate-marquee-vertical">
+                    {[...noticias, ...noticias].map((noticia, idx) => (
+                        <div key={idx} className="p-4 border-b border-white/5 flex gap-3">
+                            <span className="text-lg font-bold opacity-30 select-none">•</span>
+                            <p className="text-lg leading-snug font-medium" style={{ color: colorTexto }}>
+                                {noticia}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <style>{`
+                @keyframes marquee-vertical {
+                    0% { transform: translateY(0); }
+                    100% { transform: translateY(-50%); }
+                }
+                .animate-marquee-vertical {
+                    animation: marquee-vertical 40s linear infinite;
+                }
+            `}</style>
         </div>
     );
 };
@@ -67,9 +93,9 @@ export default function PlayerDirectorio() {
     }, [config]);
 
     // Screensaver
-    const fotosActivas = config?.screensaver || [];
-    const { itemActual } = useCarrusel(fotosActivas, 8000);
-    const { videoBlobUrl } = useOfflineVideo(fotosActivas);
+    const fotosTerminal = config?.screensaver || [];
+    const { itemActual } = useCarrusel(fotosTerminal, 8000);
+    const { videoBlobUrl } = useOfflineVideo(fotosTerminal);
 
     // Favicon
     useEffect(() => {
@@ -80,21 +106,28 @@ export default function PlayerDirectorio() {
         }
     }, [config?.favicon]);
 
-    // --- DATOS ---
+    // --- PROCESAMIENTO DE DATOS ---
     const { fondo = '#000000', texto_evento = '#FFFFFF', texto_reloj = '#FFFFFF', acento = '#EAB308' } = config?.colores || {};
     
-    let listaFinal = [];
-    if (Array.isArray(data)) listaFinal = data; 
-    else if (data && Array.isArray(data.eventos)) listaFinal = data.eventos; 
-    else if (data && Array.isArray(data.data)) listaFinal = data.data; 
+    let eventos = [];
+    let noticias = [];
+    
+    if (data) {
+        if (Array.isArray(data)) {
+            eventos = data;
+        } else if (data.tipo_datos === 'DIRECTORIO') {
+            eventos = data.eventos || [];
+            noticias = data.noticias || [];
+        } else if (Array.isArray(data.eventos)) {
+            eventos = data.eventos;
+        }
+    }
 
-    const eventos = listaFinal;
     const hayEventos = eventos.length > 0;
-
     const isVertical = config?.orientacion === 1;
     const paddingX = isVertical ? 'px-4' : 'px-10';
     
-    const ITEMS_POR_PAGINA = isVertical ? 9 : 5; 
+    const ITEMS_POR_PAGINA = isVertical ? 7 : 4; 
     const totalPaginas = Math.ceil(eventos.length / ITEMS_POR_PAGINA);
 
     useEffect(() => {
@@ -127,7 +160,7 @@ export default function PlayerDirectorio() {
             <div className={`absolute bottom-32 right-6 z-50 w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] transition-colors duration-500 ${isOnline ? 'bg-green-500/40 text-green-500' : 'bg-red-600 text-red-600 animate-pulse'}`}></div>
 
             {/* HEADER */}
-            <header className={`h-24 grid grid-cols-3 items-center ${paddingX} relative z-20 bg-gradient-to-b from-black/90 to-transparent`}>
+            <header className={`h-24 grid grid-cols-3 items-center ${paddingX} relative z-20 bg-gradient-to-b from-black/90 to-transparent shrink-0`}>
                 <div className="flex justify-start">
                     {config?.logo && <img src={config.logo} alt="Logo" className={`${isVertical ? 'h-16' : 'h-20'} w-auto object-contain animate-float`} />}
                 </div>
@@ -148,119 +181,121 @@ export default function PlayerDirectorio() {
                 </div>
             </header>
 
-            {/* CONTENIDO */}
-            <div className={`flex-1 ${paddingX} py-4 relative z-10 w-full h-full overflow-hidden flex flex-col`}>
+            {/* CONTENIDO PRINCIPAL */}
+            <div className={`flex-1 ${paddingX} py-4 relative z-10 w-full min-h-0 overflow-hidden flex flex-col gap-4`}>
                 
-                {/* SCREENSAVER */}
-                {!hayEventos && (
-                    <div className={`w-full h-full rounded-[3rem] overflow-hidden relative border border-white/10 shadow-2xl`} style={{ backgroundColor: fondo }}>
-                        <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10 w-full h-full"/>
-                        {!itemActual && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center opacity-30">
-                                <img src={config?.logo} className="w-1/3 grayscale animate-pulse mb-4" alt="Logo" />
-                                <p className="text-xl uppercase tracking-widest" style={{ color: texto_evento }}>Sin eventos programados</p>
-                            </div>
-                        )}
-                    </div>
-                )}
+                {/* 1. ÁREA DE LISTA */}
+                <div className="flex-1 min-h-0 flex flex-col gap-3">
+                    
+                    {!hayEventos && (
+                         <div className={`w-full h-full rounded-[3rem] overflow-hidden relative border border-white/10 shadow-2xl`} style={{ backgroundColor: fondo }}>
+                            <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10 w-full h-full"/>
+                            {!itemActual && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center opacity-30">
+                                    <img src={config?.logo} className="w-1/3 grayscale animate-pulse mb-4" alt="Logo" />
+                                    <p className="text-xl uppercase tracking-widest" style={{ color: texto_evento }}>Sin eventos programados</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
-                {/* LISTA DE EVENTOS */}
+                    {hayEventos && (
+                        <>
+                            <div className="grid grid-cols-12 gap-4 px-6 py-2 border-b border-white/20 text-sm font-bold uppercase tracking-widest opacity-70 shrink-0" style={{ color: acento }}>
+                                <div className="col-span-2">Horario</div>
+                                <div className="col-span-7">Evento</div>
+                                <div className="col-span-3 text-right pr-4">Ubicación</div>
+                            </div>
+
+                            <div className="flex-1 relative overflow-y-auto scrollbar-hide">
+                                <div className="flex flex-col gap-3">
+                                    {eventosVisibles.map((evento, idx) => {
+                                        // ✅ CÁLCULO DE HORARIO COMPLETO (Inicio - Fin)
+                                        const horaInicio = new Date(evento.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                        const horaFin = new Date(evento.fecha_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                        
+                                        let imagenesEvento = [];
+                                        if (evento.imagenes && evento.imagenes.length > 0) imagenesEvento = evento.imagenes;
+                                        else if (config?.imagen_default) imagenesEvento = [config.imagen_default];
+
+                                        return (
+                                            <div 
+                                                key={`${paginaActual}-${idx}`} 
+                                                className="grid grid-cols-12 gap-4 items-center p-3 bg-white/5 border border-white/5 rounded-2xl shadow-lg backdrop-blur-sm animate-fade-in-up"
+                                                style={{ animationDelay: `${idx * 100}ms` }}
+                                            >
+                                                {/* ✅ HORARIO COMPLETO */}
+                                                <div className="col-span-2 flex flex-col justify-center" style={{ color: acento }}>
+                                                    <span className="font-mono text-lg font-bold leading-tight whitespace-nowrap">
+                                                        {horaInicio} - {horaFin}
+                                                    </span>
+                                                </div>
+
+                                                <div className="col-span-7 flex items-center gap-5">
+                                                    {imagenesEvento.length > 0 && <FilaGaleria imagenes={imagenesEvento} />}
+                                                    <div className="flex flex-col justify-center min-w-0">
+                                                        {evento.tipo_evento && <span className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1 border border-white/20 px-2 py-0.5 rounded-full w-fit" style={{ color: acento, borderColor: acento }}>{evento.tipo_evento}</span>}
+                                                        <h2 className="text-2xl font-bold leading-tight truncate pr-2" style={{ color: texto_evento }}>{evento.nombre_evento}</h2>
+                                                        {evento.cliente_nombre && <span className="text-sm opacity-80 uppercase tracking-wide mt-1 truncate" style={{ color: texto_reloj }}>{evento.cliente_nombre}</span>}
+                                                    </div>
+                                                </div>
+                                                <div className="col-span-3 flex items-center justify-end gap-3">
+                                                    <span className="inline-block px-3 py-1 rounded-full text-sm font-bold uppercase tracking-wide bg-white/10 border border-white/10 text-right truncate max-w-[140px]" style={{ color: texto_reloj }}>{evento.nombre_salon}</span>
+                                                    <div className="h-10 w-10 flex-shrink-0 flex items-center justify-center">
+                                                         <DirectionArrow direction={evento.direccion_reloj} color={acento} size={32} animate={true} />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                            
+                            {/* Paginación */}
+                            {totalPaginas > 1 && (
+                                <div className="h-6 shrink-0 flex items-center justify-center gap-2 mt-1">
+                                    {Array.from({ length: totalPaginas }).map((_, idx) => (
+                                        <div key={idx} className={`h-2 rounded-full transition-all duration-500 ${idx === paginaActual ? 'w-8 bg-white' : 'w-2 bg-white/30'}`} style={idx === paginaActual ? { backgroundColor: acento } : {}} />
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+
+                {/* 2. ÁREA INFERIOR (Widgets) */}
                 {hayEventos && (
-                    <div className="w-full h-full flex flex-col gap-3">
-                        <div className="grid grid-cols-12 gap-4 px-6 py-2 border-b border-white/20 text-sm font-bold uppercase tracking-widest opacity-70" style={{ color: acento }}>
-                            <div className="col-span-2">Horario</div>
-                            <div className="col-span-7">Evento</div>
-                            <div className="col-span-3 text-right pr-4">Ubicación</div>
+                    <div className="h-64 shrink-0 grid grid-cols-2 gap-6 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
+                        
+                        {/* WIDGET IZQUIERDO: Galería */}
+                        <div className="relative rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl bg-black/40">
+                             <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-cover w-full h-full opacity-80"/>
+                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-6">
+                                 <div className="flex items-center gap-3">
+                                     {config?.logo && <img src={config.logo} className="h-12 w-auto object-contain opacity-80" alt="Logo" />}
+                                     <div className="flex flex-col">
+                                         <span className="text-sm font-bold uppercase tracking-widest text-white">Nuestras Instalaciones</span>
+                                         <span className="text-xs text-white/60">Bienvenidos</span>
+                                     </div>
+                                 </div>
+                             </div>
                         </div>
 
-                        <div className="flex-1 flex flex-col gap-3 relative">
-                            {eventosVisibles.map((evento, idx) => {
-                                const horaInicio = new Date(evento.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                                
-                                // ✅ AQUI ESTABA EL FALTANTE:
-                                // Lógica para elegir imagen: Evento > Default Terminal > Nada
-                                let imagenesEvento = [];
-                                if (evento.imagenes && evento.imagenes.length > 0) {
-                                    imagenesEvento = evento.imagenes;
-                                } else if (config?.imagen_default) {
-                                    imagenesEvento = [config.imagen_default];
-                                }
-
-                                return (
-                                    <div 
-                                        key={`${paginaActual}-${idx}`} 
-                                        className="grid grid-cols-12 gap-4 items-center p-4 bg-white/5 border border-white/5 rounded-2xl shadow-lg backdrop-blur-sm animate-fade-in-up"
-                                        style={{ animationDelay: `${idx * 100}ms` }}
-                                    >
-                                        <div className="col-span-2 font-mono text-xl font-bold" style={{ color: acento }}>
-                                            {horaInicio}
-                                        </div>
-                                        
-                                        <div className="col-span-7 flex items-center gap-5">
-                                            {/* Usamos la variable 'imagenesEvento' calculada arriba */}
-                                            {imagenesEvento.length > 0 && (
-                                                <FilaGaleria imagenes={imagenesEvento} />
-                                            )}
-
-                                            <div className="flex flex-col justify-center min-w-0">
-                                                {evento.tipo_evento && (
-                                                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1 border border-white/20 px-2 py-0.5 rounded-full w-fit" style={{ color: acento, borderColor: acento }}>
-                                                        {evento.tipo_evento}
-                                                    </span>
-                                                )}
-
-                                                <h2 className="text-2xl font-bold leading-tight truncate pr-2" style={{ color: texto_evento }}>
-                                                    {evento.nombre_evento}
-                                                </h2>
-                                                
-                                                {evento.cliente_nombre && (
-                                                    <span className="text-sm opacity-80 uppercase tracking-wide mt-1 truncate" style={{ color: texto_reloj }}>
-                                                        {evento.cliente_nombre}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="col-span-3 flex items-center justify-end gap-3">
-                                            <span className="inline-block px-3 py-1 rounded-full text-sm font-bold uppercase tracking-wide bg-white/10 border border-white/10 text-right truncate max-w-[140px]" style={{ color: texto_reloj }}>
-                                                {evento.nombre_salon}
-                                            </span>
-                                            
-                                            <div className="h-10 w-10 flex-shrink-0 flex items-center justify-center">
-                                                 <DirectionArrow 
-                                                    direction={evento.direccion_reloj} 
-                                                    color={acento} 
-                                                    size={32} 
-                                                    animate={true} 
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                        {/* WIDGET DERECHO: Noticias */}
+                        <div className="rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl bg-white/5 backdrop-blur-md">
+                            <NewsTicker noticias={noticias} colorTitulo={acento} colorTexto={texto_evento} />
                         </div>
-
-                        {totalPaginas > 1 && (
-                            <div className="h-6 flex items-center justify-center gap-2 mt-1">
-                                {Array.from({ length: totalPaginas }).map((_, idx) => (
-                                    <div 
-                                        key={idx}
-                                        className={`h-2 rounded-full transition-all duration-500 ${idx === paginaActual ? 'w-8 bg-white' : 'w-2 bg-white/30'}`}
-                                        style={idx === paginaActual ? { backgroundColor: acento } : {}}
-                                    />
-                                ))}
-                            </div>
-                        )}
                     </div>
                 )}
             </div>
 
-            <footer className={`h-20 relative z-20 grid grid-cols-3 items-center ${paddingX} border-t transition-all`} style={{ backgroundColor: fondo, borderColor: `${texto_evento}20` }}>
+            {/* FOOTER */}
+            <footer className={`h-16 shrink-0 relative z-20 grid grid-cols-3 items-center ${paddingX} border-t transition-all`} style={{ backgroundColor: fondo, borderColor: `${texto_evento}20` }}>
                 <div className="flex justify-start opacity-50"><p className="text-[10px] tracking-widest uppercase">Powered by <span className="font-bold" style={{ color: acento }}>narabyte.xyz</span></p></div>
-                <div className="flex justify-center"><h2 className={`${isVertical ? 'text-2xl' : 'text-4xl'} font-light tracking-[0.3em] uppercase drop-shadow-lg font-sans`} style={{ color: texto_evento }}>BIENVENIDOS</h2></div>
+                <div className="flex justify-center"><h2 className={`${isVertical ? 'text-2xl' : 'text-3xl'} font-light tracking-[0.3em] uppercase drop-shadow-lg font-sans`} style={{ color: texto_evento }}>BIENVENIDOS</h2></div>
                 <div className="flex justify-end items-center gap-2" style={{ color: texto_reloj }}>
-                    <div className={`${isVertical ? 'text-3xl' : 'text-5xl'} pb-1`}>{getIconoClima(clima.codigo)}</div>
-                    <span className={`${isVertical ? 'text-2xl' : 'text-4xl'} font-bold`}>{clima.tempC}°C</span>
+                    <div className={`${isVertical ? 'text-2xl' : 'text-4xl'} pb-1`}>{getIconoClima(clima.codigo)}</div>
+                    <span className={`${isVertical ? 'text-xl' : 'text-3xl'} font-bold`}>{clima.tempC}°C</span>
                 </div>
             </footer>
         </div>
