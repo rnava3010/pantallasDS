@@ -10,12 +10,9 @@ import { useOfflineVideo } from '../hooks/useOfflineVideo';
 // Componentes y Utilidades
 import { getIconoClima } from '../utils/weatherUtils';
 
-// Importación de Layouts de Directorio
-import LayoutDirectorioHorizontal from './layoutsDirectorios/LayoutDirectorioHorizontal';
-import LayoutDirectorioVertical from './layoutsDirectorios/LayoutDirectorioVertical';
-
-// Aquí importarás los nuevos diseños conforme los crees
-// import LayoutDirectorioHorizontalModern from './layoutsDirectorios/LayoutDirectorioHorizontalModern';
+// Importación de Layouts (Cada número de layoutDir cargará uno de estos)
+import LayoutDirectorioHorizontal from './layoutsDirectorios/LayoutDirectorioHorizontal'; // ID 0
+import LayoutDirectorioVertical from './layoutsDirectorios/LayoutDirectorioVertical';     // ID 1
 
 export default function PlayerDirectorio() {
     const { id } = useParams();
@@ -23,22 +20,20 @@ export default function PlayerDirectorio() {
     const horaActual = useReloj(timeOffset);
     const [paginaActual, setPaginaActual] = useState(0);
 
-    // --- 1. LÓGICA DE SELECCIÓN POR ÍNDICES ---
-    const orientacion = config?.orientacion || 0; // 0: H, 1: V
-    const layoutIndex = config?.layoutDir || 0;    // 0, 1, 2... de la BD
+    // --- LÓGICA DE SELECCIÓN POR ID DE DISEÑO ---
+    const layoutId = config?.layoutDir ?? 0; // Tomamos el número directamente de la BD
 
     const { fondo = '#000000', texto_reloj = '#FFFFFF', acento = '#EAB308' } = config?.colores || {};
 
     // Procesamiento de datos
-    let eventos = [];
-    let noticias = [];
-    if (data && data.tipo_datos === 'DIRECTORIO') {
-        eventos = data.eventos || [];
-        noticias = data.noticias || [];
-    }
+    let eventos = data?.eventos || [];
+    let noticias = data?.noticias || [];
 
-    const isVertical = orientacion === 1;
-    const ITEMS_POR_PAGINA = isVertical ? 6 : 4; 
+    // Definimos si es vertical u horizontal para la paginación y el header basándonos en el ID
+    // 0 es Horizontal, 1 es Vertical (podemos agregar más)
+    const isVerticalLayout = layoutId === 1; 
+
+    const ITEMS_POR_PAGINA = isVerticalLayout ? 6 : 4; 
     const totalPaginas = Math.ceil(eventos.length / ITEMS_POR_PAGINA);
 
     const { itemActual } = useCarrusel(config?.screensaver || [], 8000);
@@ -55,48 +50,43 @@ export default function PlayerDirectorio() {
 
     const eventosVisibles = eventos.slice(paginaActual * ITEMS_POR_PAGINA, (paginaActual + 1) * ITEMS_POR_PAGINA);
 
-    if (loading && !config) return <div className="bg-black h-screen flex items-center justify-center text-white animate-pulse">CARGANDO...</div>;
+    if (loading && !config) return <div className="bg-black h-screen flex items-center justify-center text-white">CARGANDO...</div>;
 
     const layoutProps = { eventosVisibles, config, noticias, itemActual, videoBlobUrl, FilaGaleria };
 
-    // --- 2. SELECTOR DE LAYOUTS POR NÚMERO ---
+    // --- SELECTOR DE DISEÑO ---
     const renderLayout = () => {
-        // Lógica: Orientación 0 (Horizontal)
-        if (orientacion === 0) {
-            switch (layoutIndex) {
-                case 0: return <LayoutDirectorioHorizontal {...layoutProps} />;
-                // case 1: return <LayoutDirectorioHorizontalModern {...layoutProps} />;
-                default: return <LayoutDirectorioHorizontal {...layoutProps} />;
-            }
-        } 
-        // Lógica: Orientación 1 (Vertical)
-        else {
-            switch (layoutIndex) {
-                case 0: return <LayoutDirectorioVertical {...layoutProps} />;
-                // case 1: return <LayoutDirectorioVerticalModern {...layoutProps} />;
-                default: return <LayoutDirectorioVertical {...layoutProps} />;
-            }
+        switch (layoutId) {
+            case 0: // DISEÑO HORIZONTAL ESTÁNDAR
+                return <LayoutDirectorioHorizontal {...layoutProps} />;
+            case 1: // DISEÑO VERTICAL ESTÁNDAR
+                return <LayoutDirectorioVertical {...layoutProps} />;
+            // case 2: return <LayoutDirectorioModernHorizontal {...layoutProps} />;
+            // case 3: return <LayoutDirectorioModernVertical {...layoutProps} />;
+            default:
+                return <LayoutDirectorioHorizontal {...layoutProps} />;
         }
     };
 
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden font-sans relative" style={{ backgroundColor: fondo }}>
             
-            <header className={`${isVertical ? 'h-20' : 'h-24'} flex justify-between items-center px-10 shrink-0 z-20`}>
+            {/* HEADER (Se adapta visualmente según si el layout elegido es vertical u horizontal) */}
+            <header className={`${isVerticalLayout ? 'h-20' : 'h-24'} flex justify-between items-center px-10 shrink-0 z-20`}>
                 <div className="flex justify-start w-1/4">
-                    {config?.logo && <img src={config.logo} alt="Logo" className="h-16 w-auto object-contain" />}
+                    {config?.logo && <img src={config.logo} alt="Logo" className={`${isVerticalLayout ? 'h-12' : 'h-16'} w-auto object-contain`} />}
                 </div>
                 
                 <div className="flex justify-center flex-1">
                     <div className="px-8 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md">
-                        <h1 className="text-2xl font-black tracking-widest uppercase text-center" style={{ color: acento }}>
+                        <h1 className={`${isVerticalLayout ? 'text-xl' : 'text-3xl'} font-black tracking-widest uppercase text-center`} style={{ color: acento }}>
                             DIRECTORIO
                         </h1>
                     </div>
                 </div>
 
                 <div className="flex flex-col items-end w-1/4">
-                    <span className="text-4xl font-mono font-bold leading-none" style={{ color: texto_reloj }}>
+                    <span className={`${isVerticalLayout ? 'text-3xl' : 'text-5xl'} font-mono font-bold leading-none`} style={{ color: texto_reloj }}>
                         {horaActual.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     <span className="text-[10px] uppercase opacity-60 mt-1" style={{ color: texto_reloj }}>
