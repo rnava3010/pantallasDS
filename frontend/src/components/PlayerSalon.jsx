@@ -68,7 +68,7 @@ export default function PlayerSalon() {
         acento = '#EAB308' 
     } = config?.colores || {};
 
-    // Estilo "Shiny"
+    // Estilo "Shiny" (Brillo Metálico Dinámico)
     const colorBrillante = lightenColor(acento, 40); 
     const shinyStyle = {
         backgroundImage: `linear-gradient(to right, ${acento}, ${colorBrillante}, ${acento})`,
@@ -91,6 +91,7 @@ export default function PlayerSalon() {
             className="flex flex-col h-screen w-screen overflow-hidden font-sans relative transition-colors duration-1000"
             style={{ backgroundColor: fondo }}
         >
+            {/* Animación local Marquee (Float ya es global) */}
             <style>{`
                 @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
                 .animate-marquee { animation: marquee 30s linear infinite; white-space: nowrap; display: inline-block; padding-left: 100%; }
@@ -102,7 +103,14 @@ export default function PlayerSalon() {
             {/* HEADER */}
             <header className="h-28 flex items-center justify-between px-10 relative z-20 bg-gradient-to-b from-black/90 to-transparent">
                 <div className="w-1/4 flex justify-start">
-                    {config?.logo && <img src={config.logo} alt="Logo" className="h-20 w-auto object-contain drop-shadow-xl" />}
+                    {config?.logo && (
+                        /* ✨ CLASE GLOBAL 'animate-float' */
+                        <img 
+                            src={config.logo} 
+                            alt="Logo" 
+                            className="h-20 w-auto object-contain animate-float" 
+                        />
+                    )}
                 </div>
                 <div className="flex-1 flex justify-center">
                     <div className="px-12 py-3 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl">
@@ -157,11 +165,8 @@ export default function PlayerSalon() {
                         {/* === MODO 3: FULL SCREEN LIMPIO (Sin texto, sin flecha) === */}
                         {layoutMode === 3 && (
                              <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-white/10" style={{ backgroundColor: fondo }}>
-                                {/* Usamos object-contain para asegurar que el flyer se vea completo. 
-                                    Si prefieres que llene todo sin bordes (aunque recorte), cambia a object-cover */}
                                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10"/>
-                                
-                                {/* Sin textos ni flechas, solo la imagen */}
+                                {/* Sin elementos extra */}
                             </div>
                         )}
 
@@ -182,7 +187,8 @@ export default function PlayerSalon() {
                         {layoutMode === 1 && (
                             <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-white/10" style={{ backgroundColor: fondo }}>
                                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-cover z-0 opacity-90"/>
-                                {!itemActual && <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center"><img src={config?.logo} className="w-1/3 opacity-10 grayscale" alt="Logo" /></div>}
+                                {/* Logo fondo */}
+                                {!itemActual && <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center"><img src={config?.logo} className="w-1/3 opacity-10 grayscale animate-pulse" alt="Logo" /></div>}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 z-10"></div>
                                 
                                 <div className="absolute bottom-10 left-10 z-20 max-w-4xl p-10">
@@ -222,9 +228,8 @@ export default function PlayerSalon() {
                             <div className="flex w-full h-full gap-8">
                                 <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-white/10" style={{ backgroundColor: fondo }}>
                                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10"/>
-                                    {!itemActual && <div className="absolute inset-0 flex items-center justify-center opacity-10"><img src={config?.logo} className="w-1/3 grayscale" alt="Logo" /></div>}
+                                    {!itemActual && <div className="absolute inset-0 flex items-center justify-center opacity-10"><img src={config?.logo} className="w-1/3 grayscale animate-pulse" alt="Logo" /></div>}
                                     
-                                    {/* Carrusel Dots */}
                                     {fotosActivas.length > 1 && (
                                         <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
                                             {fotosActivas.map((_, idx) => (
