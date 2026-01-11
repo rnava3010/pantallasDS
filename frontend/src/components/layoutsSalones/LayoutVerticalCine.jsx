@@ -86,45 +86,47 @@ export default function LayoutVerticalCine({
             <div className="absolute bottom-0 left-0 w-full z-20 p-8 pb-12 flex flex-col items-center text-center">
                 
                 {/* TÍTULO (CON EFECTO SHINY) */}
-                <h1 className="text-4xl md:text-5xl font-black mb-4 leading-tight drop-shadow-2xl w-full animate-fade-in-up" 
+                <h1 className="text-4xl md:text-5xl font-black mb-6 leading-tight drop-shadow-2xl w-full animate-fade-in-up" 
                     key={`tit-${idiomaActual}`}
                     style={shinyStyle}>
                     {titulo}
                 </h1>
                 
-                {/* CLIENTE */}
+                {/* CLIENTE (AHORA CON EFECTO SHINY TAMBIÉN) */}
                 {cliente && (
-                    <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-                        <span className="inline-block px-6 py-2 rounded-full text-lg font-bold uppercase tracking-wider shadow-lg backdrop-blur-md bg-black/40 border border-white/20 transition-all duration-300" 
-                              style={{ color: acento, borderColor: `${acento}50` }}>
-                            {cliente}
+                    <div className="mb-10 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                        <span className="inline-block px-8 py-2 rounded-full text-xl font-bold uppercase tracking-wider shadow-lg backdrop-blur-md bg-black/50 border border-white/20 transition-all duration-300" 
+                              style={{ borderColor: `${acento}50` }}>
+                            {/* Aplicamos el shinyStyle al texto interior */}
+                            <span style={shinyStyle}>{cliente}</span>
                         </span>
                     </div>
                 )}
                 
-                {/* --- SECCIÓN HORARIO (CON EFECTO SHINY APLICADO) --- */}
-                <div className="flex items-center justify-center gap-8 mb-8 animate-fade-in-up" style={{ color: texto_evento, animationDelay: '0.2s' }}>
+                {/* --- SECCIÓN HORARIO REESTRUCTURADA --- */}
+                <div className="w-full flex items-center justify-center gap-6 mb-8 animate-fade-in-up" style={{ color: texto_evento, animationDelay: '0.2s' }}>
                      
-                     {/* HORA INICIO */}
+                     {/* 1. HORA INICIO */}
                      <div className="flex flex-col items-center">
                         <span className="text-[10px] uppercase tracking-widest opacity-60 mb-1">{labelInicio}</span>
-                        {/* APLICAMOS shinyStyle AQUÍ */}
                         <span className="text-5xl font-mono font-black tracking-tighter" style={shinyStyle}>
                             {horaInicioMostrar}
                         </span>
-                        {/* FECHA */}
-                        <span className="text-[10px] font-bold uppercase opacity-80 mt-1">
-                            {fechaMostrar}
-                        </span>
                      </div>
 
-                     <div className="h-12 w-px bg-white/20"></div>
+                     {/* 2. FECHA AL CENTRO (Eje separador) */}
+                     <div className="flex flex-col items-center justify-center px-4 h-full">
+                        <div className="h-6 w-px bg-white/20 mb-2"></div>
+                        <span className="text-[10px] md:text-xs font-bold uppercase opacity-90 tracking-wider whitespace-nowrap">
+                            {fechaMostrar}
+                        </span>
+                        <div className="h-6 w-px bg-white/20 mt-2"></div>
+                     </div>
 
-                     {/* HORA FIN */}
+                     {/* 3. HORA FIN */}
                      <div className="flex flex-col items-center">
                         <span className="text-[10px] uppercase tracking-widest opacity-60 mb-1">{labelFin}</span>
-                        {/* APLICAMOS shinyStyle AQUÍ TAMBIÉN */}
-                        <span className="text-3xl font-mono font-bold" style={shinyStyle}>
+                        <span className="text-5xl font-mono font-black tracking-tighter" style={shinyStyle}>
                             {horaFinMostrar}
                         </span>
                      </div>
@@ -132,7 +134,7 @@ export default function LayoutVerticalCine({
                 
                 {/* MENSAJE */}
                 {mensaje && (
-                    <p className="text-lg font-serif italic max-w-sm drop-shadow-md opacity-90 mb-4 animate-fade-in-up" 
+                    <p className="text-lg font-serif italic max-w-lg drop-shadow-md opacity-90 mb-4 animate-fade-in-up" 
                        key={`msg-${idiomaActual}`}
                        style={{ color: texto_evento, animationDelay: '0.3s' }}>
                         "{mensaje}"
