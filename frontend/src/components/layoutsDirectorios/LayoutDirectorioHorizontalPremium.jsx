@@ -24,15 +24,15 @@ export default function LayoutDirectorioHorizontalPremium({
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden p-10 relative bg-black">
             
-            {/* 🎥 GALERÍA/VIDEO DE FONDO (Efecto Full Background) */}
+            {/* 🎥 GALERÍA/VIDEO DE FONDO */}
             <div className="absolute inset-0 z-0 opacity-40 scale-105 animate-slow-zoom">
                  <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="w-full h-full object-cover" />
             </div>
 
-            {/* Capa de Glassmorphism para oscurecer el fondo y resaltar el frente */}
+            {/* Capa de Glassmorphism */}
             <div className="absolute inset-0 z-1 bg-gradient-to-b from-black/80 via-black/20 to-black/90 backdrop-blur-[4px]"></div>
 
-            {/* Luces de fondo decorativas (Neon Glow) */}
+            {/* Luces de neón decorativas */}
             <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] rounded-full blur-[120px] opacity-30 animate-pulse z-2" style={{ backgroundColor: acento }}></div>
             
             {/* CONTENIDO FRONTAL */}
@@ -41,16 +41,18 @@ export default function LayoutDirectorioHorizontalPremium({
                     <div className="animate-logo-float">
                         <img src={config.logo} alt="Logo" className="h-16 w-fit object-contain brightness-110 drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
                     </div>
+                    {/* POSICIÓN ACTUALIZADA: Directorio de Eventos con el estilo de Agenda Exclusiva */}
                     <h1 className="text-6xl font-black tracking-tighter uppercase leading-none" style={{ color: '#fff' }}>
-                        Agenda <span style={{ color: acento }}>Exclusiva</span>
+                        Directorio <span style={{ color: acento }}>de Eventos</span>
                     </h1>
                 </div>
+
                 <div className="text-right">
-                    <span className="text-8xl font-mono font-black leading-none tracking-tighter drop-shadow-lg" style={{ color: texto_reloj }}>
+                    <span className="text-8xl font-mono font-black leading-none tracking-tighter drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]" style={{ color: texto_reloj }}>
                         {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <p className="text-xl font-black uppercase tracking-[0.4em] mt-2 opacity-80" style={{ color: acento }}>
-                        Directorio de Eventos
+                    <p className="text-sm font-black uppercase tracking-[0.5em] mt-2 opacity-40" style={{ color: texto_reloj }}>
+                        {horaActual?.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}
                     </p>
                 </div>
             </header>
