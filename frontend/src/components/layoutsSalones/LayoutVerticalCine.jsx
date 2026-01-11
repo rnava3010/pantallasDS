@@ -39,7 +39,7 @@ export default function LayoutVerticalCine({
     const mensaje = (idiomaActual === 'en' && eventoActual.mensaje_en) ? eventoActual.mensaje_en : 
                     (idiomaActual === 'fr' && eventoActual.mensaje_fr) ? eventoActual.mensaje_fr : eventoActual.mensaje;
 
-    // --- LÓGICA DE RECUPERACIÓN DE HORAS (SMART PARSING) ---
+    // --- LÓGICA DE RECUPERACIÓN DE HORAS ---
     let horaInicioMostrar = '--:--';
     let horaFinMostrar = '--:--';
     let fechaMostrar = textoFechas;
@@ -50,7 +50,7 @@ export default function LayoutVerticalCine({
         
         fechaMostrar = new Date(eventoActual.fecha_inicio).toLocaleDateString(
             idiomaActual === 'en' ? 'en-US' : (idiomaActual === 'fr' ? 'fr-FR' : 'es-ES'), 
-            { weekday: 'short', day: 'numeric', month: 'long' }
+            { weekday: 'long', day: 'numeric', month: 'long' }
         );
     } 
     else if (eventoActual.horario && eventoActual.horario.includes('-')) {
@@ -85,51 +85,51 @@ export default function LayoutVerticalCine({
             {/* 3. INFO */}
             <div className="absolute bottom-0 left-0 w-full z-20 p-8 pb-12 flex flex-col items-center text-center">
                 
-                {/* TÍTULO (CON EFECTO SHINY) */}
+                {/* TÍTULO (SHINY) */}
                 <h1 className="text-4xl md:text-5xl font-black mb-6 leading-tight drop-shadow-2xl w-full animate-fade-in-up" 
                     key={`tit-${idiomaActual}`}
                     style={shinyStyle}>
                     {titulo}
                 </h1>
                 
-                {/* CLIENTE (AHORA CON EFECTO SHINY TAMBIÉN) */}
+                {/* CLIENTE (SHINY) */}
                 {cliente && (
-                    <div className="mb-10 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                    <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                         <span className="inline-block px-8 py-2 rounded-full text-xl font-bold uppercase tracking-wider shadow-lg backdrop-blur-md bg-black/50 border border-white/20 transition-all duration-300" 
                               style={{ borderColor: `${acento}50` }}>
-                            {/* Aplicamos el shinyStyle al texto interior */}
                             <span style={shinyStyle}>{cliente}</span>
                         </span>
                     </div>
                 )}
                 
-                {/* --- SECCIÓN HORARIO REESTRUCTURADA --- */}
-                <div className="w-full flex items-center justify-center gap-6 mb-8 animate-fade-in-up" style={{ color: texto_evento, animationDelay: '0.2s' }}>
+                {/* --- SECCIÓN HORARIO Y FECHA --- */}
+                <div className="flex flex-col items-center justify-center gap-2 mb-8 animate-fade-in-up" style={{ color: texto_evento, animationDelay: '0.2s' }}>
                      
-                     {/* 1. HORA INICIO */}
-                     <div className="flex flex-col items-center">
-                        <span className="text-[10px] uppercase tracking-widest opacity-60 mb-1">{labelInicio}</span>
-                        <span className="text-5xl font-mono font-black tracking-tighter" style={shinyStyle}>
-                            {horaInicioMostrar}
-                        </span>
+                     {/* FILA DE HORAS (Lado a Lado) */}
+                     <div className="flex items-center justify-center gap-8">
+                         {/* INICIO */}
+                         <div className="flex flex-col items-center">
+                            <span className="text-[10px] uppercase tracking-widest opacity-60 mb-1">{labelInicio}</span>
+                            <span className="text-5xl font-mono font-black tracking-tighter" style={shinyStyle}>
+                                {horaInicioMostrar}
+                            </span>
+                         </div>
+
+                         <div className="h-12 w-px bg-white/20 mt-4"></div>
+
+                         {/* FIN */}
+                         <div className="flex flex-col items-center">
+                            <span className="text-[10px] uppercase tracking-widest opacity-60 mb-1">{labelFin}</span>
+                            <span className="text-3xl font-mono font-bold mt-2 opacity-90" style={shinyStyle}>
+                                {horaFinMostrar}
+                            </span>
+                         </div>
                      </div>
 
-                     {/* 2. FECHA AL CENTRO (Eje separador) */}
-                     <div className="flex flex-col items-center justify-center px-4 h-full">
-                        <div className="h-6 w-px bg-white/20 mb-2"></div>
-                        <span className="text-[10px] md:text-xs font-bold uppercase opacity-90 tracking-wider whitespace-nowrap">
-                            {fechaMostrar}
-                        </span>
-                        <div className="h-6 w-px bg-white/20 mt-2"></div>
-                     </div>
-
-                     {/* 3. HORA FIN */}
-                     <div className="flex flex-col items-center">
-                        <span className="text-[10px] uppercase tracking-widest opacity-60 mb-1">{labelFin}</span>
-                        <span className="text-5xl font-mono font-black tracking-tighter" style={shinyStyle}>
-                            {horaFinMostrar}
-                        </span>
-                     </div>
+                     {/* FECHA (Abajo y Centrada) */}
+                     <span className="text-sm font-bold uppercase opacity-80 mt-2 tracking-wider border-t border-white/10 pt-2 px-8">
+                        {fechaMostrar}
+                     </span>
                 </div>
                 
                 {/* MENSAJE */}
