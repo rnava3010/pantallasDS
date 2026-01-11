@@ -16,21 +16,22 @@ import logger from '../utils/logger';
 export default function PlayerSalon() {
     const { id } = useParams();
     
-    // 1. Datos principales
+    // 1. Datos
     const { eventoActual, config, loading, isOnline, timeOffset, clima } = usePantalla(id);
     const horaActual = useReloj(timeOffset);
 
     // 2. Logs
     useEffect(() => {
-        if (loading) logger.log(`🔄 [PlayerSalon] Cargando configuración...`);
-        else if (config) logger.log(`✅ [PlayerSalon] Configuración cargada: "${config.nombre_interno}"`);
+        if (loading) logger.log(`🔄 [PlayerSalon] Cargando...`);
+        else if (config) logger.log(`✅ [PlayerSalon] Configurado: "${config.nombre_interno}"`);
     }, [loading, config]);
 
-    // 3. Contenido
+    // 3. Contenido y Hooks
     const fotosActivas = (eventoActual?.imagenes?.length > 0) ? eventoActual.imagenes : (config?.screensaver || []);
     const { itemActual, indice } = useCarrusel(fotosActivas, 8000);
     const { videoBlobUrl } = useOfflineVideo(fotosActivas);
 
+    // Favicon
     useEffect(() => {
         if (config?.favicon) {
             let link = document.querySelector("link[rel~='icon']") || document.createElement('link');
@@ -39,11 +40,12 @@ export default function PlayerSalon() {
         }
     }, [config?.favicon]);
 
-    if (loading && !config) return <div className="bg-black h-screen flex items-center justify-center text-white animate-pulse">Iniciando Narabyte DS...</div>;
+    if (loading && !config) return <div className="bg-black h-screen flex items-center justify-center text-white animate-pulse">Iniciando...</div>;
 
     const nombreSalon = eventoActual?.nombre_salon || config?.nombre_interno || "Sala de Eventos";
     const tickerText = eventoActual?.ticker || null;
     
+    // Layout
     let layoutMode = 0;
     if (eventoActual?.layout_mode !== undefined) {
         layoutMode = eventoActual.layout_mode;
@@ -84,7 +86,7 @@ export default function PlayerSalon() {
                 </div>
             </header>
 
-            {/* CONTENIDO PRINCIPAL */}
+            {/* CONTENIDO */}
             <div className={`flex-1 p-8 pt-2 relative z-10 w-full h-full ${tickerText ? 'pb-14' : ''}`}>
                 
                 {/* 1. MODO SCREENSAVER */}
@@ -114,10 +116,10 @@ export default function PlayerSalon() {
                                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10"/>
                                 {!itemActual && <div className="absolute inset-0 flex items-center justify-center text-zinc-600">Sin Imagen</div>}
                                 
-                                {/* FLECHA CIRCULAR FLOTANTE */}
+                                {/* FLECHA: Esquina inferior derecha */}
                                 {eventoActual.direccion && (
-                                    <div className="absolute top-10 right-10 z-50 bg-yellow-500/90 text-black rounded-full p-6 shadow-[0_0_30px_rgba(234,179,8,0.4)] border-4 border-black/20 animate-pulse">
-                                        <DirectionArrow direccion={eventoActual.direccion} size="w-24 h-24" color="text-black" />
+                                    <div className="absolute bottom-10 right-10 z-50 bg-yellow-500/90 text-black rounded-full p-6 shadow-[0_0_40px_rgba(234,179,8,0.5)] border-4 border-black/20 animate-pulse">
+                                        <DirectionArrow direccion={eventoActual.direccion} size="w-48 h-48" color="text-black" />
                                     </div>
                                 )}
                             </div>
@@ -128,26 +130,23 @@ export default function PlayerSalon() {
                             <div className="w-full h-full rounded-[3rem] overflow-hidden relative shadow-2xl border border-zinc-800/50 bg-black">
                                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-cover z-0 opacity-90"/>
                                 {!itemActual && <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center"><img src={config?.logo} className="w-1/3 opacity-10 grayscale" alt="Logo" /></div>}
-                                
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 z-10"></div>
+                                
                                 <div className="absolute bottom-10 left-10 z-20 max-w-4xl p-10">
                                     <h1 className="text-7xl lg:text-9xl font-black text-white mb-4 leading-none drop-shadow-2xl">{eventoActual.titulo}</h1>
-                                    
                                     {eventoActual.cliente && <div className="mb-6"><span className="inline-block px-6 py-2 rounded-full bg-yellow-500 text-black text-2xl font-bold uppercase tracking-wider shadow-lg">{eventoActual.cliente}</span></div>}
-                                    
                                     <div className="flex items-center gap-8 text-zinc-300">
                                          <span className="text-3xl font-mono font-bold text-white border-l-4 border-yellow-500 pl-4">{eventoActual.horario}</span>
-                                         
-                                         {/* FLECHA CIRCULAR JUNTO AL HORARIO */}
-                                         {eventoActual.direccion && (
-                                            <div className="bg-white/10 p-4 rounded-full border border-white/20 backdrop-blur-md shadow-lg animate-fade-in-up">
-                                                <DirectionArrow direccion={eventoActual.direccion} size="w-16 h-16" />
-                                            </div>
-                                         )}
                                     </div>
-                                    
                                     {eventoActual.mensaje && <p className="mt-6 text-2xl text-gray-200 font-serif italic max-w-2xl drop-shadow-md">"{eventoActual.mensaje}"</p>}
                                 </div>
+
+                                {/* FLECHA: Esquina inferior derecha (separada del texto) */}
+                                {eventoActual.direccion && (
+                                    <div className="absolute bottom-10 right-10 z-30 bg-white/10 p-4 rounded-full border border-white/20 backdrop-blur-md shadow-2xl animate-fade-in-up">
+                                        <DirectionArrow direccion={eventoActual.direccion} size="w-40 h-40" />
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -157,7 +156,6 @@ export default function PlayerSalon() {
                                 <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-zinc-800/50 bg-black">
                                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10"/>
                                     {!itemActual && <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center"><img src={config?.logo} className="w-1/3 opacity-10 grayscale" alt="Logo Fondo" /></div>}
-                                    
                                     {fotosActivas.length > 1 && (
                                         <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
                                             {fotosActivas.map((_, idx) => (
@@ -168,24 +166,23 @@ export default function PlayerSalon() {
                                 </div>
                                 
                                 <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-white/5 bg-zinc-900/80 backdrop-blur-xl flex flex-col items-center justify-center p-12 text-center">
-                                    <div className="animate-fade-in-up w-full flex flex-col items-center">
+                                    <div className="animate-fade-in-up w-full flex flex-col items-center h-full justify-center relative">
                                         <h1 className="text-5xl lg:text-7xl font-black text-white mb-10 leading-tight drop-shadow-2xl">{eventoActual.titulo}</h1>
-                                        
-                                        {/* FLECHA CENTRAL EN SU CÍRCULO */}
-                                        {eventoActual.direccion && (
-                                            <div className="mb-10 p-6 rounded-full bg-white/5 border-2 border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.2)] animate-bounce">
-                                                <DirectionArrow direccion={eventoActual.direccion} size="w-32 h-32" />
-                                            </div>
-                                        )}
-
                                         {eventoActual.cliente && <div className="mb-14"><span className="inline-block px-8 py-3 rounded-full border border-yellow-500/50 bg-yellow-500/10 text-yellow-300 text-xl font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(234,179,8,0.15)]">{eventoActual.cliente}</span></div>}
-                                        
                                         <div className="flex flex-col items-center gap-2 mb-10">
                                             <span className="text-zinc-400 text-base uppercase tracking-widest">Horario</span>
                                             <span className="text-3xl font-mono font-bold text-white border-b border-zinc-700 pb-1">{eventoActual.horario}</span>
                                         </div>
-                                        
                                         {eventoActual.mensaje && <div className="w-4/5 mx-auto bg-white/5 p-6 rounded-2xl border border-white/5"><p className="text-xl text-gray-300 font-serif italic leading-relaxed">"{eventoActual.mensaje}"</p></div>}
+                                        
+                                        {/* FLECHA: Pegada abajo a la derecha del panel de información */}
+                                        {eventoActual.direccion && (
+                                            <div className="absolute bottom-0 right-0 p-4">
+                                                <div className="bg-white/5 p-4 rounded-full border-2 border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.2)] animate-bounce">
+                                                    <DirectionArrow direccion={eventoActual.direccion} size="w-32 h-32" />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
