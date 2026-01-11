@@ -36,7 +36,8 @@ export default function LayoutTarifasVertical({
                     </h1>
                 </div>
                 <div className="w-1/4 flex flex-col items-end justify-center">
-                    <span className="text-3xl font-mono font-black leading-none text-white">
+                    {/* HORA: Ajustada a text-2xl (antes 3xl) */}
+                    <span className="text-2xl font-mono font-black leading-none text-white">
                         {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     <span className="text-xs font-bold uppercase tracking-wider text-white/60 mt-1">
@@ -53,22 +54,18 @@ export default function LayoutTarifasVertical({
                 </div>
                 
                 {visibles.map((t, i) => {
-                    // --- MAPEO INTELIGENTE DE DATOS ---
-                    
-                    // 1. Nombre y Descripción
+                    // --- LÓGICA DE DATOS ---
                     const nombre = t.nombre || t.nombre_habitacion || "Habitación";
-                    const descripcion = t.descripcion || ""; // Asegúrate de que el backend envíe este campo
+                    const descripcion = t.descripcion || ""; 
 
-                    // 2. Precios
-                    // El backend suele enviar 'precio' como el alias de precio_promocion.
-                    // Si precio_promocion es NULL, usamos precio_rack.
-                    const precioPromoRaw = t.precio || t.precio_promocion; // Puede ser null
+                    // Lógica de Precios (Promo vs Rack)
+                    const precioPromoRaw = t.precio || t.precio_promocion;
                     const precioRackRaw = t.precio_rack;
 
-                    // Lógica: Si hay promo válida, úsala. Si no, usa el rack.
+                    // Si hay promo, la usamos como principal. Si no, usamos el rack.
                     const precioPrincipal = precioPromoRaw ? precioPromoRaw : precioRackRaw;
                     
-                    // Solo mostramos "tachado" si hay promo Y es diferente al rack
+                    // Solo tachamos el rack si hay una promo válida y es menor al rack
                     const hayDescuento = precioPromoRaw && precioRackRaw && (parseFloat(precioPromoRaw) < parseFloat(precioRackRaw));
                     const precioTachado = hayDescuento ? precioRackRaw : null;
 
@@ -77,12 +74,11 @@ export default function LayoutTarifasVertical({
                     return (
                         <div key={i} className="flex justify-between items-center pb-3 border-b border-white/5 last:border-0 animate-fade-in-up">
                             
-                            {/* IZQUIERDA: Info Habitación */}
+                            {/* IZQUIERDA: Info */}
                             <div className="flex flex-col gap-1 max-w-[65%]">
                                 <span className="text-xl font-bold text-white uppercase truncate">
                                     {nombre}
                                 </span>
-                                {/* Descripción en letras pequeñas */}
                                 {descripcion && (
                                     <span className="text-[11px] text-white/60 font-light italic leading-tight block">
                                         {descripcion}
@@ -90,7 +86,7 @@ export default function LayoutTarifasVertical({
                                 )}
                             </div>
 
-                            {/* DERECHA: Precios */}
+                            {/* DERECHA: Precio */}
                             <div className="text-right flex flex-col items-end justify-center">
                                 <span className="text-2xl font-black" style={{ color: acento }}>
                                     <span className="text-sm align-top opacity-60 mr-1">{moneda}</span>
