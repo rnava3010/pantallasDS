@@ -3,12 +3,12 @@ import MediaRenderer from '../MediaRenderer';
 import DirectionArrow from '../DirectionArrow';
 
 export default function LayoutVerticalCine({ 
-    eventoActual, itemActual, videoBlobUrl, config, shinyStyle, acento, fondo, texto_evento 
+    eventoActual, itemActual, videoBlobUrl, config, shinyStyle, acento, fondo, texto_evento, textoFechas 
 }) {
     return (
         <div className="w-full h-full rounded-[2rem] overflow-hidden relative shadow-2xl border border-white/10" style={{ backgroundColor: fondo }}>
             
-            {/* 1. IMAGEN DE FONDO (Corrección: w-full h-full absolute) */}
+            {/* 1. IMAGEN DE FONDO */}
             <div className="absolute inset-0 w-full h-full z-0">
                  <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="w-full h-full object-cover"/>
             </div>
@@ -30,11 +30,20 @@ export default function LayoutVerticalCine({
                     </div>
                 )}
                 
-                <div className="flex items-center gap-2 mb-6" style={{ color: texto_evento }}>
+                <div className="flex flex-col items-center gap-1 mb-6" style={{ color: texto_evento }}>
                      <span className="text-sm uppercase tracking-widest opacity-80">Horario</span>
-                     <span className="text-3xl font-mono font-bold pl-2 border-l-2" style={{ borderColor: acento }}>{eventoActual.horario}</span>
+                     {/* FECHA */}
+                     <span className="text-sm font-bold uppercase opacity-90">{textoFechas}</span>
+                     
+                     <span className="text-3xl font-mono font-bold border-b-2 pb-1" style={{ borderColor: acento }}>{eventoActual.horario}</span>
                 </div>
                 
+                {eventoActual.mensaje && (
+                    <p className="text-lg font-serif italic max-w-sm drop-shadow-md opacity-90 mb-4" style={{ color: texto_evento }}>
+                        "{eventoActual.mensaje}"
+                    </p>
+                )}
+
                 {/* Flecha Flotante */}
                 {eventoActual.direccion && (
                     <div className="absolute bottom-6 right-6 z-30 animate-bounce">

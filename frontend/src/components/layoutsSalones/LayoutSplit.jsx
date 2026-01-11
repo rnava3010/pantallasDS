@@ -1,15 +1,14 @@
-// frontend/src/components/layouts/LayoutSplit.jsx
 import React from 'react';
 import MediaRenderer from '../MediaRenderer';
 import DirectionArrow from '../DirectionArrow';
 
 export default function LayoutSplit({ 
-    eventoActual, itemActual, videoBlobUrl, config, fotosActivas, indice, texto_evento, acento, fondo 
+    eventoActual, itemActual, videoBlobUrl, config, fotosActivas, indice, texto_evento, acento, fondo, textoFechas 
 }) {
     return (
         <div className="flex w-full h-full gap-8">
             <div className="flex-1 relative rounded-[3rem] overflow-hidden shadow-2xl border border-white/10" style={{ backgroundColor: fondo }}>
-                <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10"/>
+                <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="object-contain z-10 w-full h-full"/>
                 {!itemActual && <div className="absolute inset-0 flex items-center justify-center opacity-10"><img src={config?.logo} className="w-1/3 grayscale animate-pulse" alt="Logo" /></div>}
                 
                 {fotosActivas.length > 1 && (
@@ -35,6 +34,8 @@ export default function LayoutSplit({
                     
                     <div className="flex flex-col items-center gap-2 mb-10">
                         <span className="text-sm uppercase tracking-widest opacity-60" style={{ color: texto_evento }}>Horario</span>
+                        {/* FECHA */}
+                        <span className="text-sm font-bold uppercase opacity-80">{textoFechas}</span>
                         <span className="text-3xl font-mono font-bold border-b pb-1" style={{ color: texto_evento, borderColor: acento }}>{eventoActual.horario}</span>
                     </div>
                     

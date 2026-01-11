@@ -3,12 +3,12 @@ import MediaRenderer from '../MediaRenderer';
 import DirectionArrow from '../DirectionArrow';
 
 export default function LayoutVertical({ 
-    eventoActual, itemActual, videoBlobUrl, fotosActivas, indice, shinyStyle, acento, fondo, texto_evento 
+    eventoActual, itemActual, videoBlobUrl, fotosActivas, indice, shinyStyle, acento, fondo, texto_evento, textoFechas 
 }) {
     return (
         <div className="flex flex-col w-full h-full rounded-[2rem] overflow-hidden shadow-2xl border border-white/10" style={{ backgroundColor: fondo }}>
             
-            {/* MITAD SUPERIOR: IMAGEN (w-full h-full object-cover dentro del contenedor de 55%) */}
+            {/* MITAD SUPERIOR: IMAGEN */}
             <div className="h-[55%] relative w-full bg-black z-10">
                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="w-full h-full object-cover z-10"/>
                 
@@ -39,6 +39,9 @@ export default function LayoutVertical({
                     <div className="w-full relative flex justify-center items-center mb-4">
                         <div className="flex flex-col items-center gap-1">
                             <span className="text-[10px] uppercase tracking-widest opacity-60" style={{ color: texto_evento }}>Horario</span>
+                            {/* FECHA */}
+                            <span className="text-xs font-bold uppercase opacity-90 mb-1" style={{ color: texto_evento }}>{textoFechas}</span>
+                            
                             <span className="text-2xl font-mono font-bold border-b pb-1" style={{ color: texto_evento, borderColor: acento }}>{eventoActual.horario}</span>
                         </div>
                         {eventoActual.direccion && (
