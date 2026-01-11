@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useLayoutEffect } from 'react'; // ✅ NUEVO: Importamos useRef, useState, useLayoutEffect
+import React, { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
 // Hooks
@@ -21,7 +21,7 @@ import LayoutVertical from './layoutsSalones/LayoutVertical';
 import LayoutVerticalCine from './layoutsSalones/LayoutVerticalCine';
 import LayoutVerticalFull from './layoutsSalones/LayoutVerticalFull';
 
-// Helper de color (Brillo)
+// Helper de color
 const lightenColor = (hex, percent) => {
     if (!hex) return '#ffffff';
     const num = parseInt(hex.replace('#', ''), 16);
@@ -63,60 +63,54 @@ export default function PlayerSalon() {
         }
     }, [config?.favicon]);
 
-    // --- DETECCIÓN INTELIGENTE DE ORIENTACIÓN ---
+    // 1. PRIMERO: Definimos las variables base (nombreSalon, isVertical, etc.)
+    // Esto evita el error "Cannot access before initialization"
+    const nombreSalon = eventoActual?.nombre_salon || config?.nombre_interno || "Sala de Eventos";
+    
+    // Detección de Orientación
     let layoutMode = 0;
     if (eventoActual?.layout_mode !== undefined) { layoutMode = eventoActual.layout_mode; } 
     else if (eventoActual?.full_width) { layoutMode = 1; }
+    
     const isEventVertical = (layoutMode === 5 || layoutMode === 6 || layoutMode === 7);
     const isConfigVertical = config?.orientacion === 1;
     const isVertical = eventoActual ? isEventVertical : isConfigVertical;
+    
+    // Variables CSS
+    const paddingX = isVertical ? 'px-4' : 'px-10';
+    const radioBorde = isVertical ? 'rounded-[2rem]' : 'rounded-[3rem]';
 
-    // =====================================================================
-    // ✅ NUEVO: LÓGICA DE AUTO-REDIMENSIONAMIENTO DEL TÍTULO
-    // =====================================================================
+    // 2. SEGUNDO: Hooks de Redimensionamiento (Ahora sí pueden leer nombreSalon e isVertical)
     const titleRef = useRef(null);
-    // Definimos el tamaño base ideal: 24px para vertical, 48px para horizontal
     const baseFontSize = isVertical ? 24 : 48; 
     const [dynamicFontSize, setDynamicFontSize] = useState(baseFontSize);
 
-    // useLayoutEffect se ejecuta antes de que el usuario vea el cambio, evitando parpadeos
     useLayoutEffect(() => {
         const element = titleRef.current;
         if (!element || !config) return;
 
-        // 1. Reseteamos al tamaño base para medir correctamente
         element.style.fontSize = `${baseFontSize}px`;
 
-        // 2. Medimos: scrollWidth es el ancho real del texto, clientWidth es el ancho disponible
         const textWidth = element.scrollWidth;
-        const containerWidth = element.parentElement.clientWidth; // Medimos el ancho de la "píldora" contenedora
+        const containerWidth = element.parentElement.clientWidth;
 
-        // 3. Si el texto es más ancho que el contenedor, calculamos la reducción
         if (textWidth > containerWidth) {
             const ratio = containerWidth / textWidth;
-            // Multiplicamos por el ratio y un 0.95 de seguridad para que no quede pegado a los bordes
             let newSize = Math.floor(baseFontSize * ratio * 0.95);
-            // Establecemos un tamaño mínimo legible (ej. 14px)
             newSize = Math.max(newSize, 14); 
             setDynamicFontSize(newSize);
         } else {
-            // Si cabe bien, usamos el tamaño base
             setDynamicFontSize(baseFontSize);
         }
-    // Ejecutamos esto cada vez que cambie el nombre, la orientación o el tamaño base
-    }, [nombreSalon, isVertical, baseFontSize]);
-    // =====================================================================
+    }, [nombreSalon, isVertical, baseFontSize, config]); // Ahora nombreSalon ya existe aquí
 
-
+    // 3. TERCERO: Loading Check
     if (loading && !config) return <div className="bg-black h-screen flex items-center justify-center text-white animate-pulse">Iniciando...</div>;
 
-    // --- VARIABLES DE CONFIGURACIÓN ---
-    // NOTA: Movemos nombreSalon antes de la lógica nueva para poder usarlo en el dependency array
-    const nombreSalon = eventoActual?.nombre_salon || config?.nombre_interno || "Sala de Eventos";
+    // 4. CUARTO: Variables dependientes de config (Colores y Estilos)
     const tickerText = eventoActual?.ticker || null;
     const { fondo = '#000000', texto_evento = '#FFFFFF', texto_reloj = '#FFFFFF', acento = '#EAB308' } = config?.colores || {};
     
-    // Estilo Brillante
     const colorBrillante = lightenColor(acento, 40); 
     const shinyStyle = {
         backgroundImage: `linear-gradient(to right, ${acento}, ${colorBrillante}, ${acento})`,
@@ -124,11 +118,10 @@ export default function PlayerSalon() {
         backgroundClip: 'text',
         color: 'transparent',
         filter: `drop-shadow(0 0 2px ${acento})`,
-        // ✅ NUEVO: Aplicamos el tamaño de fuente dinámico calculado
-        fontSize: `${dynamicFontSize}px` 
+        fontSize: `${dynamicFontSize}px` // Usamos el tamaño calculado
     };
 
-    // --- LÓGICA DE FECHAS ---
+    // Lógica de fechas
     let textoFechas = "";
     if (eventoActual) {
         const fInicio = formatDate(eventoActual.inicio_iso);
@@ -136,11 +129,8 @@ export default function PlayerSalon() {
         if (fInicio === fFin) { textoFechas = fInicio; } 
         else { textoFechas = `${fInicio} al ${fFin}`; }
     }
-    
-    // Ajustes de CSS basados en la decisión
-    const paddingX = isVertical ? 'px-4' : 'px-10';
-    const radioBorde = isVertical ? 'rounded-[2rem]' : 'rounded-[3rem]';
 
+    // 5. RENDER
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden font-sans relative transition-colors duration-1000" style={{ backgroundColor: fondo }}>
             <style>{`@keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } } .animate-marquee { animation: marquee 30s linear infinite; white-space: nowrap; display: inline-block; padding-left: 100%; }`}</style>
@@ -153,16 +143,9 @@ export default function PlayerSalon() {
                     {config?.logo && <img src={config.logo} alt="Logo" className={`${isVertical ? 'h-16' : 'h-20'} w-auto object-contain animate-float`} />}
                 </div>
                 
-                {/* ✅ NUEVO: Contenedor del Título ajustado */}
+                {/* Contenedor del Título con Auto-Resize */}
                 <div className="flex justify-center overflow-hidden w-full px-2">
-                     {/* Usamos w-full y max-w para que la píldora use el espacio disponible */}
                     <div className={`py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl w-full flex justify-center ${isVertical ? 'px-2 max-w-[95%]' : 'px-8 max-w-[80%]'}`}>
-                        {/* ✅ NUEVO H1: 
-                            1. Agregamos ref={titleRef}
-                            2. Quitamos las clases de tamaño fijo (text-2xl, text-4xl)
-                            3. Quitamos 'text-ellipsis' (ya no queremos los puntos)
-                            4. El tamaño se controla ahora vía el estilo 'shinyStyle' que incluye el fontSize dinámico.
-                        */}
                         <h1 
                             ref={titleRef}
                             className="font-bold tracking-widest uppercase drop-shadow-sm whitespace-nowrap overflow-hidden text-center leading-none py-1"
@@ -183,7 +166,7 @@ export default function PlayerSalon() {
                 </div>
             </header>
 
-            {/* CONTENIDO (Resto del archivo igual) */}
+            {/* CONTENIDO */}
             <div className={`flex-1 ${paddingX} pt-2 relative z-10 w-full h-full min-h-0 ${tickerText ? 'pb-14' : ''}`}>
                 
                 {/* A. SCREENSAVER */}
