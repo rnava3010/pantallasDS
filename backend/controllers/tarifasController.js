@@ -13,14 +13,13 @@ const obtenerTarifasPorSucursal = async (idSucursal) => {
                 nombre_habitacion as nombre, 
                 descripcion,
                 precio_rack, 
-                precio_promocion as precio, 
+                precio_promocion, 
                 moneda, 
                 url_imagen_fondo as imagen
             FROM tbl_tarifas 
             WHERE idSucursal = ? AND activo = 1
             ORDER BY idTarifa ASC
         `;
-        // Se agregó 'descripcion' al SELECT
         const [rows] = await pool.query(sql, [idSucursal]);
         return rows;
     } catch (error) {
@@ -35,7 +34,6 @@ const obtenerTarifasPorSucursal = async (idSucursal) => {
  * @returns {Promise<string>} - Texto del banner.
  */
 const obtenerBannersTarifas = async (idSucursal) => {
-    // Por ahora devuelve un texto estático, pero se puede extender para consultar la BD
     return "Consulte nuestras promociones de temporada en recepción. • Tarifas vigentes para el día de hoy.";
 };
 
