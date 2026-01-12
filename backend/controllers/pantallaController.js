@@ -10,6 +10,7 @@ const obtenerConfiguracionBase = async (id) => {
         SELECT 
             t.idTerminal, t.nombre_interno, t.tipo_pantalla, t.idAreaAsignada,
             t.idSucursal, t.orientacion, t.layoutDir, t.layoutTarifas,
+            t.pieTarifas,
             a.nombre as nombre_area,
             COALESCE(s.logo_url, m.logo_url) as final_logo_name, 
             s.latitud, s.longitud, s.zona_horaria, t.imagen_default_url,
@@ -17,8 +18,8 @@ const obtenerConfiguracionBase = async (id) => {
             COALESCE(t.color_texto_evento, '#FFFFFF') as color_texto_evento,
             COALESCE(t.color_texto_reloj, '#FFFFFF') as color_texto_reloj,
             COALESCE(t.color_acento, '#EAB308') as color_acento,
-            t.idiomas_activos,       /* ✅ NUEVO: Para rotación */
-            t.tiempo_rotacion_idioma /* ✅ NUEVO: Tiempo en segundos */
+            t.idiomas_activos,       
+            t.tiempo_rotacion_idioma 
         FROM cat_terminales t
         LEFT JOIN cat_areas a ON t.idAreaAsignada = a.idArea
         LEFT JOIN cat_sucursales s ON t.idSucursal = s.idSucursal
@@ -30,18 +31,24 @@ const obtenerConfiguracionBase = async (id) => {
     if (rows.length > 0) {
         let config = rows[0];
 
-        // ✅ Procesar JSON de idiomas (si viene como string o es nulo)
         if (typeof config.idiomas_activos === 'string') {
-            try {
-                config.idiomas_activos = JSON.parse(config.idiomas_activos);
-            } catch (e) {
-                config.idiomas_activos = ["es"];
-            }
+            try { config.idiomas_activos = JSON.parse(config.idiomas_activos); } catch (e) { config.idiomas_activos = ["es"]; }
         } else if (!Array.isArray(config.idiomas_activos)) {
             config.idiomas_activos = ["es"];
         }
 
-        // ✅ Default de tiempo si es nulo o 0
+        if (config.pieTarifas) {
+            try {
+                const parsed = JSON.parse(config.pieTarifas);
+                config.pieTarifas = (typeof parsed === 'object') ? parsed : { es: config.pieTarifas };
+            } catch (e) {
+                config.pieTarifas = { es: config.pieTarifas };
+            }
+        } else {
+            config.pieTarifas = {};
+        }
+
+        // Default de tiempo
         if (!config.tiempo_rotacion_idioma || config.tiempo_rotacion_idioma <= 0) {
             config.tiempo_rotacion_idioma = 20; 
         }
@@ -56,7 +63,7 @@ const obtenerScreensaver = async (idTerminal) => {
     return rows.map(row => row.url_archivo);
 };
 
-// Helper para obtener clima (si lo usas en este controlador)
+// Helper clima
 const getClimaSeguro = async (idSucursal) => {
     const [rows] = await pool.query("SELECT json_clima, updated_at FROM tbl_cache_clima WHERE idSucursal = ?", [idSucursal]);
     if (rows.length > 0) {
@@ -75,11 +82,9 @@ const getDatosPantalla = async (req, res) => {
         const terminal = await obtenerConfiguracionBase(id);
         if (!terminal) return res.status(404).json({ error: "Terminal no encontrada" });
 
-        // ✅ Respetamos tu lógica de DB
         const listaScreensaver = await obtenerScreensaver(terminal.idTerminal);
         const climaCache = await getClimaSeguro(terminal.idSucursal);
 
-        // --- PROCESAMIENTO CORRECTO DEL LOGO ---
         let logoFinal = null;
         if (terminal.final_logo_name) {
             const fileName = terminal.final_logo_name.split('/').pop(); 
@@ -94,10 +99,11 @@ const getDatosPantalla = async (req, res) => {
                 orientacion: terminal.orientacion,
                 layoutDir: terminal.layoutDir || 0,
                 layoutTarifas: terminal.layoutTarifas || 0,
+                pieTarifas: terminal.pieTarifas, // ✅ Se envía al frontend
                 zona_horaria: terminal.zona_horaria || 'America/Mexico_City',
                 logo: logoFinal, 
                 imagen_default: terminal.imagen_default_url,
-                screensaver: listaScreensaver, // ✅ Viene de DB
+                screensaver: listaScreensaver,
                 ubicacion: { 
                     lat: terminal.latitud || '19.43', 
                     lon: terminal.longitud || '-99.13' 
@@ -108,7 +114,6 @@ const getDatosPantalla = async (req, res) => {
                     texto_reloj: terminal.color_texto_reloj,
                     acento: terminal.color_acento 
                 },
-                // ✅ Agregamos los nuevos campos a la respuesta config
                 idiomas_activos: terminal.idiomas_activos,
                 tiempo_rotacion_idioma: terminal.tiempo_rotacion_idioma
             },
@@ -119,7 +124,6 @@ const getDatosPantalla = async (req, res) => {
             server_time: new Date()
         };
 
-        // --- DELEGACIÓN POR TIPO DE PANTALLA ---
         if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
             const eventos = await salonesController.obtenerAgendaSalon(terminal.idAreaAsignada);
             const dataSalon = { 
@@ -142,8 +146,6 @@ const getDatosPantalla = async (req, res) => {
         else if (terminal.tipo_pantalla === 'TARIFAS') {
             const tarifas = await tarifasController.obtenerTarifasPorSucursal(terminal.idSucursal);
             const divisas = await tarifasController.obtenerDivisasPorSucursal(terminal.idSucursal);
-            
-            // ✅ Avisos con traducciones
             const avisos = await tarifasController.obtenerAvisosPorSucursal(terminal.idSucursal);
 
             const dataTarifas = { 
@@ -151,7 +153,7 @@ const getDatosPantalla = async (req, res) => {
                 tarifas, 
                 divisas,
                 avisos,
-                galeria: listaScreensaver // ✅ Usamos la variable de DB
+                galeria: listaScreensaver 
             };
             respuesta.datos = dataTarifas;
             respuesta.data = dataTarifas;
