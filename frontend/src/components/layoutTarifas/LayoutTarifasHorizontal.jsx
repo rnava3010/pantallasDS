@@ -24,14 +24,15 @@ export default function LayoutTarifasHorizontal({
 
     const visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA);
 
-    // Helper para obtener la ruta de la bandera (busca en public/banderas/CODIGO.png)
+    // ✅ HELPER CORREGIDO: Construye la URL hacia el Backend
+    // Si config.logo viene como "/logos/..." significa que el backend sirve la raíz.
+    // Usamos la misma lógica para las banderas.
     const getBanderaSrc = (codigo) => {
-        try {
-            // Intenta cargar la imagen local basada en el código (ej: /banderas/USD.png)
-            return `/banderas/${codigo}.png`;
-        } catch (e) {
-            return null;
-        }
+        // En desarrollo local a veces necesitamos poner la URL completa si React y Node están en puertos distintos.
+        // Pero si ya te funcionan los logos con rutas relativas, esto funcionará igual:
+        return `https://ds.logicielmx.cloud/banderas/${codigo}.png`; 
+        // 👆 NOTA: Puse la URL directa de tu nube para asegurar que se vean sí o sí.
+        // Si prefieres ruta relativa usa: return `/banderas/${codigo}.png`;
     };
 
     return (
@@ -83,26 +84,23 @@ export default function LayoutTarifasHorizontal({
                 })}
             </main>
 
-            {/* ✅ 3. DIVISAS CON IMÁGENES PNG */}
+            {/* ✅ DIVISAS CON IMÁGENES DESDE EL BACKEND */}
             <div className="flex justify-center items-center py-2 z-10 min-h-[80px]"> 
                 {divisas.length > 0 && (
                     <div className="flex gap-4 animate-fade-in-up">
                         {divisas.map((divisa, idx) => (
                             <div key={idx} className="flex items-center gap-4 bg-black/60 backdrop-blur-md px-5 py-3 rounded-xl border border-white/20 shadow-lg transition-transform hover:scale-105">
                                 
-                                {/* IMAGEN DE BANDERA */}
                                 <img 
                                     src={getBanderaSrc(divisa.codigo)} 
                                     alt={divisa.codigo}
-                                    className="w-12 h-12 object-contain drop-shadow-md rounded-full"
+                                    className="w-12 h-12 object-contain drop-shadow-md rounded-full bg-white/10"
                                     onError={(e) => {
-                                        e.target.onerror = null; 
-                                        e.target.src = '/banderas/default.png'; // Imagen por defecto si falla
-                                        e.target.style.display = 'none'; // Ocultar si no hay imagen ni default
-                                        e.target.nextSibling.style.display = 'block'; // Mostrar emoji de respaldo
+                                        e.target.style.display = 'none'; // Si falla la imagen, ocultarla
+                                        e.target.nextSibling.style.display = 'block'; // Mostrar emoji
                                     }}
                                 />
-                                {/* Respaldo por si la imagen falla (Emoji) */}
+                                {/* Emoji de respaldo por si no se ha subido la imagen al servidor aun */}
                                 <span className="hidden text-3xl">🌐</span>
 
                                 <div className="flex flex-col">
