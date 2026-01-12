@@ -58,8 +58,8 @@ export default function LayoutTarifasVertical({
     return (
         <div className="h-screen w-screen overflow-hidden p-5 flex flex-col justify-between" style={{ backgroundColor: fondo }}>
             
-            {/* HEADER - Tamaños corregidos (mitad del incremento) */}
-            <header className="grid grid-cols-3 items-center bg-black/50 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/10 shadow-xl shrink-0">
+            {/* 1. HEADER REDISEÑADO - Proporciones equilibradas */}
+            <header className="grid grid-cols-3 items-center bg-black/50 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 shadow-xl shrink-0">
                 <div className="flex justify-start">
                     <img src={config.logo} alt="Logo" className="h-10 object-contain" />
                 </div>
@@ -69,17 +69,17 @@ export default function LayoutTarifasVertical({
                     </h1>
                 </div>
                 <div className="flex flex-col items-end leading-none gap-0.5">
-                    <span className="text-xl font-mono font-black text-white">
+                    <span className="text-2xl font-mono font-black text-white">
                         {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <span className="text-[9px] font-bold opacity-60 text-white uppercase tracking-wider">
+                    <span className="text-[10px] font-bold opacity-60 text-white uppercase tracking-wider">
                         {horaActual?.toLocaleDateString(idiomaActual === 'en' ? 'en-US' : 'es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
                     </span>
                 </div>
             </header>
 
-            {/* TARIFAS - Espaciado profesional */}
-            <main className="flex-1 flex flex-col gap-2.5 justify-center py-2 overflow-hidden">
+            {/* 2. TARIFAS - 5 Items que respiran bien */}
+            <main className="flex-1 flex flex-col gap-2 justify-center py-2 overflow-hidden">
                 {visibles.map((t, i) => {
                     const tienePromo = t.precio_promocion && parseFloat(t.precio_promocion) > 0;
                     const precioMostrar = tienePromo ? t.precio_promocion : t.precio_rack;
@@ -113,10 +113,10 @@ export default function LayoutTarifasVertical({
                 })}
             </main>
 
-            {/* AVISO FIJO Y TIPO DE CAMBIO - Tamaño medio */}
+            {/* 3. AVISO FIJO Y TIPO DE CAMBIO */}
             <div className="flex flex-col gap-2.5 shrink-0 mb-1">
                 {textoLegal && (
-                    <p className="text-[9px] text-white/40 uppercase tracking-[0.2em] text-center font-semibold leading-none">
+                    <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] text-center font-semibold leading-none">
                         {textoLegal}
                     </p>
                 )}
@@ -124,7 +124,6 @@ export default function LayoutTarifasVertical({
                 <div className="flex justify-center gap-2.5 flex-wrap">
                     {divisas.map((divisa, idx) => (
                         <div key={idx} className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-xl border border-white/5 shadow-md">
-                            {/* src usa la URL que ya procesamos en el backend */}
                             <img 
                                 src={divisa.imagen_url} 
                                 className="w-5 h-5 rounded-full border border-white/10"
@@ -143,9 +142,9 @@ export default function LayoutTarifasVertical({
                 </div>
             </div>
 
-            {/* FOOTER */}
+            {/* 4. FOOTER - Video 20% altura */}
             <footer className="flex flex-col gap-2.5 shrink-0">
-                <div className="h-[21vh] relative rounded-2xl overflow-hidden border border-white/10 bg-black shadow-inner">
+                <div className="h-[20vh] relative rounded-2xl overflow-hidden border border-white/10 bg-black shadow-inner">
                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="absolute inset-0 w-full h-full object-cover" />
                 </div>
                 
