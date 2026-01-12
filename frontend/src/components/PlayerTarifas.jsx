@@ -48,9 +48,9 @@ export default function PlayerTarifas() {
             case 1:
                 return <LayoutTarifasVertical {...layoutProps} />;
 			case 2:
-                return <LayoutTarifasHorizontal {...layoutProps} />;
+                return <LayoutTarifasHorizontal2 {...layoutProps} />;
             case 3:
-                return <LayoutTarifasVertical {...layoutProps} />;
+                return <LayoutTarifasVertical2 {...layoutProps} />;
             default:
                 return <LayoutTarifasHorizontal {...layoutProps} />;
         }
