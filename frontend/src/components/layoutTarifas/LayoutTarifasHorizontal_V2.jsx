@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import MediaRenderer from '../MediaRenderer';
 import { TEXTOS_TARIFAS } from '../../utils/diccionario';
 
-const FLAGS_EMOJI = { USD: '🇺🇸', EUR: '🇪🇺', CAD: '🇨🇦', JPY: '🇯🇵', MXN: '🇲🇽', GBP: '🇬🇧' };
-
 export default function LayoutTarifasHorizontal2({ config, datos, horaActual, itemActual, videoBlobUrl }) {
     const [pagina, setPagina] = useState(0);
     const [idiomaIndex, setIdiomaIndex] = useState(0);
-    const { fondo, texto_evento, acento } = config.colores;
+    const { acento } = config.colores;
     
     const idiomas = Array.isArray(config?.idiomas_activos) ? config.idiomas_activos : ['es'];
     const idiomaActual = idiomas[idiomaIndex];
@@ -16,16 +14,12 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
     const textoLegal = pieTarifasObj[idiomaActual] || pieTarifasObj['es'] || "";
 
     const tarifas = datos?.tarifas || [];
-    const divisas = datos?.divisas || [];
-    const avisosRaw = datos?.avisos || [];
-    const ITEMS_POR_PAGINA = 4;
+    const ITEMS_POR_PAGINA = 5;
 
     useEffect(() => {
-        if (idiomas.length > 1) {
-            const int = setInterval(() => setIdiomaIndex(prev => (prev + 1) % idiomas.length), (config?.tiempo_rotacion_idioma || 20) * 1000);
-            return () => clearInterval(int);
-        }
-    }, [idiomas, config]);
+        const int = setInterval(() => setIdiomaIndex(prev => (prev + 1) % idiomas.length), (config?.tiempo_rotacion_idioma || 20) * 1000);
+        return () => clearInterval(int);
+    }, [idiomas]);
 
     useEffect(() => {
         const total = Math.ceil(tarifas.length / ITEMS_POR_PAGINA);
@@ -35,60 +29,47 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
         }
     }, [tarifas.length]);
 
-    const getTxt = (obj, campoBase) => {
-        if (idiomaActual === 'es') return obj[campoBase] || "";
-        return obj[`${campoBase}_${idiomaActual}`] || obj[campoBase] || "";
-    };
+    const getTxt = (obj, campo) => obj[`${campo}_${idiomaActual}`] || obj[campo] || "";
 
     return (
-        <div className="h-screen w-screen overflow-hidden flex" style={{ backgroundColor: fondo }}>
-            {/* IZQUIERDA: MEDIA (40% del ancho) */}
-            <div className="w-[40%] h-full relative border-r border-white/10 shadow-2xl">
-                <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="absolute inset-0 w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent"></div>
+        <div className="h-screen w-screen overflow-hidden relative bg-black">
+            {/* FONDO: GALERÍA A PANTALLA COMPLETA */}
+            <div className="absolute inset-0 z-0">
+                <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="w-full h-full object-cover opacity-60" />
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
             </div>
 
-            {/* DERECHA: TARIFAS Y DATOS (60% del ancho) */}
-            <div className="flex-1 flex flex-col p-10 justify-between">
-                <header className="flex justify-between items-center border-b border-white/10 pb-6">
-                    <img src={config.logo} alt="Logo" className="h-16 object-contain" />
-                    <div className="text-right">
-                        <h1 className="text-3xl font-black uppercase" style={{ color: acento }}>{dict.titulo_largo}</h1>
-                        <span className="text-xl font-mono text-white opacity-60 uppercase">{horaActual?.toLocaleTimeString()}</span>
+            {/* CONTENIDO SUPERPUESTO */}
+            <div className="relative z-10 h-full flex flex-col p-8 justify-between text-white">
+                <header className="flex justify-between items-center bg-black/40 p-6 rounded-3xl border border-white/10">
+                    <img src={config.logo} className="h-14" alt="logo" />
+                    <h1 className="text-3xl font-black uppercase tracking-tighter" style={{ color: acento }}>{dict.titulo_largo}</h1>
+                    <div className="text-right leading-none">
+                        <div className="text-3xl font-mono font-bold">{horaActual?.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        <div className="text-[10px] opacity-60 uppercase">{horaActual?.toLocaleDateString()}</div>
                     </div>
                 </header>
 
-                <main className="flex-1 flex flex-col justify-center gap-4 py-8">
+                <main className="grid grid-cols-1 gap-3 max-w-5xl mx-auto w-full">
                     {tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA).map((t, i) => (
-                        <div key={i} className="flex justify-between items-center border-l-4 p-5 bg-white/5 animate-fade-in-up" style={{ borderColor: acento }}>
-                            <div>
-                                <h2 className="text-2xl font-bold uppercase text-white">{getTxt(t, 'nombre')}</h2>
-                                <p className="text-sm opacity-40 italic text-white">{getTxt(t, 'descripcion')}</p>
-                            </div>
-                            <div className="text-right">
-                                <span className="text-4xl font-mono font-black" style={{ color: acento }}>{t.moneda}{t.precio_promocion || t.precio_rack}</span>
-                            </div>
+                        <div key={i} className="flex justify-between items-center bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/5 animate-fade-in-up">
+                            <span className="text-2xl font-bold uppercase">{getTxt(t, 'nombre')}</span>
+                            <span className="text-4xl font-mono font-black" style={{ color: acento }}>{t.moneda}{t.precio_promocion || t.precio_rack}</span>
                         </div>
                     ))}
                 </main>
 
-                <footer className="space-y-4">
-                    <div className="flex justify-center gap-6">
-                        {divisas.map((d, idx) => (
-                            <div key={idx} className="flex items-center gap-2 bg-black/40 px-4 py-2 rounded-full border border-white/10">
-                                <span className="text-xs font-bold text-white/40">{d.codigo}</span>
-                                <span className="text-xl font-mono text-white font-bold">{d.tipo_cambio}</span>
+                <footer className="flex flex-col gap-4">
+                    <div className="flex justify-center gap-4">
+                        {datos?.divisas.map((d, i) => (
+                            <div key={i} className="bg-black/60 px-4 py-2 rounded-xl border border-white/10 font-mono">
+                                <span className="text-xs opacity-40 mr-2">{d.codigo}</span>{d.tipo_cambio}
                             </div>
                         ))}
                     </div>
-                    <div className="h-10 bg-black/60 rounded-full flex items-center overflow-hidden">
-                        <div className="animate-marquee-horizontal whitespace-nowrap text-white text-sm uppercase tracking-widest">
-                            {avisosRaw.map((a, i) => <span key={i} className="mx-10">{getTxt(a, 'texto')}</span>)}
-                        </div>
-                    </div>
+                    {textoLegal && <p className="text-center text-[10px] opacity-50 uppercase tracking-[0.3em]">{textoLegal}</p>}
                 </footer>
             </div>
-            <style>{`.animate-marquee-horizontal { animation: marqueeH 30s linear infinite; } @keyframes marqueeH { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }`}</style>
         </div>
     );
 }
