@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import MediaRenderer from '../MediaRenderer';
 
+// ✅ MAPA DE RESPALDO (Emojis por si falla la imagen PNG)
+const FLAGS_EMOJI = {
+    USD: '🇺🇸',
+    EUR: '🇪🇺',
+    CAD: '🇨🇦',
+    JPY: '🇯🇵',
+    MXN: '🇲🇽',
+    GBP: '🇬🇧'
+};
+
 export default function LayoutTarifasHorizontal({ 
     config, datos, horaActual, clima, itemActual, videoBlobUrl 
 }) {
@@ -10,18 +20,8 @@ export default function LayoutTarifasHorizontal({
     const tarifas = datos?.tarifas || [];
     const divisas = datos?.divisas || []; 
     const banner = datos?.banner || "Bienvenidos - Consulte nuestras promociones";
+    
     const ITEMS_POR_PAGINA = 4;
-
-    // --- LOGS DE DEPURACIÓN AL INICIO ---
-    useEffect(() => {
-        console.log("🔍 DEBUG TARIFAS - Datos recibidos:", datos);
-        console.log("💰 DEBUG DIVISAS - Array:", divisas);
-        if (divisas.length > 0) {
-            divisas.forEach(d => {
-                console.log(`   ➡️ Divisa: ${d.codigo}, Archivo esperado: ${d.codigo?.toLowerCase()}.png`);
-            });
-        }
-    }, [datos]);
 
     useEffect(() => {
         if (tarifas.length === 0) return;
@@ -34,17 +34,10 @@ export default function LayoutTarifasHorizontal({
 
     const visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA);
 
-    // ✅ HELPER CON LOGS: Construye la URL y avisa si la genera mal
+    // Helper para URL (apunta a tu servidor en la nube)
     const getBanderaSrc = (codigo) => {
         if (!codigo) return "";
-        
-        // 1. Convertimos a minúsculas para coincidir con el archivo físico
-        const nombreArchivo = codigo.toLowerCase(); 
-        
-        // 2. Construimos la URL absoluta al backend
-        const url = `https://ds.logicielmx.cloud/banderas/${nombreArchivo}.png`;
-        
-        return url;
+        return `https://ds.logicielmx.cloud/banderas/${codigo.toLowerCase()}.png`;
     };
 
     return (
@@ -96,27 +89,29 @@ export default function LayoutTarifasHorizontal({
                 })}
             </main>
 
-            {/* ✅ DIVISAS CON IMÁGENES Y LOGS DE ERROR */}
+            {/* ✅ DIVISAS: SISTEMA HÍBRIDO (IMAGEN O EMOJI) */}
             <div className="flex justify-center items-center py-2 z-10 min-h-[80px]"> 
                 {divisas.length > 0 && (
                     <div className="flex gap-4 animate-fade-in-up">
                         {divisas.map((divisa, idx) => (
                             <div key={idx} className="flex items-center gap-4 bg-black/60 backdrop-blur-md px-5 py-3 rounded-xl border border-white/20 shadow-lg transition-transform hover:scale-105">
                                 
+                                {/* 1. Intenta mostrar IMAGEN */}
                                 <img 
                                     src={getBanderaSrc(divisa.codigo)} 
                                     alt={divisa.codigo}
                                     className="w-12 h-12 object-contain drop-shadow-md rounded-full bg-white/10"
-                                    onLoad={() => console.log(`✅ Imagen cargada OK: ${divisa.codigo}`)}
                                     onError={(e) => {
-                                        console.error(`❌ ERROR cargando imagen para ${divisa.codigo}. URL intentada: ${e.target.src}`);
+                                        // Si falla, ocultamos la imagen y mostramos el emoji hermano
                                         e.target.style.display = 'none'; 
-                                        e.target.nextSibling.style.display = 'block'; // Muestra el emoji
+                                        e.target.nextSibling.style.display = 'block'; 
                                     }}
                                 />
                                 
-                                {/* Emoji de respaldo (Solo se ve si falla la imagen) */}
-                                <span className="hidden text-3xl">🌐</span>
+                                {/* 2. Respaldo EMOJI (Oculto por defecto, se muestra si falla la imagen) */}
+                                <span className="hidden text-4xl select-none filter drop-shadow-md">
+                                    {FLAGS_EMOJI[divisa.codigo] || '🌐'}
+                                </span>
 
                                 <div className="flex flex-col">
                                     <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase mb-[-2px]">
