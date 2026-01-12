@@ -8,10 +8,14 @@ export default function LayoutTarifasHorizontal({
     const { fondo, texto_reloj, texto_evento, acento } = config.colores;
     
     const tarifas = datos?.tarifas || [];
+    const divisas = datos?.divisas || []; 
     const banner = datos?.banner || "Bienvenidos - Consulte nuestras promociones";
-    const ITEMS_POR_PAGINA = 5;
+    
+    // Mantenemos 4 para asegurar espacio, pero el Grid ajustará si son más.
+    const ITEMS_POR_PAGINA = 4;
 
     useEffect(() => {
+        if (tarifas.length === 0) return;
         const total = Math.ceil(tarifas.length / ITEMS_POR_PAGINA);
         if (total > 1) {
             const int = setInterval(() => setPagina(p => (p + 1) % total), 10000);
@@ -22,18 +26,25 @@ export default function LayoutTarifasHorizontal({
     const visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA);
 
     return (
-        <div className="flex flex-col h-screen w-screen overflow-hidden p-10" style={{ backgroundColor: fondo }}>
+        // CAMBIO PRINCIPAL: Usamos Grid para forzar 4 filas: Header, Tarifas, Divisas, Footer
+        <div className="h-screen w-screen overflow-hidden p-6 grid grid-rows-[auto_1fr_auto_auto] gap-4" style={{ backgroundColor: fondo }}>
             
-            {/* HEADER */}
-            <header className="flex justify-between items-center mb-10 bg-black/40 backdrop-blur-md p-6 rounded-[2rem] border border-white/10 shadow-2xl">
+            {/* --- DEBUG: SI ESTO SALE ROJO, EL BACKEND NO ENVÍA DATOS --- */}
+            {divisas.length === 0 && (
+                <div className="absolute top-0 left-0 bg-red-600 text-white font-bold p-2 z-50 text-xs">
+                    ⚠️ ALERTA: No llegan divisas. Reinicia el Backend ('node index.js').
+                </div>
+            )}
+
+            {/* 1. HEADER (Altura automática según contenido) */}
+            <header className="flex justify-between items-center bg-black/40 backdrop-blur-md p-4 rounded-[1.5rem] border border-white/10 shadow-xl z-20">
                 <img 
                     src={config.logo} 
                     alt="Logo" 
                     className="h-14 object-contain animate-logo-float" 
                 />
-                
                 <h1 
-                    className="text-4xl font-black uppercase tracking-tighter transition-all duration-300" 
+                    className="text-3xl font-black uppercase tracking-tighter" 
                     style={{ 
                         color: acento,
                         textShadow: `0 0 20px ${acento}80, 0 0 40px ${acento}40`
@@ -41,43 +52,37 @@ export default function LayoutTarifasHorizontal({
                 >
                     Tarifas Vigentes
                 </h1>
-                
                 <div className="text-right flex flex-col justify-center">
-                    <span className="text-5xl font-mono font-black block leading-none text-white">
+                    <span className="text-4xl font-mono font-black block leading-none text-white">
                         {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <span className="text-lg opacity-80 text-white font-light uppercase tracking-widest mt-1">
+                    <span className="text-sm opacity-80 text-white font-light uppercase tracking-widest mt-1">
                         {horaActual?.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                     </span>
                 </div>
             </header>
 
-            {/* CENTRO: LISTADO DE TARIFAS */}
-            <main className="flex-1 flex flex-col gap-4 px-10">
+            {/* 2. TARIFAS (Ocupa todo el espacio disponible - 1fr) */}
+            <main className="flex flex-col justify-center gap-3 overflow-hidden">
                 {visibles.map((t, i) => {
-                    // Lógica de Precios
-                    // Verificamos si existe precio_promocion y si es válido (mayor a 0)
                     const tienePromo = t.precio_promocion && parseFloat(t.precio_promocion) > 0;
                     const precioMostrar = tienePromo ? t.precio_promocion : t.precio_rack;
                     const monedaSymbol = t.moneda || '$';
 
                     return (
-                        <div key={i} className="flex justify-between items-center p-6 bg-white/5 rounded-3xl border border-white/5 animate-fade-in-up">
-                            <div className="flex flex-col">
-                                <span className="text-3xl font-black uppercase" style={{ color: texto_evento }}>{t.nombre}</span>
-                                <span className="text-sm opacity-50 text-white italic mt-1">{t.descripcion}</span>
+                        <div key={i} className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5 animate-fade-in-up shadow-lg">
+                            <div className="flex flex-col overflow-hidden">
+                                <span className="text-2xl font-black uppercase truncate" style={{ color: texto_evento }}>{t.nombre}</span>
+                                {t.descripcion && <span className="text-xs opacity-60 text-white italic mt-1 truncate">{t.descripcion}</span>}
                             </div>
                             
-                            {/* Columna de Precios Alineada a la derecha */}
-                            <div className="flex flex-col items-end justify-center">
+                            <div className="flex flex-col items-end justify-center min-w-[160px]">
                                 <div className="flex items-baseline gap-2">
-                                    <span className="text-xl font-bold opacity-40 text-white">{monedaSymbol}</span>
-                                    <span className="text-5xl font-mono font-black" style={{ color: acento }}>{precioMostrar}</span>
+                                    <span className="text-lg font-bold opacity-40 text-white">{monedaSymbol}</span>
+                                    <span className="text-4xl font-mono font-black" style={{ color: acento }}>{precioMostrar}</span>
                                 </div>
-                                
-                                {/* Mostrar precio regular solo si hay promoción activa */}
                                 {tienePromo && (
-                                    <span className="text-base font-bold text-white/40 mt-1">
+                                    <span className="text-xs font-bold text-white/40">
                                         Reg. {monedaSymbol} {t.precio_rack}
                                     </span>
                                 )}
@@ -87,14 +92,39 @@ export default function LayoutTarifasHorizontal({
                 })}
             </main>
 
-            {/* FOOTER: GALERÍA Y BANNER */}
-            <footer className="h-64 mt-10 grid grid-cols-2 gap-8">
-                <div className="relative rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl">
+            {/* 3. DIVISAS (Altura automática, forzamos visibilidad) */}
+            <div className="flex justify-center items-center py-2 z-10 min-h-[80px]"> 
+                {divisas.length > 0 ? (
+                    <div className="flex gap-4 animate-fade-in-up">
+                        {divisas.map((divisa, idx) => (
+                            <div key={idx} className="flex items-center gap-3 bg-black/60 backdrop-blur-md px-5 py-2 rounded-xl border border-white/20 shadow-lg">
+                                <span className="text-2xl drop-shadow-md select-none">{divisa.bandera}</span>
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] font-bold text-white/50 tracking-widest uppercase">
+                                        {divisa.codigo}
+                                    </span>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-xs text-white/70">{divisa.simbolo}</span>
+                                        <span className="text-xl font-mono font-bold text-white">{divisa.tipo_cambio}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    // Mensaje discreto si no hay divisas pero no es error crítico
+                    <div className="opacity-0">Espacio reservado divisas</div> 
+                )}
+            </div>
+
+            {/* 4. FOOTER (Altura fija) */}
+            <footer className="h-48 grid grid-cols-2 gap-6 z-20">
+                <div className="relative rounded-[1.5rem] overflow-hidden border border-white/10 shadow-2xl bg-black">
                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="absolute inset-0 w-full h-full object-cover" />
                 </div>
-                <div className="bg-black/40 backdrop-blur-md rounded-[2.5rem] border border-white/10 p-8 flex items-center justify-center overflow-hidden">
+                <div className="bg-black/40 backdrop-blur-md rounded-[1.5rem] border border-white/10 p-4 flex items-center justify-center overflow-hidden">
                     <div className="animate-marquee-horizontal whitespace-nowrap">
-                        <span className="text-4xl font-light tracking-widest text-white uppercase">{banner}</span>
+                        <span className="text-2xl font-light tracking-widest text-white uppercase">{banner}</span>
                     </div>
                 </div>
             </footer>
