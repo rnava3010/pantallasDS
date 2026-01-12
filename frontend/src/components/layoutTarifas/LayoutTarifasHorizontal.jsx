@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import MediaRenderer from '../MediaRenderer';
 
-// ✅ MAPA DE RESPALDO (Emojis por si falla la imagen PNG)
+// Mapa de respaldo (Emojis) por si alguna imagen falla o falta
 const FLAGS_EMOJI = {
     USD: '🇺🇸',
     EUR: '🇪🇺',
@@ -21,6 +21,7 @@ export default function LayoutTarifasHorizontal({
     const divisas = datos?.divisas || []; 
     const banner = datos?.banner || "Bienvenidos - Consulte nuestras promociones";
     
+    // Mantenemos 4 items para asegurar espacio al recuadro de divisas
     const ITEMS_POR_PAGINA = 4;
 
     useEffect(() => {
@@ -34,24 +35,34 @@ export default function LayoutTarifasHorizontal({
 
     const visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA);
 
-    // Helper para URL (apunta a tu servidor en la nube)
+    // Helper para construir la URL de la imagen
     const getBanderaSrc = (codigo) => {
         if (!codigo) return "";
+        // Convierte a minúsculas para coincidir con el archivo en el servidor (usd.png, eur.png)
         return `https://ds.logicielmx.cloud/banderas/${codigo.toLowerCase()}.png`;
     };
 
     return (
         <div className="h-screen w-screen overflow-hidden p-6 grid grid-rows-[auto_1fr_auto_auto] gap-4" style={{ backgroundColor: fondo }}>
             
-            {/* HEADER */}
+            {/* 1. HEADER */}
             <header className="flex justify-between items-center bg-black/40 backdrop-blur-md p-4 rounded-[1.5rem] border border-white/10 shadow-xl z-20">
-                <img src={config.logo} alt="Logo" className="h-14 object-contain animate-logo-float" />
+                <img 
+                    src={config.logo} 
+                    alt="Logo" 
+                    className="h-14 object-contain animate-logo-float" 
+                />
+                
                 <h1 
                     className="text-3xl font-black uppercase tracking-tighter" 
-                    style={{ color: acento, textShadow: `0 0 20px ${acento}80, 0 0 40px ${acento}40` }}
+                    style={{ 
+                        color: acento,
+                        textShadow: `0 0 20px ${acento}80, 0 0 40px ${acento}40`
+                    }}
                 >
                     Tarifas Vigentes
                 </h1>
+                
                 <div className="text-right flex flex-col justify-center">
                     <span className="text-4xl font-mono font-black block leading-none text-white">
                         {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -62,7 +73,7 @@ export default function LayoutTarifasHorizontal({
                 </div>
             </header>
 
-            {/* TARIFAS */}
+            {/* 2. ZONA DE TARIFAS */}
             <main className="flex flex-col justify-center gap-3 overflow-hidden">
                 {visibles.map((t, i) => {
                     const tienePromo = t.precio_promocion && parseFloat(t.precio_promocion) > 0;
@@ -75,13 +86,16 @@ export default function LayoutTarifasHorizontal({
                                 <span className="text-2xl font-black uppercase truncate" style={{ color: texto_evento }}>{t.nombre}</span>
                                 {t.descripcion && <span className="text-xs opacity-60 text-white italic mt-1 truncate">{t.descripcion}</span>}
                             </div>
+                            
                             <div className="flex flex-col items-end justify-center min-w-[160px]">
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-lg font-bold opacity-40 text-white">{monedaSymbol}</span>
                                     <span className="text-4xl font-mono font-black" style={{ color: acento }}>{precioMostrar}</span>
                                 </div>
                                 {tienePromo && (
-                                    <span className="text-xs font-bold text-white/40">Reg. {monedaSymbol} {t.precio_rack}</span>
+                                    <span className="text-xs font-bold text-white/40">
+                                        Reg. {monedaSymbol} {t.precio_rack}
+                                    </span>
                                 )}
                             </div>
                         </div>
@@ -89,26 +103,26 @@ export default function LayoutTarifasHorizontal({
                 })}
             </main>
 
-            {/* ✅ DIVISAS: SISTEMA HÍBRIDO (IMAGEN O EMOJI) */}
+            {/* 3. BARRA DE DIVISAS (Con imágenes reales) */}
             <div className="flex justify-center items-center py-2 z-10 min-h-[80px]"> 
                 {divisas.length > 0 && (
                     <div className="flex gap-4 animate-fade-in-up">
                         {divisas.map((divisa, idx) => (
                             <div key={idx} className="flex items-center gap-4 bg-black/60 backdrop-blur-md px-5 py-3 rounded-xl border border-white/20 shadow-lg transition-transform hover:scale-105">
                                 
-                                {/* 1. Intenta mostrar IMAGEN */}
+                                {/* A. Imagen PNG del servidor */}
                                 <img 
                                     src={getBanderaSrc(divisa.codigo)} 
                                     alt={divisa.codigo}
                                     className="w-12 h-12 object-contain drop-shadow-md rounded-full bg-white/10"
                                     onError={(e) => {
-                                        // Si falla, ocultamos la imagen y mostramos el emoji hermano
+                                        // Si falla la imagen, la ocultamos y mostramos el emoji
                                         e.target.style.display = 'none'; 
                                         e.target.nextSibling.style.display = 'block'; 
                                     }}
                                 />
                                 
-                                {/* 2. Respaldo EMOJI (Oculto por defecto, se muestra si falla la imagen) */}
+                                {/* B. Respaldo Emoji (Oculto por defecto) */}
                                 <span className="hidden text-4xl select-none filter drop-shadow-md">
                                     {FLAGS_EMOJI[divisa.codigo] || '🌐'}
                                 </span>
@@ -128,7 +142,7 @@ export default function LayoutTarifasHorizontal({
                 )}
             </div>
 
-            {/* FOOTER */}
+            {/* 4. FOOTER */}
             <footer className="h-48 grid grid-cols-2 gap-6 z-20">
                 <div className="relative rounded-[1.5rem] overflow-hidden border border-white/10 shadow-2xl bg-black">
                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="absolute inset-0 w-full h-full object-cover" />
@@ -143,10 +157,15 @@ export default function LayoutTarifasHorizontal({
             <style>{`
                 .animate-marquee-horizontal { animation: marquee 20s linear infinite; }
                 @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+                
                 .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
                 .animate-logo-float { animation: floatLogo 6s ease-in-out infinite; }
-                @keyframes floatLogo { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+                @keyframes floatLogo {
+                    0%, 100% { transform: translateY(0px); }
+                    50% { transform: translateY(-8px); }
+                }
             `}</style>
         </div>
     );
