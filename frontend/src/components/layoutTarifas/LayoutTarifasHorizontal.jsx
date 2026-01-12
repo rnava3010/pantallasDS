@@ -10,8 +10,18 @@ export default function LayoutTarifasHorizontal({
     const tarifas = datos?.tarifas || [];
     const divisas = datos?.divisas || []; 
     const banner = datos?.banner || "Bienvenidos - Consulte nuestras promociones";
-    
     const ITEMS_POR_PAGINA = 4;
+
+    // --- LOGS DE DEPURACIÓN AL INICIO ---
+    useEffect(() => {
+        console.log("🔍 DEBUG TARIFAS - Datos recibidos:", datos);
+        console.log("💰 DEBUG DIVISAS - Array:", divisas);
+        if (divisas.length > 0) {
+            divisas.forEach(d => {
+                console.log(`   ➡️ Divisa: ${d.codigo}, Archivo esperado: ${d.codigo?.toLowerCase()}.png`);
+            });
+        }
+    }, [datos]);
 
     useEffect(() => {
         if (tarifas.length === 0) return;
@@ -24,15 +34,17 @@ export default function LayoutTarifasHorizontal({
 
     const visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA);
 
-    // ✅ HELPER CORREGIDO: Construye la URL hacia el Backend
-    // Si config.logo viene como "/logos/..." significa que el backend sirve la raíz.
-    // Usamos la misma lógica para las banderas.
+    // ✅ HELPER CON LOGS: Construye la URL y avisa si la genera mal
     const getBanderaSrc = (codigo) => {
-        // En desarrollo local a veces necesitamos poner la URL completa si React y Node están en puertos distintos.
-        // Pero si ya te funcionan los logos con rutas relativas, esto funcionará igual:
-        return `https://ds.logicielmx.cloud/banderas/${codigo}.png`; 
-        // 👆 NOTA: Puse la URL directa de tu nube para asegurar que se vean sí o sí.
-        // Si prefieres ruta relativa usa: return `/banderas/${codigo}.png`;
+        if (!codigo) return "";
+        
+        // 1. Convertimos a minúsculas para coincidir con el archivo físico
+        const nombreArchivo = codigo.toLowerCase(); 
+        
+        // 2. Construimos la URL absoluta al backend
+        const url = `https://ds.logicielmx.cloud/banderas/${nombreArchivo}.png`;
+        
+        return url;
     };
 
     return (
@@ -84,7 +96,7 @@ export default function LayoutTarifasHorizontal({
                 })}
             </main>
 
-            {/* ✅ DIVISAS CON IMÁGENES DESDE EL BACKEND */}
+            {/* ✅ DIVISAS CON IMÁGENES Y LOGS DE ERROR */}
             <div className="flex justify-center items-center py-2 z-10 min-h-[80px]"> 
                 {divisas.length > 0 && (
                     <div className="flex gap-4 animate-fade-in-up">
@@ -95,12 +107,15 @@ export default function LayoutTarifasHorizontal({
                                     src={getBanderaSrc(divisa.codigo)} 
                                     alt={divisa.codigo}
                                     className="w-12 h-12 object-contain drop-shadow-md rounded-full bg-white/10"
+                                    onLoad={() => console.log(`✅ Imagen cargada OK: ${divisa.codigo}`)}
                                     onError={(e) => {
-                                        e.target.style.display = 'none'; // Si falla la imagen, ocultarla
-                                        e.target.nextSibling.style.display = 'block'; // Mostrar emoji
+                                        console.error(`❌ ERROR cargando imagen para ${divisa.codigo}. URL intentada: ${e.target.src}`);
+                                        e.target.style.display = 'none'; 
+                                        e.target.nextSibling.style.display = 'block'; // Muestra el emoji
                                     }}
                                 />
-                                {/* Emoji de respaldo por si no se ha subido la imagen al servidor aun */}
+                                
+                                {/* Emoji de respaldo (Solo se ve si falla la imagen) */}
                                 <span className="hidden text-3xl">🌐</span>
 
                                 <div className="flex flex-col">
