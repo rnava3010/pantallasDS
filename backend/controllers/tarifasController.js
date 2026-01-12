@@ -1,12 +1,11 @@
 const pool = require('../config/db');
 
 /**
- * Obtiene la lista de tarifas activas para una sucursal específica.
- * @param {number} idSucursal - El ID de la sucursal a consultar.
- * @returns {Promise<Array>} - Lista de tarifas encontradas.
+ * Obtiene la lista de tarifas activas.
  */
 const obtenerTarifasPorSucursal = async (idSucursal) => {
     try {
+        // Mantenemos la corrección de separar precio_promocion y precio_rack
         const sql = `
             SELECT 
                 idTarifa, 
@@ -29,15 +28,33 @@ const obtenerTarifasPorSucursal = async (idSucursal) => {
 };
 
 /**
- * Obtiene los banners de texto informativos para el módulo de tarifas.
- * @param {number} idSucursal - El ID de la sucursal.
- * @returns {Promise<string>} - Texto del banner.
+ * Obtiene los banners de texto.
  */
 const obtenerBannersTarifas = async (idSucursal) => {
     return "Consulte nuestras promociones de temporada en recepción. • Tarifas vigentes para el día de hoy.";
 };
 
+/**
+ * ✅ NUEVA FUNCIÓN: Obtiene las divisas activas para la sucursal.
+ */
+const obtenerDivisasPorSucursal = async (idSucursal) => {
+    try {
+        const sql = `
+            SELECT nombre, codigo, simbolo, tipo_cambio, bandera 
+            FROM tbl_divisas 
+            WHERE idSucursal = ? AND activo = 1 
+            ORDER BY orden ASC
+        `;
+        const [rows] = await pool.query(sql, [idSucursal]);
+        return rows;
+    } catch (error) {
+        console.error("❌ Error en obtenerDivisasPorSucursal:", error);
+        return []; // Retornar array vacío en caso de error para no romper la pantalla
+    }
+};
+
 module.exports = {
     obtenerTarifasPorSucursal,
-    obtenerBannersTarifas
+    obtenerBannersTarifas,
+    obtenerDivisasPorSucursal // Exportamos la nueva función
 };
