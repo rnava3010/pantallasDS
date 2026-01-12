@@ -1,18 +1,20 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
-// Importa otras páginas aquí cuando las crees
+import Login from './pages/Login';
+import FirstLogin from './pages/FirstLogin';
 
 function App() {
   return (
     <Routes>
-      {/* Redirigir la raíz del manager al Dashboard */}
+      {/* Público */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/primer-login" element={<FirstLogin />} />
+
+      {/* Privado (ejemplo; agrega un guard cuando tengas auth) */}
       <Route path="/" element={<Dashboard />} />
-      
-      {/* Ejemplo de otras rutas que crearemos */}
-      <Route path="/pantallas" element={<div>Gestión de Pantallas</div>} />
-      
-      {/* Capturar rutas no encontradas */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+
+      {/* 404 */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }
