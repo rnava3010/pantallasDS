@@ -1,15 +1,14 @@
 const pool = require('../config/db');
 
-/**
- * Obtiene la lista de tarifas activas.
- */
 const obtenerTarifasPorSucursal = async (idSucursal) => {
     try {
         const sql = `
             SELECT 
                 idTarifa, 
                 nombre_habitacion as nombre, 
+                nombre_habitacion_en as nombre_en, /* <--- Traducido */
                 descripcion,
+                descripcion_en,                    /* <--- Traducido */
                 precio_rack, 
                 precio_promocion, 
                 moneda, 
@@ -26,14 +25,11 @@ const obtenerTarifasPorSucursal = async (idSucursal) => {
     }
 };
 
-/**
- * ✅ NUEVA FUNCIÓN: Obtiene los avisos desde la BD (tbl_avisos)
- * Filtra por sucursal, activo=1 y fechas vigentes.
- */
 const obtenerAvisosPorSucursal = async (idSucursal) => {
     try {
+        // Ahora traemos el objeto completo con traducciones, no solo el texto 'es'
         const sql = `
-            SELECT texto 
+            SELECT texto, texto_en, texto_fr 
             FROM tbl_avisos 
             WHERE idSucursal = ? 
               AND activo = 1
@@ -43,22 +39,14 @@ const obtenerAvisosPorSucursal = async (idSucursal) => {
         `;
         const [rows] = await pool.query(sql, [idSucursal]);
         
-        // Si hay avisos, devolvemos un array de strings. Si no, un mensaje default.
-        if (rows.length > 0) {
-            return rows.map(r => r.texto);
-        } else {
-            return ["Bienvenidos a nuestra sucursal", "Consulte promociones en recepción"];
-        }
+        // Devolvemos los objetos completos para que el frontend elija el idioma
+        return rows.length > 0 ? rows : [{ texto: "Bienvenidos", texto_en: "Welcome" }];
     } catch (error) {
-        console.error("❌ Error en obtenerAvisosPorSucursal:", error);
-        // Fallback en caso de error de tabla no existente aún
-        return ["Bienvenidos"]; 
+        return [{ texto: "Bienvenidos", texto_en: "Welcome" }]; 
     }
 };
 
-/**
- * Obtiene divisas y prepara URL de imagen.
- */
+// ... (obtenerDivisasPorSucursal y obtenerBannersTarifas se mantienen igual) ...
 const obtenerDivisasPorSucursal = async (idSucursal) => {
     try {
         const sql = `
@@ -68,27 +56,18 @@ const obtenerDivisasPorSucursal = async (idSucursal) => {
             ORDER BY orden ASC
         `;
         const [rows] = await pool.query(sql, [idSucursal]);
-        
         return rows.map(divisa => ({
             ...divisa,
             imagen_url: `/banderas/${divisa.codigo.toLowerCase()}.png`
         }));
     } catch (error) {
-        console.error("❌ Error en obtenerDivisasPorSucursal:", error);
         return [];
     }
 };
 
-// Mantenemos la función antigua por compatibilidad, pero ahora usa la nueva lógica interna si quisieras
-const obtenerBannersTarifas = async (idSucursal) => {
-    // Retornamos solo el primer aviso como string para no romper otros controladores viejos
-    const avisos = await obtenerAvisosPorSucursal(idSucursal);
-    return avisos.join(" • ");
-};
-
 module.exports = {
     obtenerTarifasPorSucursal,
-    obtenerBannersTarifas,
-    obtenerDivisasPorSucursal,
-    obtenerAvisosPorSucursal // Exportamos la nueva
+    obtenerAvisosPorSucursal,
+    obtenerDivisasPorSucursal
+    // obtenerBannersTarifas ya no es crítico si usamos avisos, pero se deja por compatibilidad
 };

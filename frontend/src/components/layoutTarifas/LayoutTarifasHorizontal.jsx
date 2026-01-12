@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import MediaRenderer from '../MediaRenderer';
+import { TEXTOS_TARIFAS } from '../../utils/diccionario'; // Asegúrate de que la ruta sea correcta
 
-// Mapa de respaldo (Emojis)
 const FLAGS_EMOJI = {
     USD: '🇺🇸', EUR: '🇪🇺', CAD: '🇨🇦', JPY: '🇯🇵', MXN: '🇲🇽', GBP: '🇬🇧'
 };
@@ -9,25 +9,60 @@ const FLAGS_EMOJI = {
 export default function LayoutTarifasHorizontal({ 
     config, datos, horaActual, clima, itemActual, videoBlobUrl 
 }) {
+    // --- ESTADOS DE ROTACIÓN ---
     const [pagina, setPagina] = useState(0);
+    const [idiomaIndex, setIdiomaIndex] = useState(0);
+
+    // --- CONFIGURACIÓN ---
     const { fondo, texto_reloj, texto_evento, acento } = config.colores;
+    // Idiomas disponibles (ej: ["es", "en"]) y duración (ej: 20 seg)
+    const idiomas = Array.isArray(config?.idiomas_activos) && config.idiomas_activos.length > 0 
+                    ? config.idiomas_activos 
+                    : ['es'];
+    const tiempoRotacion = (config?.tiempo_rotacion_idioma || 20) * 1000;
     
+    // Idioma actual (string: 'es' o 'en')
+    const idiomaActual = idiomas[idiomaIndex];
+    // Diccionario estático para headers
+    const dict = TEXTOS_TARIFAS[idiomaActual] || TEXTOS_TARIFAS['es'];
+
+    // --- DATOS ---
     const tarifas = datos?.tarifas || [];
     const divisas = datos?.divisas || []; 
-    // Recibimos array de avisos o fallback
-    const rawAvisos = datos?.avisos || ["Bienvenidos"];
-    const avisos = Array.isArray(rawAvisos) ? rawAvisos : [rawAvisos];
-
+    const avisosRaw = datos?.avisos || [{ texto: "Bienvenidos", texto_en: "Welcome" }];
     const ITEMS_POR_PAGINA = 4;
 
+    // --- 1. ROTACIÓN DE IDIOMA ---
+    useEffect(() => {
+        if (idiomas.length > 1) {
+            const interval = setInterval(() => {
+                setIdiomaIndex(prev => (prev + 1) % idiomas.length);
+            }, tiempoRotacion);
+            return () => clearInterval(interval);
+        }
+    }, [idiomas, tiempoRotacion]);
+
+    // --- 2. ROTACIÓN DE PÁGINAS (Tarifas) ---
     useEffect(() => {
         if (tarifas.length === 0) return;
         const total = Math.ceil(tarifas.length / ITEMS_POR_PAGINA);
         if (total > 1) {
-            const int = setInterval(() => setPagina(p => (p + 1) % total), 10000);
+            // Reiniciamos a pág 0 cuando cambia el idioma para que se vea ordenado
+            setPagina(0); 
+            const int = setInterval(() => setPagina(p => (p + 1) % total), 10000); // 10s por página de tarifas
             return () => clearInterval(int);
         }
-    }, [tarifas.length]);
+    }, [tarifas.length, idiomaIndex]); // Dependencia idiomaIndex para resetear
+
+    // --- HELPER PARA OBTENER TEXTO DINÁMICO ---
+    // Ej: getTxt(tarifa, 'nombre') -> busca tarifa.nombre si es 'es', tarifa.nombre_en si es 'en'
+    const getTxt = (obj, campoBase) => {
+        if (!obj) return "";
+        if (idiomaActual === 'es') return obj[campoBase] || ""; // Español es el default
+        // Para otros idiomas buscamos campo_en, campo_fr, etc.
+        const campoTraducido = `${campoBase}_${idiomaActual}`;
+        return obj[campoTraducido] || obj[campoBase] || ""; // Fallback a español si no hay traducción
+    };
 
     const visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA);
 
@@ -37,15 +72,19 @@ export default function LayoutTarifasHorizontal({
             {/* HEADER */}
             <header className="flex justify-between items-center bg-black/40 backdrop-blur-md p-4 rounded-[1.5rem] border border-white/10 shadow-xl z-20">
                 <img src={config.logo} alt="Logo" className="h-14 object-contain animate-logo-float" />
+                
+                {/* Título Traducido (Diccionario) */}
                 <h1 className="text-3xl font-black uppercase tracking-tighter" style={{ color: acento, textShadow: `0 0 20px ${acento}80, 0 0 40px ${acento}40` }}>
-                    Tarifas Vigentes
+                    {dict.titulo_largo}
                 </h1>
+                
                 <div className="text-right flex flex-col justify-center">
                     <span className="text-4xl font-mono font-black block leading-none text-white">
                         {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     <span className="text-sm opacity-80 text-white font-light uppercase tracking-widest mt-1">
-                        {horaActual?.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        {/* Fecha en el idioma actual */}
+                        {horaActual?.toLocaleDateString(idiomaActual === 'en' ? 'en-US' : 'es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                     </span>
                 </div>
             </header>
@@ -57,11 +96,21 @@ export default function LayoutTarifasHorizontal({
                     const precioMostrar = tienePromo ? t.precio_promocion : t.precio_rack;
                     const monedaSymbol = t.moneda || '$';
 
+                    // Textos dinámicos de la BD
+                    const nombreHabitacion = getTxt(t, 'nombre'); // nombre o nombre_en
+                    const descripcionHab = getTxt(t, 'descripcion'); // descripcion o descripcion_en
+
                     return (
                         <div key={i} className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5 animate-fade-in-up shadow-lg">
                             <div className="flex flex-col overflow-hidden">
-                                <span className="text-2xl font-black uppercase truncate" style={{ color: texto_evento }}>{t.nombre}</span>
-                                {t.descripcion && <span className="text-xs opacity-60 text-white italic mt-1 truncate">{t.descripcion}</span>}
+                                <span className="text-2xl font-black uppercase truncate" style={{ color: texto_evento }}>
+                                    {nombreHabitacion}
+                                </span>
+                                {descripcionHab && (
+                                    <span className="text-xs opacity-60 text-white italic mt-1 truncate">
+                                        {descripcionHab}
+                                    </span>
+                                )}
                             </div>
                             <div className="flex flex-col items-end justify-center min-w-[160px]">
                                 <div className="flex items-baseline gap-2">
@@ -69,7 +118,9 @@ export default function LayoutTarifasHorizontal({
                                     <span className="text-4xl font-mono font-black" style={{ color: acento }}>{precioMostrar}</span>
                                 </div>
                                 {tienePromo && (
-                                    <span className="text-xs font-bold text-white/40">Reg. {monedaSymbol} {t.precio_rack}</span>
+                                    <span className="text-xs font-bold text-white/40">
+                                        {dict.reg} {monedaSymbol} {t.precio_rack}
+                                    </span>
                                 )}
                             </div>
                         </div>
@@ -103,7 +154,7 @@ export default function LayoutTarifasHorizontal({
                 )}
             </div>
 
-            {/* FOOTER - AVISOS VERTICALES (SUBIENDO) */}
+            {/* FOOTER */}
             <footer className="h-48 grid grid-cols-2 gap-6 z-20">
                 <div className="relative rounded-[1.5rem] overflow-hidden border border-white/10 shadow-2xl bg-black">
                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="absolute inset-0 w-full h-full object-cover" />
@@ -111,11 +162,12 @@ export default function LayoutTarifasHorizontal({
                 
                 <div className="bg-black/40 backdrop-blur-md rounded-[1.5rem] border border-white/10 p-6 flex flex-col items-center justify-center overflow-hidden relative">
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <div className="animate-marquee-vertical flex flex-col gap-10 items-center text-center w-full px-4">
-                            {/* Duplicamos la lista para scroll infinito */}
-                            {[...avisos, ...avisos].map((aviso, i) => (
+                        {/* Clave para reiniciar animación: cambiamos la 'key' cuando cambia el idioma */}
+                        <div key={idiomaActual} className="animate-marquee-vertical flex flex-col gap-10 items-center text-center w-full px-4">
+                            {[...avisosRaw, ...avisosRaw].map((aviso, i) => (
                                 <span key={i} className="text-2xl font-light tracking-widest text-white uppercase leading-tight">
-                                    {aviso}
+                                    {/* Obtenemos el texto del aviso según idioma */}
+                                    {getTxt(aviso, 'texto')}
                                 </span>
                             ))}
                         </div>
@@ -124,9 +176,7 @@ export default function LayoutTarifasHorizontal({
             </footer>
 
             <style>{`
-                /* ✅ AHORA SUBE (De 0% a -50%) */
                 .animate-marquee-vertical { animation: marqueeVertical 15s linear infinite; }
-                
                 @keyframes marqueeVertical {
                     0% { transform: translateY(0%); } 
                     100% { transform: translateY(-50%); }

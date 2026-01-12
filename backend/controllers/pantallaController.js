@@ -16,7 +16,9 @@ const obtenerConfiguracionBase = async (id) => {
             COALESCE(t.color_fondo, '#000000') as color_fondo,
             COALESCE(t.color_texto_evento, '#FFFFFF') as color_texto_evento,
             COALESCE(t.color_texto_reloj, '#FFFFFF') as color_texto_reloj,
-            COALESCE(t.color_acento, '#EAB308') as color_acento
+            COALESCE(t.color_acento, '#EAB308') as color_acento,
+            t.idiomas_activos,       /* ✅ NUEVO: Para rotación */
+            t.tiempo_rotacion_idioma /* ✅ NUEVO: Tiempo en segundos */
         FROM cat_terminales t
         LEFT JOIN cat_areas a ON t.idAreaAsignada = a.idArea
         LEFT JOIN cat_sucursales s ON t.idSucursal = s.idSucursal
@@ -24,7 +26,29 @@ const obtenerConfiguracionBase = async (id) => {
         WHERE t.idTerminal = ?
     `;
     const [rows] = await pool.query(sql, [id]);
-    return rows[0];
+    
+    if (rows.length > 0) {
+        let config = rows[0];
+
+        // ✅ Procesar JSON de idiomas (si viene como string o es nulo)
+        if (typeof config.idiomas_activos === 'string') {
+            try {
+                config.idiomas_activos = JSON.parse(config.idiomas_activos);
+            } catch (e) {
+                config.idiomas_activos = ["es"];
+            }
+        } else if (!Array.isArray(config.idiomas_activos)) {
+            config.idiomas_activos = ["es"];
+        }
+
+        // ✅ Default de tiempo si es nulo o 0
+        if (!config.tiempo_rotacion_idioma || config.tiempo_rotacion_idioma <= 0) {
+            config.tiempo_rotacion_idioma = 20; 
+        }
+
+        return config;
+    }
+    return null;
 };
 
 const obtenerScreensaver = async (idTerminal) => {
@@ -51,11 +75,11 @@ const getDatosPantalla = async (req, res) => {
         const terminal = await obtenerConfiguracionBase(id);
         if (!terminal) return res.status(404).json({ error: "Terminal no encontrada" });
 
+        // ✅ Respetamos tu lógica de DB
         const listaScreensaver = await obtenerScreensaver(terminal.idTerminal);
         const climaCache = await getClimaSeguro(terminal.idSucursal);
 
         // --- PROCESAMIENTO CORRECTO DEL LOGO ---
-        // Esto evita el error 404 al mantener la extensión (.png, .jpg, etc)
         let logoFinal = null;
         if (terminal.final_logo_name) {
             const fileName = terminal.final_logo_name.split('/').pop(); 
@@ -71,9 +95,9 @@ const getDatosPantalla = async (req, res) => {
                 layoutDir: terminal.layoutDir || 0,
                 layoutTarifas: terminal.layoutTarifas || 0,
                 zona_horaria: terminal.zona_horaria || 'America/Mexico_City',
-                logo: logoFinal, // ✅ Logo con extensión corregida
+                logo: logoFinal, 
                 imagen_default: terminal.imagen_default_url,
-                screensaver: listaScreensaver,
+                screensaver: listaScreensaver, // ✅ Viene de DB
                 ubicacion: { 
                     lat: terminal.latitud || '19.43', 
                     lon: terminal.longitud || '-99.13' 
@@ -83,7 +107,10 @@ const getDatosPantalla = async (req, res) => {
                     texto_evento: terminal.color_texto_evento,
                     texto_reloj: terminal.color_texto_reloj,
                     acento: terminal.color_acento 
-                }
+                },
+                // ✅ Agregamos los nuevos campos a la respuesta config
+                idiomas_activos: terminal.idiomas_activos,
+                tiempo_rotacion_idioma: terminal.tiempo_rotacion_idioma
             },
             clima_backend: climaCache,
             data: null,  
@@ -95,7 +122,6 @@ const getDatosPantalla = async (req, res) => {
         // --- DELEGACIÓN POR TIPO DE PANTALLA ---
         if (terminal.tipo_pantalla === 'SALON' && terminal.idAreaAsignada) {
             const eventos = await salonesController.obtenerAgendaSalon(terminal.idAreaAsignada);
-            // Formateamos los eventos específicamente para lo que PlayerSalon espera
             const dataSalon = { 
                 tipo_datos: 'AGENDA', 
                 eventos: eventos.map(e => ({
@@ -113,19 +139,19 @@ const getDatosPantalla = async (req, res) => {
             respuesta.datos = dataDir;
             respuesta.data = dataDir;
         }
-		else if (terminal.tipo_pantalla === 'TARIFAS') {
+        else if (terminal.tipo_pantalla === 'TARIFAS') {
             const tarifas = await tarifasController.obtenerTarifasPorSucursal(terminal.idSucursal);
             const divisas = await tarifasController.obtenerDivisasPorSucursal(terminal.idSucursal);
             
-            // ✅ 1. Obtenemos el array de avisos reales
+            // ✅ Avisos con traducciones
             const avisos = await tarifasController.obtenerAvisosPorSucursal(terminal.idSucursal);
 
             const dataTarifas = { 
                 tipo_datos: 'TARIFAS', 
                 tarifas, 
                 divisas,
-                avisos, // <--- Enviamos el array completo
-                galeria: listaScreensaver 
+                avisos,
+                galeria: listaScreensaver // ✅ Usamos la variable de DB
             };
             respuesta.datos = dataTarifas;
             respuesta.data = dataTarifas;
@@ -133,7 +159,6 @@ const getDatosPantalla = async (req, res) => {
 
         res.json(respuesta);
 
-        res.json(respuesta);
     } catch (error) {
         console.error("❌ Error en PantallaController:", error);
         res.status(500).json({ error: "Error interno" });
