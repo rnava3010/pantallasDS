@@ -11,6 +11,7 @@ const obtenerTarifasPorSucursal = async (idSucursal) => {
             SELECT 
                 idTarifa, 
                 nombre_habitacion as nombre, 
+                descripcion,
                 precio_rack, 
                 precio_promocion as precio, 
                 moneda, 
@@ -19,6 +20,7 @@ const obtenerTarifasPorSucursal = async (idSucursal) => {
             WHERE idSucursal = ? AND activo = 1
             ORDER BY idTarifa ASC
         `;
+        // Se agregó 'descripcion' al SELECT
         const [rows] = await pool.query(sql, [idSucursal]);
         return rows;
     } catch (error) {

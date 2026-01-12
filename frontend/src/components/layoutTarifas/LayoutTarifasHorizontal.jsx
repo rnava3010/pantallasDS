@@ -26,13 +26,32 @@ export default function LayoutTarifasHorizontal({
             
             {/* HEADER */}
             <header className="flex justify-between items-center mb-10 bg-black/40 backdrop-blur-md p-6 rounded-[2rem] border border-white/10 shadow-2xl">
-                <img src={config.logo} alt="Logo" className="h-14 object-contain" />
-                <h1 className="text-4xl font-black uppercase tracking-tighter" style={{ color: acento }}>
+                {/* Logo con animación de movimiento */}
+                <img 
+                    src={config.logo} 
+                    alt="Logo" 
+                    className="h-14 object-contain animate-logo-float" 
+                />
+                
+                {/* Título con Glow */}
+                <h1 
+                    className="text-4xl font-black uppercase tracking-tighter transition-all duration-300" 
+                    style={{ 
+                        color: acento,
+                        textShadow: `0 0 20px ${acento}80, 0 0 40px ${acento}40` // Efecto Glow
+                    }}
+                >
                     Tarifas Vigentes
                 </h1>
-                <div className="text-right">
+
+                {/* Reloj y Fecha */}
+                <div className="text-right flex flex-col justify-center">
                     <span className="text-5xl font-mono font-black block leading-none text-white">
                         {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    {/* Fecha agregada debajo de la hora */}
+                    <span className="text-lg opacity-80 text-white font-light uppercase tracking-widest mt-1">
+                        {horaActual?.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                     </span>
                 </div>
             </header>
@@ -43,7 +62,8 @@ export default function LayoutTarifasHorizontal({
                     <div key={i} className="flex justify-between items-center p-6 bg-white/5 rounded-3xl border border-white/5 animate-fade-in-up">
                         <div className="flex flex-col">
                             <span className="text-3xl font-black uppercase" style={{ color: texto_evento }}>{t.nombre}</span>
-                            <span className="text-sm opacity-50 text-white italic">{t.descripcion}</span>
+                            {/* La descripción ya estaba posicionada aquí, ahora se mostrará porque el backend la envía */}
+                            <span className="text-sm opacity-50 text-white italic mt-1">{t.descripcion}</span>
                         </div>
                         <div className="flex items-baseline gap-2">
                             <span className="text-xl font-bold opacity-40 text-white">{t.moneda || '$'}</span>
@@ -68,8 +88,16 @@ export default function LayoutTarifasHorizontal({
             <style>{`
                 .animate-marquee-horizontal { animation: marquee 20s linear infinite; }
                 @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+                
                 .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+                /* Animación de flotación para el logo */
+                .animate-logo-float { animation: floatLogo 6s ease-in-out infinite; }
+                @keyframes floatLogo {
+                    0%, 100% { transform: translateY(0px); }
+                    50% { transform: translateY(-8px); }
+                }
             `}</style>
         </div>
     );
