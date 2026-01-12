@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import MediaRenderer from '../MediaRenderer';
 
+// ✅ 1. Mapa de Banderas de Respaldo (Por si la BD no trae el emoji)
+const FLAGS = {
+    USD: '🇺🇸',
+    EUR: '🇪🇺',
+    CAD: '🇨🇦',
+    JPY: '🇯🇵',
+    MXN: '🇲🇽',
+    GBP: '🇬🇧'
+};
+
 export default function LayoutTarifasHorizontal({ 
     config, datos, horaActual, clima, itemActual, videoBlobUrl 
 }) {
@@ -11,7 +21,7 @@ export default function LayoutTarifasHorizontal({
     const divisas = datos?.divisas || []; 
     const banner = datos?.banner || "Bienvenidos - Consulte nuestras promociones";
     
-    // Mantenemos 4 para asegurar espacio, pero el Grid ajustará si son más.
+    // Grid ajusta automáticamente, mantenemos 4 para asegurar visibilidad
     const ITEMS_POR_PAGINA = 4;
 
     useEffect(() => {
@@ -26,29 +36,14 @@ export default function LayoutTarifasHorizontal({
     const visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA);
 
     return (
-        // CAMBIO PRINCIPAL: Usamos Grid para forzar 4 filas: Header, Tarifas, Divisas, Footer
         <div className="h-screen w-screen overflow-hidden p-6 grid grid-rows-[auto_1fr_auto_auto] gap-4" style={{ backgroundColor: fondo }}>
             
-            {/* --- DEBUG: SI ESTO SALE ROJO, EL BACKEND NO ENVÍA DATOS --- */}
-            {divisas.length === 0 && (
-                <div className="absolute top-0 left-0 bg-red-600 text-white font-bold p-2 z-50 text-xs">
-                    ⚠️ ALERTA: No llegan divisas. Reinicia el Backend ('node index.js').
-                </div>
-            )}
-
-            {/* 1. HEADER (Altura automática según contenido) */}
+            {/* HEADER */}
             <header className="flex justify-between items-center bg-black/40 backdrop-blur-md p-4 rounded-[1.5rem] border border-white/10 shadow-xl z-20">
-                <img 
-                    src={config.logo} 
-                    alt="Logo" 
-                    className="h-14 object-contain animate-logo-float" 
-                />
+                <img src={config.logo} alt="Logo" className="h-14 object-contain animate-logo-float" />
                 <h1 
                     className="text-3xl font-black uppercase tracking-tighter" 
-                    style={{ 
-                        color: acento,
-                        textShadow: `0 0 20px ${acento}80, 0 0 40px ${acento}40`
-                    }}
+                    style={{ color: acento, textShadow: `0 0 20px ${acento}80, 0 0 40px ${acento}40` }}
                 >
                     Tarifas Vigentes
                 </h1>
@@ -62,7 +57,7 @@ export default function LayoutTarifasHorizontal({
                 </div>
             </header>
 
-            {/* 2. TARIFAS (Ocupa todo el espacio disponible - 1fr) */}
+            {/* TARIFAS */}
             <main className="flex flex-col justify-center gap-3 overflow-hidden">
                 {visibles.map((t, i) => {
                     const tienePromo = t.precio_promocion && parseFloat(t.precio_promocion) > 0;
@@ -75,16 +70,13 @@ export default function LayoutTarifasHorizontal({
                                 <span className="text-2xl font-black uppercase truncate" style={{ color: texto_evento }}>{t.nombre}</span>
                                 {t.descripcion && <span className="text-xs opacity-60 text-white italic mt-1 truncate">{t.descripcion}</span>}
                             </div>
-                            
                             <div className="flex flex-col items-end justify-center min-w-[160px]">
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-lg font-bold opacity-40 text-white">{monedaSymbol}</span>
                                     <span className="text-4xl font-mono font-black" style={{ color: acento }}>{precioMostrar}</span>
                                 </div>
                                 {tienePromo && (
-                                    <span className="text-xs font-bold text-white/40">
-                                        Reg. {monedaSymbol} {t.precio_rack}
-                                    </span>
+                                    <span className="text-xs font-bold text-white/40">Reg. {monedaSymbol} {t.precio_rack}</span>
                                 )}
                             </div>
                         </div>
@@ -92,32 +84,40 @@ export default function LayoutTarifasHorizontal({
                 })}
             </main>
 
-            {/* 3. DIVISAS (Altura automática, forzamos visibilidad) */}
+            {/* ✅ 3. DIVISAS CON BANDERAS VISUALES */}
             <div className="flex justify-center items-center py-2 z-10 min-h-[80px]"> 
-                {divisas.length > 0 ? (
+                {divisas.length > 0 && (
                     <div className="flex gap-4 animate-fade-in-up">
-                        {divisas.map((divisa, idx) => (
-                            <div key={idx} className="flex items-center gap-3 bg-black/60 backdrop-blur-md px-5 py-2 rounded-xl border border-white/20 shadow-lg">
-                                <span className="text-2xl drop-shadow-md select-none">{divisa.bandera}</span>
-                                <div className="flex flex-col">
-                                    <span className="text-[9px] font-bold text-white/50 tracking-widest uppercase">
-                                        {divisa.codigo}
+                        {divisas.map((divisa, idx) => {
+                            // Usamos la bandera de la BD, o el mapa FLAGS, o un globo por defecto
+                            const bandera = divisa.bandera || FLAGS[divisa.codigo] || '🌐';
+                            
+                            return (
+                                <div key={idx} className="flex items-center gap-4 bg-black/60 backdrop-blur-md px-5 py-3 rounded-xl border border-white/20 shadow-lg">
+                                    {/* Bandera Grande */}
+                                    <span className="text-4xl drop-shadow-md select-none transform hover:scale-110 transition-transform">
+                                        {bandera}
                                     </span>
-                                    <div className="flex items-baseline gap-1">
-                                        <span className="text-xs text-white/70">{divisa.simbolo}</span>
-                                        <span className="text-xl font-mono font-bold text-white">{divisa.tipo_cambio}</span>
+                                    
+                                    <div className="flex flex-col">
+                                        {/* Código pequeño arriba */}
+                                        <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase mb-[-2px]">
+                                            {divisa.codigo}
+                                        </span>
+                                        {/* Precio grande */}
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-xs text-white/70">{divisa.simbolo}</span>
+                                            <span className="text-2xl font-mono font-bold text-white">{divisa.tipo_cambio}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
-                ) : (
-                    // Mensaje discreto si no hay divisas pero no es error crítico
-                    <div className="opacity-0">Espacio reservado divisas</div> 
                 )}
             </div>
 
-            {/* 4. FOOTER (Altura fija) */}
+            {/* FOOTER */}
             <footer className="h-48 grid grid-cols-2 gap-6 z-20">
                 <div className="relative rounded-[1.5rem] overflow-hidden border border-white/10 shadow-2xl bg-black">
                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="absolute inset-0 w-full h-full object-cover" />
@@ -132,15 +132,10 @@ export default function LayoutTarifasHorizontal({
             <style>{`
                 .animate-marquee-horizontal { animation: marquee 20s linear infinite; }
                 @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-                
                 .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
                 .animate-logo-float { animation: floatLogo 6s ease-in-out infinite; }
-                @keyframes floatLogo {
-                    0%, 100% { transform: translateY(0px); }
-                    50% { transform: translateY(-8px); }
-                }
+                @keyframes floatLogo { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
             `}</style>
         </div>
     );
