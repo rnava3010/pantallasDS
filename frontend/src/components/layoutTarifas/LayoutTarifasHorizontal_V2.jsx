@@ -57,20 +57,25 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
                     </div>
                 </header>
 
-                <div className="flex-1 flex gap-6 py-6 overflow-hidden">
-                    <main className="w-2/3 flex flex-col gap-3 justify-center">
-                        {visibles.map((t, i) => (
-                            <div key={i} className="flex justify-between items-center bg-black/70 backdrop-blur-lg p-5 rounded-2xl border border-white/10 animate-fade-in-up shadow-2xl">
-                                <span className="text-2xl font-bold uppercase truncate pr-4" style={{ textShadow: '2px 2px 4px rgba(0,0,0,1)' }}>
-                                    {getTxt(t, 'nombre')}
-                                </span>
-                                <span className="text-4xl font-mono font-black" 
-                                      style={{ color: acento, textShadow: `0 0 10px ${acento}AA, 2px 2px 2px rgba(0,0,0,1)` }}>
-                                    {t.moneda}{t.precio_promocion || t.precio_rack}
-                                </span>
-                            </div>
-                        ))}
-                    </main>
+			<main className="w-2/3 flex flex-col gap-3 justify-center">
+				{visibles.map((t, i) => (
+					<div key={i} className="flex justify-between items-center bg-black/50 backdrop-blur-md p-4 rounded-xl border border-white/10 animate-fade-in-up shadow-xl">
+						<div className="flex flex-col max-w-[70%]">
+							<span className="text-xl font-bold uppercase truncate" style={{ textShadow: '2px 2px 4px rgba(0,0,0,1)' }}>
+								{getTxt(t, 'nombre')}
+							</span>
+							{/* ✅ DESCRIPCIÓN AGREGADA */}
+							<span className="text-[11px] opacity-50 italic truncate" style={{ textShadow: '1px 1px 2px rgba(0,0,0,1)' }}>
+								{getTxt(t, 'descripcion')}
+							</span>
+						</div>
+						<span className="text-3xl font-mono font-black" 
+							  style={{ color: acento, textShadow: `0 0 8px ${acento}88` }}>
+							{t.moneda}{t.precio_promocion || t.precio_rack}
+						</span>
+					</div>
+				))}
+			</main>
 
                     <aside className="w-1/3 bg-black/70 backdrop-blur-lg rounded-3xl border border-white/10 p-6 flex flex-col overflow-hidden relative shadow-2xl">
                         <div className="text-center mb-4 border-b border-white/20 pb-2">

@@ -14,7 +14,8 @@ export default function LayoutTarifasVertical2({ config, datos, horaActual, item
     const textoLegal = pieTarifasObj[idiomaActual] || pieTarifasObj['es'] || "";
 
     const tarifas = datos?.tarifas || [];
-    const ITEMS_POR_PAGINA = 5;
+    // Ajustamos a 4 ítems para que el footer no se desacomode
+    const ITEMS_POR_PAGINA = 4;
     const visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA);
 
     useEffect(() => {
@@ -34,12 +35,14 @@ export default function LayoutTarifasVertical2({ config, datos, horaActual, item
 
     return (
         <div className="h-screen w-screen overflow-hidden relative bg-black">
+            {/* GALERÍA DE FONDO CINEMÁTICA */}
             <div className="absolute inset-0 z-0">
                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="w-full h-full object-cover opacity-70" />
                 <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px]"></div>
             </div>
 
             <div className="relative z-10 h-full flex flex-col p-8 justify-between text-white">
+                {/* HEADER: Logo, Título Glow y Reloj */}
                 <header className="flex justify-between items-center bg-black/75 p-6 rounded-[2.5rem] border border-white/20 shadow-2xl shrink-0">
                     <img src={config.logo} alt="Logo" className="h-12 object-contain" />
                     <h1 className="text-xl font-black uppercase tracking-widest text-center px-4" 
@@ -50,13 +53,14 @@ export default function LayoutTarifasVertical2({ config, datos, horaActual, item
                         <div className="text-3xl font-mono font-black" style={{ textShadow: '0 2px 4px rgba(0,0,0,1)' }}>
                             {horaActual?.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
                         </div>
-                        {/* ✅ Fecha larga restaurada */}
+                        {/* Fecha larga restaurada */}
                         <div className="text-[10px] opacity-90 uppercase font-bold tracking-widest" style={{ textShadow: '0 1px 2px rgba(0,0,0,1)' }}>
                             {horaActual?.toLocaleDateString(idiomaActual === 'en' ? 'en-US' : 'es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                         </div>
                     </div>
                 </header>
 
+                {/* MAIN: TARIFAS CON GLOW Y SOMBRA */}
                 <main className="flex-1 flex flex-col gap-4 justify-center py-4">
                     {visibles.map((t, i) => (
                         <div key={i} className="bg-black/75 backdrop-blur-md p-6 rounded-[2rem] flex justify-between items-center border border-white/10 shadow-2xl animate-fade-in-up">
@@ -77,6 +81,7 @@ export default function LayoutTarifasVertical2({ config, datos, horaActual, item
                 </main>
 
                 <footer className="flex flex-col gap-5 shrink-0">
+                    {/* TIPO DE CAMBIO CON SIGNO DE MONEDA */}
                     <div className="bg-black/75 backdrop-blur-md p-6 rounded-[2.5rem] border border-white/20 shadow-2xl">
                         <div className="text-center mb-3">
                             <span className="text-[11px] font-black uppercase tracking-[0.4em] opacity-70" style={{ color: acento }}>Tipo de Cambio</span>
@@ -86,14 +91,14 @@ export default function LayoutTarifasVertical2({ config, datos, horaActual, item
                                 <div key={i} className="flex items-center gap-3 bg-white/10 px-5 py-2.5 rounded-2xl border border-white/10 shadow-lg">
                                     <span className="text-[10px] font-bold opacity-50 uppercase">{d.codigo}</span>
                                     <span className="text-2xl font-mono font-bold text-white" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
-                                        {d.simbolo || '$'}{d.tipo_cambio}
+                                        {d.simbolo || '$'} {d.tipo_cambio}
                                     </span>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    {/* ✅ MARQUESINA HORIZONTAL RE-ACTIVADA */}
+                    {/* MARQUESINA HORIZONTAL RE-ACTIVADA */}
                     <div className="h-14 bg-black/75 backdrop-blur-md rounded-2xl border border-white/20 flex items-center overflow-hidden shadow-2xl">
                         <div className="animate-marquee-horizontal whitespace-nowrap">
                             {datos?.avisos.map((aviso, i) => (
@@ -104,6 +109,7 @@ export default function LayoutTarifasVertical2({ config, datos, horaActual, item
                         </div>
                     </div>
 
+                    {/* PIE DE TARIFAS (MENSAJE LEGAL) */}
                     {textoLegal && (
                         <div className="px-4">
                             <p className="text-center text-[10px] font-bold opacity-60 uppercase tracking-[0.2em] leading-relaxed" style={{ textShadow: '1px 1px 2px rgba(0,0,0,1)' }}>
