@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import MediaRenderer from '../MediaRenderer';
 
+// Mapa de respaldo (Emojis)
 const FLAGS_EMOJI = {
     USD: '🇺🇸', EUR: '🇪🇺', CAD: '🇨🇦', JPY: '🇯🇵', MXN: '🇲🇽', GBP: '🇬🇧'
 };
@@ -13,7 +14,7 @@ export default function LayoutTarifasHorizontal({
     
     const tarifas = datos?.tarifas || [];
     const divisas = datos?.divisas || []; 
-    // ✅ Recibimos el array de avisos. Si viene string (legacy), lo convertimos a array.
+    // Recibimos array de avisos o fallback
     const rawAvisos = datos?.avisos || ["Bienvenidos"];
     const avisos = Array.isArray(rawAvisos) ? rawAvisos : [rawAvisos];
 
@@ -102,19 +103,16 @@ export default function LayoutTarifasHorizontal({
                 )}
             </div>
 
-            {/* FOOTER - AVISOS VERTICALES */}
+            {/* FOOTER - AVISOS VERTICALES (SUBIENDO) */}
             <footer className="h-48 grid grid-cols-2 gap-6 z-20">
-                {/* Video/Imagen Promocional */}
                 <div className="relative rounded-[1.5rem] overflow-hidden border border-white/10 shadow-2xl bg-black">
                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="absolute inset-0 w-full h-full object-cover" />
                 </div>
                 
-                {/* ✅ Banner de Avisos Vertical */}
                 <div className="bg-black/40 backdrop-blur-md rounded-[1.5rem] border border-white/10 p-6 flex flex-col items-center justify-center overflow-hidden relative">
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        {/* Contenedor de animación vertical */}
                         <div className="animate-marquee-vertical flex flex-col gap-10 items-center text-center w-full px-4">
-                            {/* Duplicamos la lista para efecto infinito suave */}
+                            {/* Duplicamos la lista para scroll infinito */}
                             {[...avisos, ...avisos].map((aviso, i) => (
                                 <span key={i} className="text-2xl font-light tracking-widest text-white uppercase leading-tight">
                                     {aviso}
@@ -126,12 +124,12 @@ export default function LayoutTarifasHorizontal({
             </footer>
 
             <style>{`
-                /* Animación Vertical de Arriba hacia Abajo (o ciclo continuo) */
+                /* ✅ AHORA SUBE (De 0% a -50%) */
                 .animate-marquee-vertical { animation: marqueeVertical 15s linear infinite; }
                 
                 @keyframes marqueeVertical {
-                    0% { transform: translateY(-50%); } 
-                    100% { transform: translateY(0%); }
+                    0% { transform: translateY(0%); } 
+                    100% { transform: translateY(-50%); }
                 }
 
                 .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
