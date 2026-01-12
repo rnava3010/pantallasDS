@@ -1,8 +1,13 @@
-// manager/src/main.jsx
-import { BrowserRouter } from 'react-router-dom';
+import React from 'react'
+import ReactDOM from 'react-dom/client' // Importación necesaria
+import { BrowserRouter } from 'react-router-dom'
+import App from './App'
+import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <BrowserRouter basename="/manager">
-    <App />
-  </BrowserRouter>
-);
+  <React.StrictMode>
+    <BrowserRouter basename="/manager">
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>,
+)
