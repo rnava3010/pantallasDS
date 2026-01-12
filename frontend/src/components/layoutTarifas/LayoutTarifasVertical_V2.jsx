@@ -5,7 +5,7 @@ import { TEXTOS_TARIFAS } from '../../utils/diccionario';
 export default function LayoutTarifasVertical2({ config, datos, horaActual, itemActual, videoBlobUrl }) {
     const [pagina, setPagina] = useState(0);
     const [idiomaIndex, setIdiomaIndex] = useState(0);
-    const { fondo, acento } = config.colores;
+    const { acento } = config.colores;
     
     const idiomas = Array.isArray(config?.idiomas_activos) ? config.idiomas_activos : ['es'];
     const idiomaActual = idiomas[idiomaIndex];
@@ -15,8 +15,6 @@ export default function LayoutTarifasVertical2({ config, datos, horaActual, item
 
     const tarifas = datos?.tarifas || [];
     const ITEMS_POR_PAGINA = 5;
-
-    // ✅ Definición correcta de la variable visibles
     const visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA);
 
     useEffect(() => {
@@ -36,25 +34,31 @@ export default function LayoutTarifasVertical2({ config, datos, horaActual, item
 
     return (
         <div className="h-screen w-screen overflow-hidden relative bg-black">
-            {/* GALERÍA DE FONDO VERTICAL */}
             <div className="absolute inset-0 z-0">
                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="w-full h-full object-cover opacity-70" />
                 <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px]"></div>
             </div>
 
             <div className="relative z-10 h-full flex flex-col p-8 justify-between text-white">
+                {/* ✅ HEADER: Logo, Título Glow y Reloj */}
                 <header className="flex justify-between items-center bg-black/60 p-6 rounded-[2.5rem] border border-white/10 shadow-2xl shrink-0">
-                    <img src={config.logo} alt="Logo" className="h-12 object-contain" />
+                    <img src={config.logo} alt="Logo" className="h-10 object-contain" />
+                    
+                    <h1 className="text-xl font-black uppercase tracking-widest text-center px-4" 
+                        style={{ color: acento, textShadow: `0 0 10px ${acento}AA` }}>
+                        {dict.titulo_largo}
+                    </h1>
+
                     <div className="text-right leading-none gap-1 flex flex-col items-end">
                         <div className="text-3xl font-mono font-black">{horaActual?.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
-                        <div className="text-[10px] opacity-60 uppercase font-bold tracking-widest">{horaActual?.toLocaleDateString()}</div>
+                        {/* ✅ Fecha en Formato Largo */}
+                        <div className="text-[10px] opacity-60 uppercase font-bold tracking-widest">
+                            {horaActual?.toLocaleDateString(idiomaActual === 'en' ? 'en-US' : 'es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        </div>
                     </div>
                 </header>
 
-                <h1 className="text-center text-2xl font-black uppercase tracking-[0.3em] my-4 shrink-0" style={{ color: acento, textShadow: `0 0 15px ${acento}60` }}>
-                    {dict.titulo_largo}
-                </h1>
-
+                {/* TARIFAS (CENTRO) */}
                 <main className="flex-1 flex flex-col gap-4 justify-center py-4">
                     {visibles.map((t, i) => (
                         <div key={i} className="bg-black/60 backdrop-blur-md p-6 rounded-[2rem] flex justify-between items-center border border-white/10 shadow-xl animate-fade-in-up">
@@ -62,7 +66,11 @@ export default function LayoutTarifasVertical2({ config, datos, horaActual, item
                                 <div className="text-xl font-bold uppercase truncate">{getTxt(t, 'nombre')}</div>
                                 <div className="text-[11px] opacity-40 italic truncate">{getTxt(t, 'descripcion')}</div>
                             </div>
-                            <div className="text-3xl font-mono font-black" style={{ color: acento }}>{t.moneda}{t.precio_promocion || t.precio_rack}</div>
+                            {/* ✅ Precios con Glow y Sombra */}
+                            <div className="text-3xl font-mono font-black" 
+                                 style={{ color: acento, textShadow: `0 0 10px ${acento}88, 2px 2px 4px rgba(0,0,0,0.5)` }}>
+                                {t.moneda}{t.precio_promocion || t.precio_rack}
+                            </div>
                         </div>
                     ))}
                 </main>
@@ -76,7 +84,8 @@ export default function LayoutTarifasVertical2({ config, datos, horaActual, item
                             {datos?.divisas.map((d, i) => (
                                 <div key={i} className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-xl border border-white/5">
                                     <span className="text-[10px] font-bold opacity-30 uppercase">{d.codigo}</span>
-                                    <span className="text-xl font-mono font-bold">{d.tipo_cambio}</span>
+                                    {/* ✅ Signo de Moneda Agregado */}
+                                    <span className="text-xl font-mono font-bold text-white">{d.simbolo || '$'} {d.tipo_cambio}</span>
                                 </div>
                             ))}
                         </div>
@@ -101,11 +110,10 @@ export default function LayoutTarifasVertical2({ config, datos, horaActual, item
                     )}
                 </footer>
             </div>
+            
             <style>{`
                 .animate-marquee-horizontal { display: inline-block; animation: marqueeH 40s linear infinite; }
                 @keyframes marqueeH { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-                .animate-marquee-vertical { animation: marqueeVertical 25s linear infinite; }
-                @keyframes marqueeVertical { 0% { transform: translateY(0%); } 100% { transform: translateY(-50%); } }
                 .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
             `}</style>

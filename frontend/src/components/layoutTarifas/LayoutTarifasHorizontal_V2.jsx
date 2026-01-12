@@ -5,7 +5,7 @@ import { TEXTOS_TARIFAS } from '../../utils/diccionario';
 export default function LayoutTarifasHorizontal2({ config, datos, horaActual, itemActual, videoBlobUrl }) {
     const [pagina, setPagina] = useState(0);
     const [idiomaIndex, setIdiomaIndex] = useState(0);
-    const { acento } = config.colores;
+    const { acento, texto_evento } = config.colores;
     
     const idiomas = Array.isArray(config?.idiomas_activos) ? config.idiomas_activos : ['es'];
     const idiomaActual = idiomas[idiomaIndex];
@@ -16,8 +16,6 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
     const tarifas = datos?.tarifas || [];
     const avisosRaw = datos?.avisos || [];
     const ITEMS_POR_PAGINA = 5;
-
-    // ✅ Definición correcta de la variable visibles
     const visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA);
 
     useEffect(() => {
@@ -45,7 +43,9 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
             <div className="relative z-10 h-full flex flex-col p-6 justify-between text-white">
                 <header className="flex justify-between items-center bg-black/60 p-5 rounded-2xl border border-white/10 shadow-2xl">
                     <img src={config.logo} className="h-14" alt="logo" />
-                    <h1 className="text-3xl font-black uppercase" style={{ color: acento, textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
+                    {/* ✅ Título con Efecto Glow */}
+                    <h1 className="text-3xl font-black uppercase tracking-tight" 
+                        style={{ color: acento, textShadow: `0 0 10px ${acento}AA, 0 0 20px ${acento}66` }}>
                         {dict.titulo_largo}
                     </h1>
                     <div className="text-right leading-none flex flex-col items-end gap-1">
@@ -61,7 +61,11 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
                         {visibles.map((t, i) => (
                             <div key={i} className="flex justify-between items-center bg-black/50 backdrop-blur-md p-4 rounded-xl border border-white/10 animate-fade-in-up shadow-xl">
                                 <span className="text-xl font-bold uppercase truncate pr-4">{getTxt(t, 'nombre')}</span>
-                                <span className="text-3xl font-mono font-black" style={{ color: acento }}>{t.moneda}{t.precio_promocion || t.precio_rack}</span>
+                                {/* ✅ Precios con Glow */}
+                                <span className="text-3xl font-mono font-black" 
+                                      style={{ color: acento, textShadow: `0 0 8px ${acento}88` }}>
+                                    {t.moneda}{t.precio_promocion || t.precio_rack}
+                                </span>
                             </div>
                         ))}
                     </main>
@@ -90,7 +94,8 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
                         {datos?.divisas.map((d, i) => (
                             <div key={i} className="flex items-center gap-3 bg-white/5 px-4 py-1.5 rounded-lg border border-white/5">
                                 <span className="text-xs font-bold opacity-40">{d.codigo}</span>
-                                <span className="text-xl font-mono font-bold">{d.tipo_cambio}</span>
+                                {/* ✅ Signo de Moneda Agregado */}
+                                <span className="text-xl font-mono font-bold text-white">{d.simbolo || '$'} {d.tipo_cambio}</span>
                             </div>
                         ))}
                     </div>
