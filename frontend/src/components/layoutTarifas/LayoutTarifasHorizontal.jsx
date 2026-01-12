@@ -1,16 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import MediaRenderer from '../MediaRenderer';
 
-// ✅ 1. Mapa de Banderas de Respaldo (Por si la BD no trae el emoji)
-const FLAGS = {
-    USD: '🇺🇸',
-    EUR: '🇪🇺',
-    CAD: '🇨🇦',
-    JPY: '🇯🇵',
-    MXN: '🇲🇽',
-    GBP: '🇬🇧'
-};
-
 export default function LayoutTarifasHorizontal({ 
     config, datos, horaActual, clima, itemActual, videoBlobUrl 
 }) {
@@ -21,7 +11,6 @@ export default function LayoutTarifasHorizontal({
     const divisas = datos?.divisas || []; 
     const banner = datos?.banner || "Bienvenidos - Consulte nuestras promociones";
     
-    // Grid ajusta automáticamente, mantenemos 4 para asegurar visibilidad
     const ITEMS_POR_PAGINA = 4;
 
     useEffect(() => {
@@ -34,6 +23,16 @@ export default function LayoutTarifasHorizontal({
     }, [tarifas.length]);
 
     const visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA);
+
+    // Helper para obtener la ruta de la bandera (busca en public/banderas/CODIGO.png)
+    const getBanderaSrc = (codigo) => {
+        try {
+            // Intenta cargar la imagen local basada en el código (ej: /banderas/USD.png)
+            return `/banderas/${codigo}.png`;
+        } catch (e) {
+            return null;
+        }
+    };
 
     return (
         <div className="h-screen w-screen overflow-hidden p-6 grid grid-rows-[auto_1fr_auto_auto] gap-4" style={{ backgroundColor: fondo }}>
@@ -84,35 +83,39 @@ export default function LayoutTarifasHorizontal({
                 })}
             </main>
 
-            {/* ✅ 3. DIVISAS CON BANDERAS VISUALES */}
+            {/* ✅ 3. DIVISAS CON IMÁGENES PNG */}
             <div className="flex justify-center items-center py-2 z-10 min-h-[80px]"> 
                 {divisas.length > 0 && (
                     <div className="flex gap-4 animate-fade-in-up">
-                        {divisas.map((divisa, idx) => {
-                            // Usamos la bandera de la BD, o el mapa FLAGS, o un globo por defecto
-                            const bandera = divisa.bandera || FLAGS[divisa.codigo] || '🌐';
-                            
-                            return (
-                                <div key={idx} className="flex items-center gap-4 bg-black/60 backdrop-blur-md px-5 py-3 rounded-xl border border-white/20 shadow-lg">
-                                    {/* Bandera Grande */}
-                                    <span className="text-4xl drop-shadow-md select-none transform hover:scale-110 transition-transform">
-                                        {bandera}
+                        {divisas.map((divisa, idx) => (
+                            <div key={idx} className="flex items-center gap-4 bg-black/60 backdrop-blur-md px-5 py-3 rounded-xl border border-white/20 shadow-lg transition-transform hover:scale-105">
+                                
+                                {/* IMAGEN DE BANDERA */}
+                                <img 
+                                    src={getBanderaSrc(divisa.codigo)} 
+                                    alt={divisa.codigo}
+                                    className="w-12 h-12 object-contain drop-shadow-md rounded-full"
+                                    onError={(e) => {
+                                        e.target.onerror = null; 
+                                        e.target.src = '/banderas/default.png'; // Imagen por defecto si falla
+                                        e.target.style.display = 'none'; // Ocultar si no hay imagen ni default
+                                        e.target.nextSibling.style.display = 'block'; // Mostrar emoji de respaldo
+                                    }}
+                                />
+                                {/* Respaldo por si la imagen falla (Emoji) */}
+                                <span className="hidden text-3xl">🌐</span>
+
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase mb-[-2px]">
+                                        {divisa.codigo}
                                     </span>
-                                    
-                                    <div className="flex flex-col">
-                                        {/* Código pequeño arriba */}
-                                        <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase mb-[-2px]">
-                                            {divisa.codigo}
-                                        </span>
-                                        {/* Precio grande */}
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="text-xs text-white/70">{divisa.simbolo}</span>
-                                            <span className="text-2xl font-mono font-bold text-white">{divisa.tipo_cambio}</span>
-                                        </div>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-xs text-white/70">{divisa.simbolo}</span>
+                                        <span className="text-2xl font-mono font-bold text-white">{divisa.tipo_cambio}</span>
                                     </div>
                                 </div>
-                            );
-                        })}
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>
