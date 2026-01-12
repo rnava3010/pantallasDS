@@ -26,7 +26,6 @@ export default function LayoutTarifasVertical({
     const divisas = datos?.divisas || [];
     const avisosRaw = datos?.avisos || [];
     
-    // ✅ Cambiado a 4 items: Cabe perfecto en 1920px de alto
     const ITEMS_POR_PAGINA = 4;
 
     useEffect(() => {
@@ -57,101 +56,94 @@ export default function LayoutTarifasVertical({
     const visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA);
 
     return (
-        <div className="h-screen w-screen overflow-hidden p-8 flex flex-col gap-5" style={{ backgroundColor: fondo }}>
+        <div className="h-screen w-screen overflow-hidden p-4 flex flex-col justify-between" style={{ backgroundColor: fondo }}>
             
-            {/* 1. HEADER HORIZONTAL (Logo | Título | Reloj) */}
-            <header className="grid grid-cols-3 items-center bg-black/40 backdrop-blur-md px-6 py-4 rounded-3xl border border-white/10 shadow-2xl">
+            {/* 1. HEADER - UNA SOLA FILA */}
+            <header className="grid grid-cols-3 items-center bg-black/50 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 shadow-lg shrink-0">
                 <div className="flex justify-start">
-                    <img src={config.logo} alt="Logo" className="h-14 object-contain animate-logo-float" />
+                    <img src={config.logo} alt="Logo" className="h-10 object-contain" />
                 </div>
-
                 <div className="text-center">
-                    <h1 className="text-2xl font-black uppercase tracking-tight" style={{ color: acento, textShadow: `0 0 15px ${acento}40` }}>
+                    <h1 className="text-lg font-black uppercase text-white tracking-widest" style={{ textShadow: `0 0 10px ${acento}` }}>
                         {dict.titulo_largo}
                     </h1>
                 </div>
-
-                <div className="flex flex-col items-end border-l border-white/10 pl-5">
-                    <span className="text-3xl font-mono font-black text-white leading-none">
+                <div className="flex flex-col items-end leading-none">
+                    <span className="text-xl font-mono font-black text-white">
                         {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <span className="text-[10px] opacity-50 text-white font-light uppercase tracking-widest mt-1">
+                    <span className="text-[8px] opacity-50 text-white uppercase tracking-tighter">
                         {horaActual?.toLocaleDateString(idiomaActual === 'en' ? 'en-US' : 'es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
                     </span>
                 </div>
             </header>
 
-            {/* 2. LISTADO DE TARIFAS (CARRUSEL DE 4) */}
-            <main className="flex-1 flex flex-col gap-4 justify-start mt-2">
+            {/* 2. TARIFAS - ALTURA CONTROLADA */}
+            <main className="flex-1 flex flex-col gap-2 justify-center py-2 overflow-hidden">
                 {visibles.map((t, i) => {
                     const tienePromo = t.precio_promocion && parseFloat(t.precio_promocion) > 0;
                     const precioMostrar = tienePromo ? t.precio_promocion : t.precio_rack;
                     const monedaSymbol = t.moneda || '$';
 
                     return (
-                        <div key={i} className="flex flex-col p-5 bg-white/5 rounded-3xl border border-white/5 animate-fade-in-up shadow-lg">
+                        <div key={i} className="flex flex-col px-4 py-2 bg-white/5 rounded-xl border border-white/5 animate-fade-in-up">
                             <div className="flex justify-between items-center">
-                                <span className="text-2xl font-bold uppercase truncate max-w-[60%]" style={{ color: texto_evento }}>
-                                    {getTxt(t, 'nombre')}
-                                </span>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-sm font-bold opacity-30 text-white">{monedaSymbol}</span>
-                                    <span className="text-4xl font-mono font-black" style={{ color: acento }}>{precioMostrar}</span>
-                                </div>
-                            </div>
-                            
-                            <div className="flex justify-between items-center border-t border-white/5 mt-3 pt-3">
-                                <span className="text-sm opacity-50 text-white italic truncate max-w-[70%]">
-                                    {getTxt(t, 'descripcion')}
-                                </span>
-                                {tienePromo && (
-                                    <span className="text-xs font-bold text-white/20 line-through">
-                                        {dict.reg} {monedaSymbol}{t.precio_rack}
+                                <div className="flex flex-col max-w-[60%]">
+                                    <span className="text-lg font-bold uppercase truncate text-white">
+                                        {getTxt(t, 'nombre')}
                                     </span>
-                                )}
+                                    <span className="text-[10px] opacity-40 text-white italic truncate">
+                                        {getTxt(t, 'descripcion')}
+                                    </span>
+                                </div>
+                                <div className="flex flex-col items-end">
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-[10px] font-bold opacity-30 text-white">{monedaSymbol}</span>
+                                        <span className="text-3xl font-mono font-black" style={{ color: acento }}>{precioMostrar}</span>
+                                    </div>
+                                    {tienePromo && (
+                                        <span className="text-[9px] font-bold text-white/20 line-through">
+                                            {dict.reg} {monedaSymbol}{t.precio_rack}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     );
                 })}
             </main>
 
-            {/* ✅ PIE DE TARIFAS FIJO (Siempre debajo de la lista) */}
-            {textoLegal && (
-                <div className="text-center px-4">
-                    <p className="text-[10px] text-white/20 uppercase tracking-[0.25em] leading-relaxed">
+            {/* 3. LEGAL Y DIVISAS - COMPACTOS */}
+            <div className="flex flex-col gap-2 shrink-0">
+                {textoLegal && (
+                    <p className="text-[8px] text-white/20 uppercase tracking-[0.2em] text-center leading-none">
                         {textoLegal}
                     </p>
-                </div>
-            )}
-
-            {/* 3. TIPO DE CAMBIO (COMPACTO) */}
-            <div className="flex justify-center gap-4 py-2 flex-wrap">
-                {divisas.map((divisa, idx) => (
-                    <div key={idx} className="flex items-center gap-3 bg-black/40 px-4 py-2 rounded-2xl border border-white/5">
-                        <img 
-                            src={divisa.imagen_url} 
-                            className="w-6 h-6 rounded-full" 
-                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} 
-                        />
-                        <span className="hidden text-sm">{FLAGS_EMOJI[divisa.codigo]}</span>
-                        <div className="flex gap-2 items-baseline">
-                            <span className="text-[10px] font-bold text-white/30">{divisa.codigo}</span>
-                            <span className="text-xl font-mono font-bold text-white">{divisa.tipo_cambio}</span>
+                )}
+                
+                <div className="flex justify-center gap-2 flex-wrap pb-1">
+                    {divisas.map((divisa, idx) => (
+                        <div key={idx} className="flex items-center gap-1.5 bg-black/30 px-2 py-1 rounded-lg border border-white/5">
+                            <img src={divisa.imagen_url} className="w-4 h-4 rounded-full" />
+                            <div className="flex gap-1 items-baseline">
+                                <span className="text-[8px] font-bold text-white/30">{divisa.codigo}</span>
+                                <span className="text-sm font-mono font-bold text-white">{divisa.tipo_cambio}</span>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
 
-            {/* 4. FOOTER (GALERÍA + MARQUESINA) */}
-            <footer className="h-72 flex flex-col gap-4">
-                <div className="flex-1 relative rounded-3xl overflow-hidden border border-white/10 bg-black shadow-2xl">
+            {/* 4. FOOTER - ALTURA FIJA PARA QUE NO SE PIERDA */}
+            <footer className="flex flex-col gap-2 shrink-0">
+                <div className="h-[20vh] relative rounded-2xl overflow-hidden border border-white/10 bg-black shadow-2xl">
                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="absolute inset-0 w-full h-full object-cover" />
                 </div>
                 
-                <div className="h-12 bg-black/60 backdrop-blur-md rounded-2xl border border-white/10 flex items-center overflow-hidden">
+                <div className="h-8 bg-black/60 backdrop-blur-md rounded-lg border border-white/10 flex items-center overflow-hidden">
                     <div className="animate-marquee-horizontal whitespace-nowrap">
                         {avisosRaw.map((aviso, i) => (
-                            <span key={i} className="text-lg font-medium tracking-widest text-white uppercase mx-20">
+                            <span key={i} className="text-xs font-medium tracking-widest text-white uppercase mx-12">
                                 {getTxt(aviso, 'texto')}
                             </span>
                         ))}
@@ -160,17 +152,10 @@ export default function LayoutTarifasVertical({
             </footer>
 
             <style>{`
-                .animate-marquee-horizontal { 
-                    display: inline-block;
-                    animation: marqueeH 40s linear infinite; 
-                }
+                .animate-marquee-horizontal { display: inline-block; animation: marqueeH 40s linear infinite; }
                 @keyframes marqueeH { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-                
                 .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
-                @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-                
-                .animate-logo-float { animation: floatLogo 6s ease-in-out infinite; }
-                @keyframes floatLogo { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+                @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
             `}</style>
         </div>
     );
