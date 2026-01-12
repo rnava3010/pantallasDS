@@ -17,6 +17,9 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
     const avisosRaw = datos?.avisos || [];
     const ITEMS_POR_PAGINA = 5;
 
+    // ✅ Definición correcta de la variable visibles
+    const visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA);
+
     useEffect(() => {
         const int = setInterval(() => setIdiomaIndex(prev => (prev + 1) % idiomas.length), (config?.tiempo_rotacion_idioma || 20) * 1000);
         return () => clearInterval(int);
@@ -45,7 +48,6 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
                     <h1 className="text-3xl font-black uppercase" style={{ color: acento, textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
                         {dict.titulo_largo}
                     </h1>
-                    {/* ✅ HORA MÁS GRANDE Y FECHA AGREGADA */}
                     <div className="text-right leading-none flex flex-col items-end gap-1">
                         <div className="text-4xl font-mono font-black">{horaActual?.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                         <div className="text-[11px] font-bold opacity-70 uppercase tracking-widest border-t border-white/20 pt-1">
@@ -56,7 +58,6 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
 
                 <div className="flex-1 flex gap-6 py-6 overflow-hidden">
                     <main className="w-2/3 flex flex-col gap-3 justify-center">
-                        {visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA)}
                         {visibles.map((t, i) => (
                             <div key={i} className="flex justify-between items-center bg-black/50 backdrop-blur-md p-4 rounded-xl border border-white/10 animate-fade-in-up shadow-xl">
                                 <span className="text-xl font-bold uppercase truncate pr-4">{getTxt(t, 'nombre')}</span>
@@ -99,6 +100,8 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
             <style>{`
                 .animate-marquee-vertical { animation: marqueeVertical 25s linear infinite; }
                 @keyframes marqueeVertical { 0% { transform: translateY(0%); } 100% { transform: translateY(-50%); } }
+                .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+                @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
             `}</style>
         </div>
     );
