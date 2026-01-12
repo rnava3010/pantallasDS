@@ -16,19 +16,15 @@ export default function LayoutTarifasHorizontal({
     // --- CONFIGURACIÓN ---
     const { fondo, texto_reloj, texto_evento, acento } = config.colores;
     
-    // Idiomas disponibles
     const idiomas = Array.isArray(config?.idiomas_activos) && config.idiomas_activos.length > 0 
                     ? config.idiomas_activos 
                     : ['es'];
     const tiempoRotacion = (config?.tiempo_rotacion_idioma || 20) * 1000;
     
-    // Idioma actual
     const idiomaActual = idiomas[idiomaIndex];
-    // Diccionario estático
     const dict = TEXTOS_TARIFAS[idiomaActual] || TEXTOS_TARIFAS['es'];
     
-    // ✅ TEXTO LEGAL DINÁMICO (DESDE BD)
-    // El backend ya nos entrega config.pieTarifas como objeto {es: "...", en: "..."}
+    // ✅ TEXTO LEGAL DINÁMICO
     const pieTarifasObj = config?.pieTarifas || {};
     const textoLegal = pieTarifasObj[idiomaActual] || pieTarifasObj['es'] || "";
 
@@ -53,7 +49,6 @@ export default function LayoutTarifasHorizontal({
         if (tarifas.length === 0) return;
         const total = Math.ceil(tarifas.length / ITEMS_POR_PAGINA);
         if (total > 1) {
-            setPagina(0); 
             const int = setInterval(() => setPagina(p => (p + 1) % total), 10000);
             return () => clearInterval(int);
         }
@@ -69,7 +64,7 @@ export default function LayoutTarifasHorizontal({
     const visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA);
 
     return (
-        <div className="h-screen w-screen overflow-hidden p-6 grid grid-rows-[auto_1fr_auto_auto] gap-4" style={{ backgroundColor: fondo }}>
+        <div className="h-screen w-screen overflow-hidden p-6 grid grid-rows-[auto_1fr_auto_auto_auto] gap-4" style={{ backgroundColor: fondo }}>
             
             {/* HEADER */}
             <header className="flex justify-between items-center bg-black/40 backdrop-blur-md p-4 rounded-[1.5rem] border border-white/10 shadow-xl z-20">
@@ -89,7 +84,7 @@ export default function LayoutTarifasHorizontal({
                 </div>
             </header>
 
-            {/* TARIFAS */}
+            {/* TARIFAS (CARRUSEL) */}
             <main className="flex flex-col justify-center gap-3 overflow-hidden relative">
                 {visibles.map((t, i) => {
                     const tienePromo = t.precio_promocion && parseFloat(t.precio_promocion) > 0;
@@ -100,8 +95,8 @@ export default function LayoutTarifasHorizontal({
 
                     return (
                         <div key={i} className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5 animate-fade-in-up shadow-lg">
-                            <div className="flex flex-col overflow-hidden">
-                                <span className="text-2xl font-black uppercase truncate" style={{ color: texto_evento }}>
+                            <div className="flex flex-col overflow-hidden text-left">
+                                <span className="text-2xl font-black uppercase truncate text-white">
                                     {nombreHabitacion}
                                 </span>
                                 {descripcionHab && (
@@ -124,32 +119,31 @@ export default function LayoutTarifasHorizontal({
                         </div>
                     );
                 })}
-
-                {/* ✅ TEXTO LEGAL DESDE BD */}
-                {textoLegal && (
-                    <div className="mt-2 text-center animate-fade-in-up">
-                        <span className="text-[10px] text-white/40 uppercase tracking-widest font-light">
-                            {textoLegal}
-                        </span>
-                    </div>
-                )}
             </main>
+
+            {/* ✅ BLOQUE LEGAL FIJO (Siempre visible, fuera del carrusel) */}
+            {textoLegal && (
+                <div className="py-1 px-4 text-center">
+                    <span className="text-[11px] text-white/50 uppercase tracking-[0.2em] font-medium leading-none">
+                        {textoLegal}
+                    </span>
+                </div>
+            )}
 
             {/* DIVISAS */}
             <div className="flex justify-center items-center py-2 z-10 min-h-[80px]"> 
                 {divisas.length > 0 && (
-                    <div className="flex gap-4 animate-fade-in-up">
+                    <div className="flex gap-4">
                         {divisas.map((divisa, idx) => (
-                            <div key={idx} className="flex items-center gap-4 bg-black/60 backdrop-blur-md px-5 py-3 rounded-xl border border-white/20 shadow-lg hover:scale-105 transition-transform">
+                            <div key={idx} className="flex items-center gap-4 bg-black/60 backdrop-blur-md px-5 py-3 rounded-xl border border-white/20 shadow-lg">
                                 <img 
                                     src={divisa.imagen_url} 
                                     alt={divisa.codigo}
-                                    className="w-12 h-12 object-contain drop-shadow-md rounded-full bg-white/10"
+                                    className="w-10 h-10 object-contain drop-shadow-md rounded-full bg-white/10"
                                     onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
                                 />
-                                <span className="hidden text-4xl select-none filter drop-shadow-md">{FLAGS_EMOJI[divisa.codigo] || '🌐'}</span>
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase mb-[-2px]">{divisa.codigo}</span>
+                                <div className="flex flex-col text-left">
+                                    <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase">{divisa.codigo}</span>
                                     <div className="flex items-baseline gap-1">
                                         <span className="text-xs text-white/70">{divisa.simbolo}</span>
                                         <span className="text-2xl font-mono font-bold text-white">{divisa.tipo_cambio}</span>
@@ -162,7 +156,7 @@ export default function LayoutTarifasHorizontal({
             </div>
 
             {/* FOOTER */}
-            <footer className="h-48 grid grid-cols-2 gap-6 z-20">
+            <footer className="h-44 grid grid-cols-2 gap-6 z-20">
                 <div className="relative rounded-[1.5rem] overflow-hidden border border-white/10 shadow-2xl bg-black">
                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="absolute inset-0 w-full h-full object-cover" />
                 </div>
@@ -186,7 +180,6 @@ export default function LayoutTarifasHorizontal({
                     0% { transform: translateY(0%); } 
                     100% { transform: translateY(-50%); }
                 }
-
                 .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
                 .animate-logo-float { animation: floatLogo 6s ease-in-out infinite; }
