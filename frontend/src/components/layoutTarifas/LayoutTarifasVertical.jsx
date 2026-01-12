@@ -58,16 +58,25 @@ export default function LayoutTarifasVertical({
     return (
         <div className="h-screen w-screen overflow-hidden p-5 flex flex-col justify-between" style={{ backgroundColor: fondo }}>
             
-            {/* 1. HEADER REDISEÑADO - Proporciones equilibradas */}
+            {/* 1. HEADER - Título con Color Acento y Efecto Glow */}
             <header className="grid grid-cols-3 items-center bg-black/50 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 shadow-xl shrink-0">
                 <div className="flex justify-start">
                     <img src={config.logo} alt="Logo" className="h-10 object-contain" />
                 </div>
+                
                 <div className="text-center">
-                    <h1 className="text-base font-black uppercase text-white tracking-widest" style={{ textShadow: `0 0 10px ${acento}40` }}>
+                    {/* Ajustado: Color dinámico 'acento' y glow más potente */}
+                    <h1 
+                        className="text-xl font-black uppercase tracking-[0.1em] leading-tight" 
+                        style={{ 
+                            color: acento, 
+                            textShadow: `0 0 10px ${acento}AA, 0 0 20px ${acento}66` 
+                        }}
+                    >
                         {dict.titulo_largo}
                     </h1>
                 </div>
+
                 <div className="flex flex-col items-end leading-none gap-0.5">
                     <span className="text-2xl font-mono font-black text-white">
                         {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -78,8 +87,8 @@ export default function LayoutTarifasVertical({
                 </div>
             </header>
 
-            {/* 2. TARIFAS - 5 Items que respiran bien */}
-            <main className="flex-1 flex flex-col gap-2 justify-center py-2 overflow-hidden">
+            {/* 2. TARIFAS */}
+            <main className="flex-1 flex flex-col gap-2.5 justify-center py-2 overflow-hidden">
                 {visibles.map((t, i) => {
                     const tienePromo = t.precio_promocion && parseFloat(t.precio_promocion) > 0;
                     const precioMostrar = tienePromo ? t.precio_promocion : t.precio_rack;
@@ -142,7 +151,7 @@ export default function LayoutTarifasVertical({
                 </div>
             </div>
 
-            {/* 4. FOOTER - Video 20% altura */}
+            {/* 4. FOOTER */}
             <footer className="flex flex-col gap-2.5 shrink-0">
                 <div className="h-[20vh] relative rounded-2xl overflow-hidden border border-white/10 bg-black shadow-inner">
                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="absolute inset-0 w-full h-full object-cover" />
