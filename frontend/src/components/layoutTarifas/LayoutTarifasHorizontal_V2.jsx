@@ -14,12 +14,13 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
     const textoLegal = pieTarifasObj[idiomaActual] || pieTarifasObj['es'] || "";
 
     const tarifas = datos?.tarifas || [];
+    const avisosRaw = datos?.avisos || [];
     const ITEMS_POR_PAGINA = 5;
 
     useEffect(() => {
         const int = setInterval(() => setIdiomaIndex(prev => (prev + 1) % idiomas.length), (config?.tiempo_rotacion_idioma || 20) * 1000);
         return () => clearInterval(int);
-    }, [idiomas]);
+    }, [idiomas, config]);
 
     useEffect(() => {
         const total = Math.ceil(tarifas.length / ITEMS_POR_PAGINA);
@@ -33,43 +34,72 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
 
     return (
         <div className="h-screen w-screen overflow-hidden relative bg-black">
-            {/* FONDO: GALERÍA A PANTALLA COMPLETA */}
+            {/* FONDO: Galería con overlay más clarito */}
             <div className="absolute inset-0 z-0">
-                <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="w-full h-full object-cover opacity-60" />
-                <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+                <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="w-full h-full object-cover opacity-80" />
+                <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]"></div>
             </div>
 
-            {/* CONTENIDO SUPERPUESTO */}
-            <div className="relative z-10 h-full flex flex-col p-8 justify-between text-white">
-                <header className="flex justify-between items-center bg-black/40 p-6 rounded-3xl border border-white/10">
-                    <img src={config.logo} className="h-14" alt="logo" />
-                    <h1 className="text-3xl font-black uppercase tracking-tighter" style={{ color: acento }}>{dict.titulo_largo}</h1>
-                    <div className="text-right leading-none">
-                        <div className="text-3xl font-mono font-bold">{horaActual?.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                        <div className="text-[10px] opacity-60 uppercase">{horaActual?.toLocaleDateString()}</div>
+            <div className="relative z-10 h-full flex flex-col p-6 justify-between text-white">
+                {/* HEADER */}
+                <header className="flex justify-between items-center bg-black/60 p-4 rounded-2xl border border-white/10 shadow-2xl">
+                    <img src={config.logo} className="h-12" alt="logo" />
+                    <h1 className="text-2xl font-black uppercase" style={{ color: acento, textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
+                        {dict.titulo_largo}
+                    </h1>
+                    <div className="text-right font-mono">
+                        <div className="text-2xl font-bold">{horaActual?.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                     </div>
                 </header>
 
-                <main className="grid grid-cols-1 gap-3 max-w-5xl mx-auto w-full">
-                    {tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA).map((t, i) => (
-                        <div key={i} className="flex justify-between items-center bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/5 animate-fade-in-up">
-                            <span className="text-2xl font-bold uppercase">{getTxt(t, 'nombre')}</span>
-                            <span className="text-4xl font-mono font-black" style={{ color: acento }}>{t.moneda}{t.precio_promocion || t.precio_rack}</span>
-                        </div>
-                    ))}
-                </main>
+                <div className="flex-1 flex gap-6 py-6 overflow-hidden">
+                    {/* IZQUIERDA: TARIFAS */}
+                    <main className="w-2/3 flex flex-col gap-3 justify-center">
+                        {tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA).map((t, i) => (
+                            <div key={i} className="flex justify-between items-center bg-black/50 backdrop-blur-md p-4 rounded-xl border border-white/10 animate-fade-in-up shadow-xl">
+                                <span className="text-xl font-bold uppercase truncate pr-4">{getTxt(t, 'nombre')}</span>
+                                <span className="text-3xl font-mono font-black" style={{ color: acento }}>{t.moneda}{t.precio_promocion || t.precio_rack}</span>
+                            </div>
+                        ))}
+                    </main>
 
-                <footer className="flex flex-col gap-4">
-                    <div className="flex justify-center gap-4">
+                    {/* DERECHA: AVISOS (Banner Vertical) */}
+                    <aside className="w-1/3 bg-black/60 backdrop-blur-md rounded-2xl border border-white/10 p-6 flex flex-col overflow-hidden relative shadow-2xl">
+                        <div className="text-center mb-4 border-b border-white/10 pb-2">
+                            <span className="text-xs font-black uppercase tracking-[0.3em]" style={{ color: acento }}>Avisos</span>
+                        </div>
+                        <div className="flex-1 relative overflow-hidden">
+                            <div className="animate-marquee-vertical flex flex-col gap-10 items-center text-center w-full">
+                                {[...avisosRaw, ...avisosRaw].map((aviso, i) => (
+                                    <span key={i} className="text-lg font-light tracking-wide uppercase leading-snug">
+                                        {getTxt(aviso, 'texto')}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+
+                {/* FOOTER: Tipo de Cambio */}
+                <footer className="flex flex-col gap-3 bg-black/60 p-4 rounded-2xl border border-white/10">
+                    <div className="text-center">
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-2 block" style={{ color: acento }}>Tipo de Cambio</span>
+                    </div>
+                    <div className="flex justify-center gap-6">
                         {datos?.divisas.map((d, i) => (
-                            <div key={i} className="bg-black/60 px-4 py-2 rounded-xl border border-white/10 font-mono">
-                                <span className="text-xs opacity-40 mr-2">{d.codigo}</span>{d.tipo_cambio}
+                            <div key={i} className="flex items-center gap-3 bg-white/5 px-4 py-1.5 rounded-lg border border-white/5">
+                                <span className="text-xs font-bold opacity-40">{d.codigo}</span>
+                                <span className="text-xl font-mono font-bold">{d.tipo_cambio}</span>
                             </div>
                         ))}
                     </div>
-                    {textoLegal && <p className="text-center text-[10px] opacity-50 uppercase tracking-[0.3em]">{textoLegal}</p>}
+                    {textoLegal && <p className="text-center text-[8px] opacity-40 uppercase tracking-[0.2em] mt-2">{textoLegal}</p>}
                 </footer>
             </div>
+            <style>{`
+                .animate-marquee-vertical { animation: marqueeVertical 20s linear infinite; }
+                @keyframes marqueeVertical { 0% { transform: translateY(0%); } 100% { transform: translateY(-50%); } }
+            `}</style>
         </div>
     );
 }
