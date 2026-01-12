@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import MediaRenderer from '../MediaRenderer';
 
-// Mapa de respaldo (Emojis)
 const FLAGS_EMOJI = {
-    USD: '🇺🇸',
-    EUR: '🇪🇺',
-    CAD: '🇨🇦',
-    JPY: '🇯🇵',
-    MXN: '🇲🇽',
-    GBP: '🇬🇧'
+    USD: '🇺🇸', EUR: '🇪🇺', CAD: '🇨🇦', JPY: '🇯🇵', MXN: '🇲🇽', GBP: '🇬🇧'
 };
 
 export default function LayoutTarifasHorizontal({ 
@@ -19,8 +13,10 @@ export default function LayoutTarifasHorizontal({
     
     const tarifas = datos?.tarifas || [];
     const divisas = datos?.divisas || []; 
-    const banner = datos?.banner || "Bienvenidos - Consulte nuestras promociones";
-    
+    // ✅ Recibimos el array de avisos. Si viene string (legacy), lo convertimos a array.
+    const rawAvisos = datos?.avisos || ["Bienvenidos"];
+    const avisos = Array.isArray(rawAvisos) ? rawAvisos : [rawAvisos];
+
     const ITEMS_POR_PAGINA = 4;
 
     useEffect(() => {
@@ -80,33 +76,21 @@ export default function LayoutTarifasHorizontal({
                 })}
             </main>
 
-            {/* ✅ DIVISAS: Usando la URL que manda el Backend (Estilo Galería) */}
+            {/* DIVISAS */}
             <div className="flex justify-center items-center py-2 z-10 min-h-[80px]"> 
                 {divisas.length > 0 && (
                     <div className="flex gap-4 animate-fade-in-up">
                         {divisas.map((divisa, idx) => (
-                            <div key={idx} className="flex items-center gap-4 bg-black/60 backdrop-blur-md px-5 py-3 rounded-xl border border-white/20 shadow-lg transition-transform hover:scale-105">
-                                
-                                {/* 1. IMAGEN DESDE EL BACKEND */}
+                            <div key={idx} className="flex items-center gap-4 bg-black/60 backdrop-blur-md px-5 py-3 rounded-xl border border-white/20 shadow-lg hover:scale-105 transition-transform">
                                 <img 
-                                    src={divisa.imagen_url} // <--- URL directa del backend
+                                    src={divisa.imagen_url} 
                                     alt={divisa.codigo}
                                     className="w-12 h-12 object-contain drop-shadow-md rounded-full bg-white/10"
-                                    onError={(e) => {
-                                        e.target.style.display = 'none'; 
-                                        e.target.nextSibling.style.display = 'block'; 
-                                    }}
+                                    onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
                                 />
-                                
-                                {/* 2. RESPALDO EMOJI */}
-                                <span className="hidden text-4xl select-none filter drop-shadow-md">
-                                    {FLAGS_EMOJI[divisa.codigo] || '🌐'}
-                                </span>
-
+                                <span className="hidden text-4xl select-none filter drop-shadow-md">{FLAGS_EMOJI[divisa.codigo] || '🌐'}</span>
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase mb-[-2px]">
-                                        {divisa.codigo}
-                                    </span>
+                                    <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase mb-[-2px]">{divisa.codigo}</span>
                                     <div className="flex items-baseline gap-1">
                                         <span className="text-xs text-white/70">{divisa.simbolo}</span>
                                         <span className="text-2xl font-mono font-bold text-white">{divisa.tipo_cambio}</span>
@@ -118,21 +102,38 @@ export default function LayoutTarifasHorizontal({
                 )}
             </div>
 
-            {/* FOOTER */}
+            {/* FOOTER - AVISOS VERTICALES */}
             <footer className="h-48 grid grid-cols-2 gap-6 z-20">
+                {/* Video/Imagen Promocional */}
                 <div className="relative rounded-[1.5rem] overflow-hidden border border-white/10 shadow-2xl bg-black">
                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="absolute inset-0 w-full h-full object-cover" />
                 </div>
-                <div className="bg-black/40 backdrop-blur-md rounded-[1.5rem] border border-white/10 p-4 flex items-center justify-center overflow-hidden">
-                    <div className="animate-marquee-horizontal whitespace-nowrap">
-                        <span className="text-2xl font-light tracking-widest text-white uppercase">{banner}</span>
+                
+                {/* ✅ Banner de Avisos Vertical */}
+                <div className="bg-black/40 backdrop-blur-md rounded-[1.5rem] border border-white/10 p-6 flex flex-col items-center justify-center overflow-hidden relative">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        {/* Contenedor de animación vertical */}
+                        <div className="animate-marquee-vertical flex flex-col gap-10 items-center text-center w-full px-4">
+                            {/* Duplicamos la lista para efecto infinito suave */}
+                            {[...avisos, ...avisos].map((aviso, i) => (
+                                <span key={i} className="text-2xl font-light tracking-widest text-white uppercase leading-tight">
+                                    {aviso}
+                                </span>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </footer>
 
             <style>{`
-                .animate-marquee-horizontal { animation: marquee 20s linear infinite; }
-                @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+                /* Animación Vertical de Arriba hacia Abajo (o ciclo continuo) */
+                .animate-marquee-vertical { animation: marqueeVertical 15s linear infinite; }
+                
+                @keyframes marqueeVertical {
+                    0% { transform: translateY(-50%); } 
+                    100% { transform: translateY(0%); }
+                }
+
                 .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
                 .animate-logo-float { animation: floatLogo 6s ease-in-out infinite; }

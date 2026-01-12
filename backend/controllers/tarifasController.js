@@ -5,7 +5,6 @@ const pool = require('../config/db');
  */
 const obtenerTarifasPorSucursal = async (idSucursal) => {
     try {
-        // Mantenemos la corrección de separar precio_promocion y precio_rack
         const sql = `
             SELECT 
                 idTarifa, 
@@ -28,14 +27,37 @@ const obtenerTarifasPorSucursal = async (idSucursal) => {
 };
 
 /**
- * Obtiene los banners de texto.
+ * ✅ NUEVA FUNCIÓN: Obtiene los avisos desde la BD (tbl_avisos)
+ * Filtra por sucursal, activo=1 y fechas vigentes.
  */
-const obtenerBannersTarifas = async (idSucursal) => {
-    return "Consulte nuestras promociones de temporada en recepción. • Tarifas vigentes para el día de hoy.";
+const obtenerAvisosPorSucursal = async (idSucursal) => {
+    try {
+        const sql = `
+            SELECT texto 
+            FROM tbl_avisos 
+            WHERE idSucursal = ? 
+              AND activo = 1
+              AND (fecha_inicio IS NULL OR fecha_inicio <= CURDATE())
+              AND (fecha_fin IS NULL OR fecha_fin >= CURDATE())
+            ORDER BY orden ASC
+        `;
+        const [rows] = await pool.query(sql, [idSucursal]);
+        
+        // Si hay avisos, devolvemos un array de strings. Si no, un mensaje default.
+        if (rows.length > 0) {
+            return rows.map(r => r.texto);
+        } else {
+            return ["Bienvenidos a nuestra sucursal", "Consulte promociones en recepción"];
+        }
+    } catch (error) {
+        console.error("❌ Error en obtenerAvisosPorSucursal:", error);
+        // Fallback en caso de error de tabla no existente aún
+        return ["Bienvenidos"]; 
+    }
 };
 
 /**
- * ✅ NUEVA FUNCIÓN: Obtiene las divisas activas para la sucursal.
+ * Obtiene divisas y prepara URL de imagen.
  */
 const obtenerDivisasPorSucursal = async (idSucursal) => {
     try {
@@ -46,15 +68,27 @@ const obtenerDivisasPorSucursal = async (idSucursal) => {
             ORDER BY orden ASC
         `;
         const [rows] = await pool.query(sql, [idSucursal]);
-        return rows;
+        
+        return rows.map(divisa => ({
+            ...divisa,
+            imagen_url: `/banderas/${divisa.codigo.toLowerCase()}.png`
+        }));
     } catch (error) {
         console.error("❌ Error en obtenerDivisasPorSucursal:", error);
-        return []; // Retornar array vacío en caso de error para no romper la pantalla
+        return [];
     }
+};
+
+// Mantenemos la función antigua por compatibilidad, pero ahora usa la nueva lógica interna si quisieras
+const obtenerBannersTarifas = async (idSucursal) => {
+    // Retornamos solo el primer aviso como string para no romper otros controladores viejos
+    const avisos = await obtenerAvisosPorSucursal(idSucursal);
+    return avisos.join(" • ");
 };
 
 module.exports = {
     obtenerTarifasPorSucursal,
     obtenerBannersTarifas,
-    obtenerDivisasPorSucursal // Exportamos la nueva función
+    obtenerDivisasPorSucursal,
+    obtenerAvisosPorSucursal // Exportamos la nueva
 };

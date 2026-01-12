@@ -115,20 +115,23 @@ const getDatosPantalla = async (req, res) => {
         }
 		else if (terminal.tipo_pantalla === 'TARIFAS') {
             const tarifas = await tarifasController.obtenerTarifasPorSucursal(terminal.idSucursal);
-            const banner = await tarifasController.obtenerBannersTarifas(terminal.idSucursal);
-            
             const divisas = await tarifasController.obtenerDivisasPorSucursal(terminal.idSucursal);
+            
+            // ✅ 1. Obtenemos el array de avisos reales
+            const avisos = await tarifasController.obtenerAvisosPorSucursal(terminal.idSucursal);
 
             const dataTarifas = { 
                 tipo_datos: 'TARIFAS', 
                 tarifas, 
-                banner, 
                 divisas,
+                avisos, // <--- Enviamos el array completo
                 galeria: listaScreensaver 
             };
             respuesta.datos = dataTarifas;
             respuesta.data = dataTarifas;
         }
+
+        res.json(respuesta);
 
         res.json(respuesta);
     } catch (error) {
