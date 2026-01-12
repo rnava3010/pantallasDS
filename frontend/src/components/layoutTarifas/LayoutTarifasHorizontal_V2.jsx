@@ -14,6 +14,7 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
     const textoLegal = pieTarifasObj[idiomaActual] || pieTarifasObj['es'] || "";
 
     const tarifas = datos?.tarifas || [];
+    const avisosRaw = datos?.avisos || [];
     const ITEMS_POR_PAGINA = 5;
     const visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA);
 
@@ -76,8 +77,9 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
                             <span className="text-xs font-black uppercase tracking-[0.3em]" style={{ color: acento }}>Avisos</span>
                         </div>
                         <div className="flex-1 relative overflow-hidden">
+                            {/* MARQUESINA VERTICAL RE-ACTIVADA */}
                             <div className="animate-marquee-vertical flex flex-col gap-10 items-center text-center w-full">
-                                {datos?.avisos.map((aviso, i) => (
+                                {[...avisosRaw, ...avisosRaw].map((aviso, i) => (
                                     <span key={i} className="text-xl font-bold tracking-wide uppercase leading-snug" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
                                         {getTxt(aviso, 'texto')}
                                     </span>
@@ -104,6 +106,16 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
                     {textoLegal && <p className="text-center text-[10px] font-bold opacity-60 uppercase tracking-[0.2em] mt-2" style={{ textShadow: '1px 1px 2px rgba(0,0,0,1)' }}>{textoLegal}</p>}
                 </footer>
             </div>
+
+            <style>{`
+                .animate-marquee-vertical { animation: marqueeVertical 25s linear infinite; }
+                @keyframes marqueeVertical { 
+                    0% { transform: translateY(0%); } 
+                    100% { transform: translateY(-50%); } 
+                }
+                .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+                @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+            `}</style>
         </div>
     );
 }

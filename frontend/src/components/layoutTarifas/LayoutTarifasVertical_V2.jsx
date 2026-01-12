@@ -34,7 +34,6 @@ export default function LayoutTarifasVertical2({ config, datos, horaActual, item
 
     return (
         <div className="h-screen w-screen overflow-hidden relative bg-black">
-            {/* GALERÍA DE FONDO */}
             <div className="absolute inset-0 z-0">
                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="w-full h-full object-cover opacity-70" />
                 <div className="absolute inset-0 bg-black/30 backdrop-blur-[3px]"></div>
@@ -51,6 +50,7 @@ export default function LayoutTarifasVertical2({ config, datos, horaActual, item
                         <div className="text-3xl font-mono font-black" style={{ textShadow: '0 2px 4px rgba(0,0,0,1)' }}>
                             {horaActual?.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
                         </div>
+                        {/* ✅ Fecha larga restaurada */}
                         <div className="text-[10px] opacity-90 uppercase font-bold tracking-widest" style={{ textShadow: '0 1px 2px rgba(0,0,0,1)' }}>
                             {horaActual?.toLocaleDateString(idiomaActual === 'en' ? 'en-US' : 'es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                         </div>
@@ -70,7 +70,7 @@ export default function LayoutTarifasVertical2({ config, datos, horaActual, item
                             </div>
                             <div className="text-4xl font-mono font-black" 
                                  style={{ color: acento, textShadow: `0 0 15px ${acento}AA, 2px 2px 4px rgba(0,0,0,1)` }}>
-                                {t.moneda}{t.precio_rack}
+                                {t.moneda}{t.precio_promocion || t.precio_rack}
                             </div>
                         </div>
                     ))}
@@ -93,6 +93,7 @@ export default function LayoutTarifasVertical2({ config, datos, horaActual, item
                         </div>
                     </div>
 
+                    {/* ✅ MARQUESINA HORIZONTAL RE-ACTIVADA */}
                     <div className="h-14 bg-black/75 backdrop-blur-md rounded-2xl border border-white/20 flex items-center overflow-hidden shadow-2xl">
                         <div className="animate-marquee-horizontal whitespace-nowrap">
                             {datos?.avisos.map((aviso, i) => (
@@ -112,6 +113,13 @@ export default function LayoutTarifasVertical2({ config, datos, horaActual, item
                     )}
                 </footer>
             </div>
+
+            <style>{`
+                .animate-marquee-horizontal { display: inline-block; animation: marqueeH 40s linear infinite; }
+                @keyframes marqueeH { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+                .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+                @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+            `}</style>
         </div>
     );
 }
