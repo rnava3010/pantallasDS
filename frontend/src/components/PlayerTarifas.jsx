@@ -1,26 +1,22 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-
-// --- Hooks ---
 import { useTarifas } from '../hooks/useTarifas'; 
 import { useReloj } from '../hooks/useReloj'; //
 import { useCarrusel } from '../hooks/useCarrusel';
 import { useOfflineVideo } from '../hooks/useOfflineVideo';
 
-// --- Layouts de Tarifas ---
 import LayoutTarifasHorizontal from './layoutTarifas/LayoutTarifasHorizontal';
 import LayoutTarifasVertical from './layoutTarifas/LayoutTarifasVertical';
+import LayoutTarifasHorizontal2 from './layoutTarifas/LayoutTarifasHorizontal_V2';
+import LayoutTarifasVertical2 from './layoutTarifas/LayoutTarifasVertical_V2';
 
 export default function PlayerTarifas() {
     const { id } = useParams();
     
-    // 1. Obtención de datos y configuración de Tarifas
     const { config, datos, loading, timeOffset } = useTarifas(id); //
     
-    // 2. Gestión del tiempo (ESTA ES LA LÍNEA QUE FALTABA)
     const horaActual = useReloj(timeOffset); //
 
-    // 3. Gestión de la Galería del Footer (Screensaver)
     const listaGaleria = datos?.galeria?.length > 0 ? datos.galeria : (config?.screensaver || []);
     const { itemActual } = useCarrusel(listaGaleria, 10000);
     const { videoBlobUrl } = useOfflineVideo(listaGaleria);
@@ -35,23 +31,25 @@ export default function PlayerTarifas() {
         );
     }
 
-    // 5. Selección de Layout (layoutTarifas de la DB)
     const layoutId = config?.layoutTarifas ?? 0; //
 
     const layoutProps = {
         config,
         datos,
-        horaActual, // Ahora ya está definida
+        horaActual,
         itemActual,
         videoBlobUrl
     };
 
-    // 6. Router de Diseños
     const renderLayout = () => {
         switch (layoutId) {
             case 0:
                 return <LayoutTarifasHorizontal {...layoutProps} />;
             case 1:
+                return <LayoutTarifasVertical {...layoutProps} />;
+			case 2:
+                return <LayoutTarifasHorizontal {...layoutProps} />;
+            case 3:
                 return <LayoutTarifasVertical {...layoutProps} />;
             default:
                 return <LayoutTarifasHorizontal {...layoutProps} />;
