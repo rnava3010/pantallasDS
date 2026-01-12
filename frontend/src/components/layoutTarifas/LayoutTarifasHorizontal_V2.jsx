@@ -34,28 +34,30 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
 
     return (
         <div className="h-screen w-screen overflow-hidden relative bg-black">
-            {/* FONDO: Galería con overlay más clarito */}
             <div className="absolute inset-0 z-0">
                 <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="w-full h-full object-cover opacity-80" />
                 <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]"></div>
             </div>
 
             <div className="relative z-10 h-full flex flex-col p-6 justify-between text-white">
-                {/* HEADER */}
-                <header className="flex justify-between items-center bg-black/60 p-4 rounded-2xl border border-white/10 shadow-2xl">
-                    <img src={config.logo} className="h-12" alt="logo" />
-                    <h1 className="text-2xl font-black uppercase" style={{ color: acento, textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
+                <header className="flex justify-between items-center bg-black/60 p-5 rounded-2xl border border-white/10 shadow-2xl">
+                    <img src={config.logo} className="h-14" alt="logo" />
+                    <h1 className="text-3xl font-black uppercase" style={{ color: acento, textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
                         {dict.titulo_largo}
                     </h1>
-                    <div className="text-right font-mono">
-                        <div className="text-2xl font-bold">{horaActual?.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                    {/* ✅ HORA MÁS GRANDE Y FECHA AGREGADA */}
+                    <div className="text-right leading-none flex flex-col items-end gap-1">
+                        <div className="text-4xl font-mono font-black">{horaActual?.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        <div className="text-[11px] font-bold opacity-70 uppercase tracking-widest border-t border-white/20 pt-1">
+                            {horaActual?.toLocaleDateString(idiomaActual === 'en' ? 'en-US' : 'es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                        </div>
                     </div>
                 </header>
 
                 <div className="flex-1 flex gap-6 py-6 overflow-hidden">
-                    {/* IZQUIERDA: TARIFAS */}
                     <main className="w-2/3 flex flex-col gap-3 justify-center">
-                        {tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA).map((t, i) => (
+                        {visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA)}
+                        {visibles.map((t, i) => (
                             <div key={i} className="flex justify-between items-center bg-black/50 backdrop-blur-md p-4 rounded-xl border border-white/10 animate-fade-in-up shadow-xl">
                                 <span className="text-xl font-bold uppercase truncate pr-4">{getTxt(t, 'nombre')}</span>
                                 <span className="text-3xl font-mono font-black" style={{ color: acento }}>{t.moneda}{t.precio_promocion || t.precio_rack}</span>
@@ -63,7 +65,6 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
                         ))}
                     </main>
 
-                    {/* DERECHA: AVISOS (Banner Vertical) */}
                     <aside className="w-1/3 bg-black/60 backdrop-blur-md rounded-2xl border border-white/10 p-6 flex flex-col overflow-hidden relative shadow-2xl">
                         <div className="text-center mb-4 border-b border-white/10 pb-2">
                             <span className="text-xs font-black uppercase tracking-[0.3em]" style={{ color: acento }}>Avisos</span>
@@ -80,7 +81,6 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
                     </aside>
                 </div>
 
-                {/* FOOTER: Tipo de Cambio */}
                 <footer className="flex flex-col gap-3 bg-black/60 p-4 rounded-2xl border border-white/10">
                     <div className="text-center">
                         <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-2 block" style={{ color: acento }}>Tipo de Cambio</span>
@@ -97,7 +97,7 @@ export default function LayoutTarifasHorizontal2({ config, datos, horaActual, it
                 </footer>
             </div>
             <style>{`
-                .animate-marquee-vertical { animation: marqueeVertical 20s linear infinite; }
+                .animate-marquee-vertical { animation: marqueeVertical 25s linear infinite; }
                 @keyframes marqueeVertical { 0% { transform: translateY(0%); } 100% { transform: translateY(-50%); } }
             `}</style>
         </div>
