@@ -9,36 +9,29 @@ const FLAGS_EMOJI = {
 export default function LayoutTarifasVertical({ 
     config, datos, horaActual, clima, itemActual, videoBlobUrl 
 }) {
-    // --- ESTADOS DE ROTACIÓN ---
     const [pagina, setPagina] = useState(0);
     const [idiomaIndex, setIdiomaIndex] = useState(0);
 
-    // --- CONFIGURACIÓN ---
     const { fondo, texto_reloj, texto_evento, acento } = config.colores;
     
-    // Idiomas disponibles (configurados en cat_terminales)
     const idiomas = Array.isArray(config?.idiomas_activos) && config.idiomas_activos.length > 0 
                     ? config.idiomas_activos 
                     : ['es'];
     const tiempoRotacion = (config?.tiempo_rotacion_idioma || 20) * 1000;
     
-    // Idioma actual para textos estáticos y dinámicos
     const idiomaActual = idiomas[idiomaIndex];
     const dict = TEXTOS_TARIFAS[idiomaActual] || TEXTOS_TARIFAS['es'];
     
-    // Pie de tarifas desde la base de datos
     const pieTarifasObj = config?.pieTarifas || {};
     const textoLegal = pieTarifasObj[idiomaActual] || pieTarifasObj['es'] || "";
 
-    // --- DATOS ---
     const tarifas = datos?.tarifas || [];
     const divisas = datos?.divisas || []; 
     const avisosRaw = datos?.avisos || [];
     
-    // En vertical (1080x1920) caben bien 5 o 6 tarifas
+    // 5 items es ideal para vertical si el header es pequeño
     const ITEMS_POR_PAGINA = 5;
 
-    // --- ROTACIÓN DE IDIOMA ---
     useEffect(() => {
         if (idiomas.length > 1) {
             const interval = setInterval(() => {
@@ -48,7 +41,6 @@ export default function LayoutTarifasVertical({
         }
     }, [idiomas, tiempoRotacion]);
 
-    // --- ROTACIÓN DE PÁGINAS ---
     useEffect(() => {
         if (tarifas.length === 0) return;
         const total = Math.ceil(tarifas.length / ITEMS_POR_PAGINA);
@@ -58,7 +50,6 @@ export default function LayoutTarifasVertical({
         }
     }, [tarifas.length, idiomaIndex]);
 
-    // Helper para obtener textos traducidos de la BD
     const getTxt = (obj, campoBase) => {
         if (!obj) return "";
         if (idiomaActual === 'es') return obj[campoBase] || ""; 
@@ -69,28 +60,28 @@ export default function LayoutTarifasVertical({
     const visibles = tarifas.slice(pagina * ITEMS_POR_PAGINA, (pagina + 1) * ITEMS_POR_PAGINA);
 
     return (
-        <div className="h-screen w-screen overflow-hidden p-8 grid grid-rows-[auto_1fr_auto_auto] gap-6" style={{ backgroundColor: fondo }}>
+        <div className="h-screen w-screen overflow-hidden p-6 grid grid-rows-[auto_1fr_auto_auto] gap-4" style={{ backgroundColor: fondo }}>
             
-            {/* 1. HEADER VERTICAL */}
-            <header className="flex flex-col items-center bg-black/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/10 shadow-2xl z-20 gap-4">
-                <img src={config.logo} alt="Logo" className="h-28 object-contain animate-logo-float" />
+            {/* 1. HEADER REDUCIDO */}
+            <header className="flex flex-col items-center bg-black/40 backdrop-blur-md p-4 rounded-[1.5rem] border border-white/10 shadow-xl z-20 gap-2">
+                <img src={config.logo} alt="Logo" className="h-16 object-contain animate-logo-float" />
                 
-                <h1 className="text-5xl font-black uppercase tracking-tighter text-center" style={{ color: acento, textShadow: `0 0 20px ${acento}80` }}>
+                <h1 className="text-2xl font-black uppercase tracking-tighter text-center" style={{ color: acento, textShadow: `0 0 15px ${acento}60` }}>
                     {dict.titulo_largo}
                 </h1>
                 
-                <div className="text-center">
-                    <span className="text-7xl font-mono font-black block leading-none text-white mb-2">
+                <div className="flex items-center gap-4">
+                    <span className="text-4xl font-mono font-black text-white">
                         {horaActual?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <span className="text-2xl opacity-80 text-white font-light uppercase tracking-widest block">
-                        {horaActual?.toLocaleDateString(idiomaActual === 'en' ? 'en-US' : 'es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    <span className="text-sm opacity-60 text-white font-light uppercase tracking-widest border-l border-white/20 pl-4">
+                        {horaActual?.toLocaleDateString(idiomaActual === 'en' ? 'en-US' : 'es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
                     </span>
                 </div>
             </header>
 
-            {/* 2. LISTADO DE TARIFAS (Principal) */}
-            <main className="flex flex-col gap-4 overflow-hidden relative">
+            {/* 2. LISTADO DE TARIFAS */}
+            <main className="flex flex-col gap-3 overflow-hidden relative py-2">
                 {visibles.map((t, i) => {
                     const tienePromo = t.precio_promocion && parseFloat(t.precio_promocion) > 0;
                     const precioMostrar = tienePromo ? t.precio_promocion : t.precio_rack;
@@ -99,98 +90,91 @@ export default function LayoutTarifasVertical({
                     const descripcionHab = getTxt(t, 'descripcion');
 
                     return (
-                        <div key={i} className="flex flex-col p-6 bg-white/5 rounded-[2rem] border border-white/5 animate-fade-in-up shadow-xl">
-                            {/* Nombre de Habitación */}
-                            <span className="text-3xl font-black uppercase mb-1" style={{ color: texto_evento }}>
+                        <div key={i} className="flex flex-col p-4 bg-white/5 rounded-2xl border border-white/5 animate-fade-in-up shadow-md">
+                            <span className="text-xl font-bold uppercase" style={{ color: texto_evento }}>
                                 {nombreHabitacion}
                             </span>
                             
-                            {/* Descripción debajo del nombre */}
                             {descripcionHab && (
-                                <span className="text-lg opacity-60 text-white italic mb-4">
+                                <span className="text-xs opacity-50 text-white italic truncate mb-2">
                                     {descripcionHab}
                                 </span>
                             )}
 
-                            {/* Línea de precio alineada a la derecha */}
-                            <div className="flex flex-col items-end border-t border-white/10 pt-3">
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-2xl font-bold opacity-40 text-white">{monedaSymbol}</span>
-                                    <span className="text-6xl font-mono font-black" style={{ color: acento }}>{precioMostrar}</span>
-                                </div>
+                            <div className="flex justify-end items-baseline gap-2 border-t border-white/5 pt-2">
                                 {tienePromo && (
-                                    <span className="text-xl font-bold text-white/40">
-                                        {dict.reg} {monedaSymbol} {t.precio_rack}
+                                    <span className="text-xs font-bold text-white/30 line-through mr-2">
+                                        {dict.reg} {monedaSymbol}{t.precio_rack}
                                     </span>
                                 )}
+                                <span className="text-sm font-bold opacity-40 text-white">{monedaSymbol}</span>
+                                <span className="text-4xl font-mono font-black" style={{ color: acento }}>{precioMostrar}</span>
                             </div>
                         </div>
                     );
                 })}
 
-                {/* Pie de Tarifas (Texto Legal desde BD) */}
                 {textoLegal && (
-                    <div className="mt-auto pt-4 text-center">
-                        <p className="text-sm text-white/30 uppercase tracking-[0.2em] font-light leading-relaxed">
+                    <div className="mt-auto text-center">
+                        <p className="text-[10px] text-white/20 uppercase tracking-widest leading-tight">
                             {textoLegal}
                         </p>
                     </div>
                 )}
             </main>
 
-            {/* 3. DIVISAS (Cuadrícula de 2 columnas) */}
+            {/* 3. TIPO DE CAMBIO MÁS COMPACTO */}
             {divisas.length > 0 && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-wrap justify-center gap-2 py-1">
                     {divisas.map((divisa, idx) => (
-                        <div key={idx} className="flex items-center gap-4 bg-black/60 backdrop-blur-md px-6 py-4 rounded-3xl border border-white/10 shadow-lg justify-center">
+                        <div key={idx} className="flex items-center gap-2 bg-black/40 px-3 py-2 rounded-xl border border-white/5 shadow-sm">
                             <img 
                                 src={divisa.imagen_url} 
                                 alt={divisa.codigo}
-                                className="w-12 h-12 object-contain drop-shadow-md rounded-full bg-white/10"
+                                className="w-6 h-6 object-contain rounded-full"
                                 onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
                             />
-                            <span className="hidden text-4xl select-none">{FLAGS_EMOJI[divisa.codigo] || '🌐'}</span>
-                            <div className="flex flex-col">
-                                <span className="text-xs font-bold text-white/40 tracking-widest uppercase">{divisa.codigo}</span>
-                                <div className="flex items-baseline gap-1">
-                                    <span className="text-sm text-white/70">{divisa.simbolo}</span>
-                                    <span className="text-3xl font-mono font-bold text-white">{divisa.tipo_cambio}</span>
-                                </div>
+                            <span className="hidden text-xl">{FLAGS_EMOJI[divisa.codigo] || '🌐'}</span>
+                            <div className="flex gap-2 items-baseline">
+                                <span className="text-[10px] font-bold text-white/40">{divisa.codigo}</span>
+                                <span className="text-lg font-mono font-bold text-white">{divisa.tipo_cambio}</span>
                             </div>
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* 4. FOOTER (Video + Avisos Verticales) */}
-            <footer className="h-[450px] flex flex-col gap-4">
-                <div className="flex-1 relative rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl bg-black">
+            {/* 4. FOOTER CON MARQUESINA HORIZONTAL */}
+            <footer className="h-72 flex flex-col gap-3">
+                <div className="flex-1 relative rounded-2xl overflow-hidden border border-white/10 bg-black">
                     <MediaRenderer url={itemActual} blobUrl={videoBlobUrl} className="absolute inset-0 w-full h-full object-cover" />
                 </div>
                 
-                <div className="h-28 bg-black/40 backdrop-blur-md rounded-[2rem] border border-white/10 p-4 flex flex-col items-center justify-center overflow-hidden relative">
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <div key={idiomaActual} className="animate-marquee-vertical flex flex-col gap-10 items-center text-center w-full px-6">
-                            {[...avisosRaw, ...avisosRaw].map((aviso, i) => (
-                                <span key={i} className="text-2xl font-light tracking-widest text-white uppercase">
-                                    {getTxt(aviso, 'texto')}
-                                </span>
-                            ))}
-                        </div>
+                {/* MARQUESINA DE DERECHA A IZQUIERDA */}
+                <div className="h-12 bg-black/60 backdrop-blur-md rounded-xl border border-white/10 flex items-center overflow-hidden">
+                    <div className="animate-marquee-horizontal whitespace-nowrap">
+                        {avisosRaw.map((aviso, i) => (
+                            <span key={i} className="text-lg font-medium tracking-wider text-white uppercase mx-12">
+                                {getTxt(aviso, 'texto')}
+                            </span>
+                        ))}
                     </div>
                 </div>
             </footer>
 
             <style>{`
-                .animate-marquee-vertical { animation: marqueeVertical 15s linear infinite; }
-                @keyframes marqueeVertical {
-                    0% { transform: translateY(0%); } 
-                    100% { transform: translateY(-50%); }
+                .animate-marquee-horizontal { 
+                    display: inline-block;
+                    animation: marqueeHoriz 30s linear infinite; 
+                }
+                @keyframes marqueeHoriz {
+                    0% { transform: translateX(100%); }
+                    100% { transform: translateX(-100%); }
                 }
                 .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
-                @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
                 .animate-logo-float { animation: floatLogo 6s ease-in-out infinite; }
-                @keyframes floatLogo { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+                @keyframes floatLogo { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-5px); } }
             `}</style>
         </div>
     );
