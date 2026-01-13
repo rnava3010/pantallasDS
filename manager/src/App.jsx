@@ -7,8 +7,9 @@ import Dashboard from './pages/Dashboard';
 // Importa tus nuevas páginas
 import Pantallas from './pages/Pantallas';
 import Eventos from './pages/Eventos';
+import Usuarios from './pages/Usuarios';
+import Configuracion from './pages/Configuracion';
 
-// Componente para proteger rutas privadas
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
   return token ? children : <Navigate to="/login" replace />;
