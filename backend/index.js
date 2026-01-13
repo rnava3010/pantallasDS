@@ -24,19 +24,11 @@ app.use(express.static('public', {
 // ==========================================
 //               RUTAS API
 // ==========================================
-
-// --- 1. API PÚBLICA (PANTALLAS) ---
-// Rutas que consumen los Players en los hoteles
 app.use('/api/pantallas', pantallaRoutes); 
 app.use('/api/pantalla', pantallaRoutes); 
-
-// --- 2. API PRIVADA (MANAGER) [NUEVO] ---
-// Rutas para el Dashboard de Administración
-// Todo lo que sea gestión entra por /api/manager
 app.use('/api/manager/auth', managerAuthRoutes);
-
-
-// --- RUTAS DE UTILIDAD ---
+app.use('/api/manager/auth', require('./manager/auth/auth.routes'));
+app.use('/api/manager/menu', require('./manager/src/menu/menu.routes'));
 app.get('/', (req, res) => res.send('🚀 Servidor Digital Signage: ACTIVO'));
 
 app.get('/api/test-db', async (req, res) => {
@@ -48,7 +40,6 @@ app.get('/api/test-db', async (req, res) => {
     }
 });
 
-// --- INICIAR SERVIDOR ---
 app.listen(PORT, () => {
     console.log(`\n=============================================`);
     console.log(`🚀 Servidor corriendo en: http://localhost:${PORT}`);
