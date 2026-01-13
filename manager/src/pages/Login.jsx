@@ -1,9 +1,11 @@
-// manager/src/pages/Login.jsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/authService';
-import { User, Lock, Loader2, Monitor } from 'lucide-react';
+import { User, Lock, Loader2 } from 'lucide-react'; // Quitamos 'Monitor' porque ya no se usa
 import { cn } from '../utils/cn';
+
+// Importa tu logo aquí
+import logoNarabyte from '../assets/narabyte.png'; // <--- CAMBIO: Importamos la imagen
 
 export default function Login() {
   const [identifier, setIdentifier] = useState('');
@@ -20,7 +22,6 @@ export default function Login() {
     try {
       const res = await login({ identifier, password });
       
-      // Si el backend pide cambio de contraseña (usuario nuevo)
       if (res.requirePasswordSetup) {
         navigate('/primer-login', { state: { identifier } });
         return;
@@ -28,7 +29,7 @@ export default function Login() {
       
       if (res.token) {
         localStorage.setItem('token', res.token);
-        localStorage.setItem('user', JSON.stringify(res.user)); // Guardamos datos básicos
+        localStorage.setItem('user', JSON.stringify(res.user));
         navigate('/');
       }
     } catch (err) {
@@ -47,10 +48,18 @@ export default function Login() {
       </div>
 
       <div className="relative z-10 w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-8 mx-4">
+        
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-blue-400 mb-4 shadow-lg shadow-blue-500/30">
-            <Monitor className="w-8 h-8 text-white" />
+          {/* CAMBIO: Contenedor del logo */}
+          {/* Si tu logo tiene fondo transparente, este cuadro blanco con padding se ve muy elegante */}
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white mb-4 shadow-lg shadow-blue-500/20 p-2">
+            <img 
+              src={logoNarabyte} 
+              alt="Narabyte Logo" 
+              className="w-full h-full object-contain" 
+            />
           </div>
+          
           <h1 className="text-3xl font-bold text-white tracking-tight">Digital Signage</h1>
           <p className="text-slate-400 mt-2 text-sm">Panel de Administración</p>
         </div>
@@ -100,6 +109,12 @@ export default function Login() {
             {loading ? <Loader2 className="animate-spin inline mr-2 h-4 w-4" /> : 'Ingresar'}
           </button>
         </form>
+        
+        {/* Footer pequeño */}
+        <div className="mt-8 text-center border-t border-white/5 pt-4">
+           <p className="text-xs text-slate-500">Powered by Narabyte</p>
+        </div>
+
       </div>
     </div>
   );
