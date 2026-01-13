@@ -4,7 +4,6 @@ import { login } from '../services/authService';
 import { User, Lock, Loader2 } from 'lucide-react'; // Quitamos 'Monitor' porque ya no se usa
 import { cn } from '../utils/cn';
 
-// Importa tu logo aquí
 import logoNarabyte from '../assets/narabyte.png'; // <--- CAMBIO: Importamos la imagen
 
 export default function Login() {
@@ -49,20 +48,20 @@ export default function Login() {
 
       <div className="relative z-10 w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-8 mx-4">
         
-        <div className="text-center mb-8">
-          {/* CAMBIO: Contenedor del logo */}
-          {/* Si tu logo tiene fondo transparente, este cuadro blanco con padding se ve muy elegante */}
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white mb-4 shadow-lg shadow-blue-500/20 p-2">
-            <img 
-              src={logoNarabyte} 
-              alt="Narabyte Logo" 
-              className="w-full h-full object-contain" 
-            />
-          </div>
-          
-          <h1 className="text-3xl font-bold text-white tracking-tight">Digital Signage</h1>
-          <p className="text-slate-400 mt-2 text-sm">Panel de Administración</p>
-        </div>
+		<div className="text-center mb-8">
+		  {/* Logo limpio sin fondo blanco ni bordes */}
+		  <div className="flex justify-center mb-6">
+			<img 
+			  src={logoNarabyte} 
+			  alt="Narabyte Logo" 
+			  className="h-24 w-auto object-contain drop-shadow-lg" 
+			/>
+		  </div>
+		  
+		  <h1 className="text-3xl font-bold text-white tracking-tight">Digital Signage</h1>
+		  <p className="text-slate-400 mt-2 text-sm">Panel de Administración</p>
+		</div>
+
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
