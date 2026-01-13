@@ -1,9 +1,12 @@
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+
 const pool = require('./config/db');
 const pantallaRoutes = require('./routes/pantallasRoutes');
 const managerAuthRoutes = require('./manager/auth/auth.routes');
+const managerMenuRoutes = require('./manager/menu/menu.routes');
 const { iniciarCrons } = require('./services/cronService');
 
 const app = express();
