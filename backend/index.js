@@ -6,7 +6,7 @@ const cors = require('cors');
 const pool = require('./config/db');
 const pantallaRoutes = require('./routes/pantallasRoutes');
 const managerAuthRoutes = require('./manager/auth/auth.routes');
-const managerMenuRoutes = require('./manager/menu/menu.routes');
+const managerMenuRoutes = require('./manager/src/menu/menu.routes');
 const { iniciarCrons } = require('./services/cronService');
 
 const app = express();
