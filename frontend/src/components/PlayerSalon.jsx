@@ -1,18 +1,12 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-
-// Hooks
 import { usePantalla } from '../hooks/usePantalla';
 import { useOfflineVideo } from '../hooks/useOfflineVideo';
 import { useReloj } from '../hooks/useReloj';
 import { useCarrusel } from '../hooks/useCarrusel';
-
-// Componentes y Utilidades
 import MediaRenderer from '../components/MediaRenderer';
 import { getIconoClima } from '../utils/weatherUtils'; 
 import logger from '../utils/logger';
-
-// --- IMPORTAMOS LOS LAYOUTS ---
 import LayoutSplit from './layoutsSalones/LayoutSplit';
 import LayoutCine from './layoutsSalones/LayoutCine';
 import LayoutPoster from './layoutsSalones/LayoutPoster';
@@ -20,8 +14,6 @@ import LayoutClean from './layoutsSalones/LayoutClean';
 import LayoutVertical from './layoutsSalones/LayoutVertical';
 import LayoutVerticalCine from './layoutsSalones/LayoutVerticalCine';
 import LayoutVerticalFull from './layoutsSalones/LayoutVerticalFull';
-
-// Helper de color
 const lightenColor = (hex, percent) => {
     if (!hex) return '#ffffff';
     const num = parseInt(hex.replace('#', ''), 16);
@@ -32,7 +24,6 @@ const lightenColor = (hex, percent) => {
     return '#' + (0x1000000 + (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 + (B < 255 ? (B < 1 ? 0 : B) : 255) * 0x100 + (G < 255 ? (G < 1 ? 0 : G) : 255)).toString(16).slice(1);
 };
 
-// Helper de Fecha
 const formatDate = (isoString) => {
     if (!isoString) return '';
     const date = new Date(isoString); 
@@ -44,15 +35,10 @@ export default function PlayerSalon() {
     const { eventoActual, config, loading, isOnline, timeOffset, clima } = usePantalla(id);
     const horaActual = useReloj(timeOffset);
 
-    // Logs
     useEffect(() => {
-        if (config) logger.log(`✅ [PlayerSalon] Configurado: "${config.nombre_interno}" Orientación: ${config.orientacion === 1 ? 'Vertical' : 'Horizontal'}`);
+        if (config) logger.log(`PlayerSalon Configurado: "${config.nombre_interno}" Orientación: ${config.orientacion === 1 ? 'Vertical' : 'Horizontal'}`);
     }, [config]);
 
-    // --- CONTENIDO VISUAL (Lógica Mejorada) ---
-    // 1. Si el evento tiene imágenes, úsalas.
-    // 2. Si no tiene, usa la imagen default de la terminal (si existe).
-    // 3. Si tampoco existe, usa el screensaver (galería general).
     let fotosActivas = [];
     if (eventoActual?.imagenes?.length > 0) {
         fotosActivas = eventoActual.imagenes;
@@ -65,7 +51,6 @@ export default function PlayerSalon() {
     const { itemActual, indice } = useCarrusel(fotosActivas, 8000);
     const { videoBlobUrl } = useOfflineVideo(fotosActivas);
 
-    // Favicon
     useEffect(() => {
         if (config?.favicon) {
             let link = document.querySelector("link[rel~='icon']") || document.createElement('link');
@@ -74,10 +59,8 @@ export default function PlayerSalon() {
         }
     }, [config?.favicon]);
 
-    // --- VARIABLES ---
     const nombreSalon = eventoActual?.nombre_salon || config?.nombre_interno || "Sala de Eventos";
     
-    // Detección de Orientación
     let layoutMode = 0;
     if (eventoActual?.layout_mode !== undefined) { layoutMode = eventoActual.layout_mode; } 
     else if (eventoActual?.full_width) { layoutMode = 1; }
@@ -85,8 +68,6 @@ export default function PlayerSalon() {
     const isEventVertical = (layoutMode === 5 || layoutMode === 6 || layoutMode === 7);
     const isConfigVertical = config?.orientacion === 1;
     const isVertical = eventoActual ? isEventVertical : isConfigVertical;
-    
-    // Variables CSS
     const paddingX = isVertical ? 'px-4' : 'px-10';
     const radioBorde = isVertical ? 'rounded-[2rem]' : 'rounded-[3rem]';
 
@@ -104,7 +85,6 @@ export default function PlayerSalon() {
         filter: `drop-shadow(0 0 2px ${acento})`
     };
 
-    // Lógica de fechas
     let textoFechas = "";
     if (eventoActual) {
         const fInicio = formatDate(eventoActual.inicio_iso);

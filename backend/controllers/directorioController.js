@@ -14,16 +14,10 @@ const getZonedNow = (timeZone) => {
 
 const obtenerDatosDirectorio = async (idSucursal) => {
     
-    // 1. Obtener Zona Horaria
     const [rowsZona] = await pool.query(`SELECT zona_horaria FROM cat_sucursales WHERE idSucursal = ?`, [idSucursal]);
     const zonaHoraria = rowsZona[0]?.zona_horaria || 'America/Mexico_City';
-
-    // 2. Calcular "AHORA"
     const tiempoActual = getZonedNow(zonaHoraria);
-    
     console.log(`\n--- CONSULTA DIRECTORIO (Sucursal ${idSucursal}) ---`);
-
-    // 3. CONSULTA SQL CORREGIDA (Con JOIN a cat_tipos_evento)
     const sql = `
         SELECT 
             e.idEvento,
@@ -45,7 +39,6 @@ const obtenerDatosDirectorio = async (idSucursal) => {
         FROM tbl_eventos e
         JOIN cat_areas a ON e.idArea = a.idArea
         
-        -- ✅ JOIN con el catálogo de tipos
         LEFT JOIN cat_tipos_evento te ON e.idTipoEvento = te.idTipoEvento
         
         LEFT JOIN tbl_eventos_media em ON e.idEvento = em.idEvento AND em.tipo = 'IMAGEN'
@@ -60,7 +53,6 @@ const obtenerDatosDirectorio = async (idSucursal) => {
     
     const [eventosDelDia] = await pool.query(sql, [idSucursal, tiempoActual.dateOnly]);
     
-    // 4. FILTRADO JS (Vigencia)
     const eventosVigentes = eventosDelDia.filter(evento => {
         const sigueVigente = evento.fin_str > tiempoActual.full;
         return sigueVigente;

@@ -20,8 +20,7 @@ export default function PlayerTarifas() {
     const listaGaleria = datos?.galeria?.length > 0 ? datos.galeria : (config?.screensaver || []);
     const { itemActual } = useCarrusel(listaGaleria, 10000);
     const { videoBlobUrl } = useOfflineVideo(listaGaleria);
-
-    // 4. Pantalla de carga
+	
     if (loading || !config) { //
         return (
             <div className="bg-[#050505] h-screen w-screen flex flex-col items-center justify-center text-white">

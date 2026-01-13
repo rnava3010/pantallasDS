@@ -20,14 +20,13 @@ const obtenerTarifasPorSucursal = async (idSucursal) => {
         const [rows] = await pool.query(sql, [idSucursal]);
         return rows;
     } catch (error) {
-        console.error("❌ Error en obtenerTarifasPorSucursal:", error);
+        console.error("Error en obtenerTarifasPorSucursal:", error);
         throw error;
     }
 };
 
 const obtenerAvisosPorSucursal = async (idSucursal) => {
     try {
-        // Ahora traemos el objeto completo con traducciones, no solo el texto 'es'
         const sql = `
             SELECT texto, texto_en, texto_fr 
             FROM tbl_avisos 
@@ -39,14 +38,12 @@ const obtenerAvisosPorSucursal = async (idSucursal) => {
         `;
         const [rows] = await pool.query(sql, [idSucursal]);
         
-        // Devolvemos los objetos completos para que el frontend elija el idioma
         return rows.length > 0 ? rows : [{ texto: "Bienvenidos", texto_en: "Welcome" }];
     } catch (error) {
         return [{ texto: "Bienvenidos", texto_en: "Welcome" }]; 
     }
 };
 
-// ... (obtenerDivisasPorSucursal y obtenerBannersTarifas se mantienen igual) ...
 const obtenerDivisasPorSucursal = async (idSucursal) => {
     try {
         const sql = `
@@ -69,5 +66,4 @@ module.exports = {
     obtenerTarifasPorSucursal,
     obtenerAvisosPorSucursal,
     obtenerDivisasPorSucursal
-    // obtenerBannersTarifas ya no es crítico si usamos avisos, pero se deja por compatibilidad
 };

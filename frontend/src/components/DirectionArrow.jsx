@@ -1,6 +1,5 @@
 import React from 'react';
 
-// Convierte posición de reloj (1-12) a grados
 const getRotation = (clockPosition) => {
     if (!clockPosition) return 0;
     return (clockPosition / 12) * 360;

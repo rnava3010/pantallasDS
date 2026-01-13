@@ -1,8 +1,7 @@
 import React from 'react';
 
 export default function MediaRenderer({ url, blobUrl, onError, className = "object-contain" }) {
-    
-    // Función auxiliar simple para detectar tipo
+
     const esVideo = (src) => {
         if (!src) return false;
         return src.toLowerCase().endsWith('.mp4') || src.toLowerCase().endsWith('.webm');
@@ -11,7 +10,6 @@ export default function MediaRenderer({ url, blobUrl, onError, className = "obje
     if (!url) return null;
 
     if (esVideo(url)) {
-        // Usamos el blobUrl (offline) si existe, sino la url normal
         const finalSrc = blobUrl || url;
         return (
             <video 

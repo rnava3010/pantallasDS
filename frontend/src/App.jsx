@@ -1,14 +1,12 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { useMantenimiento } from './hooks/useMantenimiento'; // <--- Tu hook mágico
+import { useMantenimiento } from './hooks/useMantenimiento';
 
-// Importación dinámica (Lazy Loading)
 const VistaPantalla = React.lazy(() => import('./views/VistaPantalla'));
 const VistaAdmin = React.lazy(() => import('./views/VistaAdmin'));
 
 function App() {
-  // ✅ AQUÍ es donde vive la magia del reinicio automático
-  useMantenimiento(3); // Reiniciar a las 3:00 AM
+  useMantenimiento(3);
 
   return (
     <BrowserRouter>

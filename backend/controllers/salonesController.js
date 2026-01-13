@@ -1,9 +1,5 @@
 const pool = require('../config/db');
 
-/**
- * Obtiene la agenda de eventos para un área (salón) específica.
- * VERSIÓN MEJORADA: Soporte multilenguaje y fechas exactas.
- */
 const obtenerAgendaSalon = async (idArea) => {
     try {
         const sql = `
@@ -37,32 +33,21 @@ const obtenerAgendaSalon = async (idArea) => {
         `;
         const [rows] = await pool.query(sql, [idArea]);
         
-        // Mapeamos al formato que espera el frontend
         return rows.map(evento => ({
-            // Mapeo Clásico (para que no se rompa nada antiguo)
             titulo: evento.nombre_evento,
             cliente: evento.cliente_nombre,
             mensaje: evento.mensaje_personalizado,
-            
-            // Mapeo Multilenguaje (NUEVO)
             titulo_en: evento.nombre_evento_en,
             titulo_fr: evento.nombre_evento_fr,
             cliente_en: evento.cliente_en,
             cliente_fr: evento.cliente_fr,
             mensaje_en: evento.mensaje_personalizado_en,
             mensaje_fr: evento.mensaje_personalizado_fr,
-
-            // Fechas Crudas (Importante para el Frontend)
             fecha_inicio: evento.fecha_inicio,
             fecha_fin: evento.fecha_fin,
-            
-            // Compatibilidad
             inicio_iso: evento.fecha_inicio, 
             fin_iso: evento.fecha_fin,
-            
-            // Formato texto simple (Fallback)
             horario: `${new Date(evento.fecha_inicio).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - ${new Date(evento.fecha_fin).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`,
-
             ticker: evento.mensaje_ticker,
             layout_mode: evento.imagen_full_width || 0,
             direccion: evento.direccion_reloj, 
@@ -71,7 +56,7 @@ const obtenerAgendaSalon = async (idArea) => {
             imagenes: evento.lista_imagenes ? evento.lista_imagenes.split(',') : []
         }));
     } catch (error) {
-        console.error("❌ Error en obtenerAgendaSalon:", error);
+        console.error("Error en obtenerAgendaSalon:", error);
         throw error;
     }
 };

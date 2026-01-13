@@ -2,7 +2,6 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-// Configuración del Pool de conexiones
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -15,19 +14,18 @@ const pool = mysql.createPool({
 	timezone: '-06:00'
 	});
 
-// Prueba inicial de conexión
 (async () => {
     try {
         const connection = await pool.getConnection();
-        console.log('✅ Conectado exitosamente a la BD:', process.env.DB_NAME);
+        console.log('Conectado exitosamente a la BD:', process.env.DB_NAME);
         connection.release();
     } catch (error) {
         console.error('❌ Error de Conexión a BD:', error.message);
         if (error.code === 'ECONNREFUSED') {
-            console.error('💡 Tip: Verifica que la IP sea correcta y que el VPS acepte conexiones remotas.');
+            console.error('Verifica que la IP sea correcta y que el VPS acepte conexiones remotas.');
         }
         if (error.code === 'ER_ACCESS_DENIED_ERROR') {
-            console.error('💡 Tip: Verifica usuario y contraseña.');
+            console.error('Verifica usuario y contraseña.');
         }
     }
 })();

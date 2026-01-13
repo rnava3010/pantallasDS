@@ -4,7 +4,6 @@ const noticiasController = require('./noticiasController');
 const tarifasController = require('./tarifasController');
 const salonesController = require('./salonesController'); 
 
-// --- HELPERS DE CONFIGURACIÓN ---
 const obtenerConfiguracionBase = async (id) => {
     const sql = `
         SELECT 
@@ -48,7 +47,6 @@ const obtenerConfiguracionBase = async (id) => {
             config.pieTarifas = {};
         }
 
-        // Default de tiempo
         if (!config.tiempo_rotacion_idioma || config.tiempo_rotacion_idioma <= 0) {
             config.tiempo_rotacion_idioma = 20; 
         }
@@ -63,7 +61,6 @@ const obtenerScreensaver = async (idTerminal) => {
     return rows.map(row => row.url_archivo);
 };
 
-// Helper clima
 const getClimaSeguro = async (idSucursal) => {
     const [rows] = await pool.query("SELECT json_clima, updated_at FROM tbl_cache_clima WHERE idSucursal = ?", [idSucursal]);
     if (rows.length > 0) {
@@ -73,9 +70,6 @@ const getClimaSeguro = async (idSucursal) => {
     return null;
 };
 
-// ==========================================
-// 🎮 CONTROLADOR PRINCIPAL
-// ==========================================
 const getDatosPantalla = async (req, res) => {
     const { id } = req.params;
     try {
@@ -99,7 +93,7 @@ const getDatosPantalla = async (req, res) => {
                 orientacion: terminal.orientacion,
                 layoutDir: terminal.layoutDir || 0,
                 layoutTarifas: terminal.layoutTarifas || 0,
-                pieTarifas: terminal.pieTarifas, // ✅ Se envía al frontend
+                pieTarifas: terminal.pieTarifas,
                 zona_horaria: terminal.zona_horaria || 'America/Mexico_City',
                 logo: logoFinal, 
                 imagen_default: terminal.imagen_default_url,
@@ -162,7 +156,7 @@ const getDatosPantalla = async (req, res) => {
         res.json(respuesta);
 
     } catch (error) {
-        console.error("❌ Error en PantallaController:", error);
+        console.error("Error en PantallaController:", error);
         res.status(500).json({ error: "Error interno" });
     }
 };

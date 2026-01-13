@@ -1,8 +1,5 @@
 const iconv = require('iconv-lite');
 
-/**
- * Controlador de Noticias RSS - Reforma con Correccion de Codificacion
- */
 const fetchNoticiasRSS = async () => {
     try {
         const RSS_URL = "https://www.reforma.com/rss/negocios.xml";
@@ -17,10 +14,7 @@ const fetchNoticiasRSS = async () => {
 
         if (!response.ok) throw new Error(`Status: ${response.status}`);
 
-        // ? RECUPERAMOS EL BUFFER (No el texto directo)
         const buffer = await response.arrayBuffer();
-        
-        // ? DECODIFICAMOS DESDE ISO-8859-1 (El formato de Reforma)
         let text = iconv.decode(Buffer.from(buffer), 'iso-8859-1');
 
         const items = [];
@@ -39,7 +33,6 @@ const fetchNoticiasRSS = async () => {
                     return str
                         .replace(/<!\[CDATA\[/g, '')
                         .replace(/\]\]>/g, '')
-                        // Reemplazar entidades HTML que Reforma a veces mezcla con el texto
                         .replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ')
                         .replace(/&iacute;/g, 'i').replace(/&aacute;/g, 'a').replace(/&eacute;/g, 'e')
                         .replace(/&oacute;/g, 'o').replace(/&uacute;/g, 'u').replace(/&ntilde;/g, 'n')
