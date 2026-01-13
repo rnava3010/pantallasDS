@@ -35,6 +35,7 @@ function App() {
         {/* Rutas del Menú de BD */}
         <Route path="pantallas" element={<Pantallas />} />
         <Route path="eventos" element={<Eventos />} />
+		<Route path="usuarios" element={<Usuarios />} />
         
         {/* Si agregas más botones en la BD (ej. /usuarios), agrega su Route aquí */}
         {/* <Route path="usuarios" element={<Usuarios />} /> */}
