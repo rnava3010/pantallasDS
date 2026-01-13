@@ -9,6 +9,7 @@ import Pantallas from './pages/Pantallas';
 import Eventos from './pages/Eventos';
 import Usuarios from './pages/Usuarios';
 import Configuracion from './pages/Configuracion';
+import DashboardHome from './pages/DashboardHome';
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -31,7 +32,7 @@ function App() {
         {/* Aquí definimos las "Sub-rutas" que se cargan EN EL OUTLET del Dashboard */}
         
         {/* Ruta index: Lo que se ve al entrar a "/" (Home) */}
-        <Route index element={<h1 className="text-white text-2xl">Bienvenido al Inicio</h1>} />
+        <Route index element={<DashboardHome />} />
         
         {/* Rutas del Menú de BD */}
         <Route path="pantallas" element={<Pantallas />} />
