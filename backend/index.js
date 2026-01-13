@@ -7,6 +7,7 @@ const pool = require('./config/db');
 const pantallaRoutes = require('./routes/pantallasRoutes');
 const managerAuthRoutes = require('./manager/auth/auth.routes');
 const managerMenuRoutes = require('./manager/src/menu/menu.routes');
+const managerDashboardRoutes = require('./manager/src/dashboard/dashboard.routes');
 const { iniciarCrons } = require('./services/cronService');
 
 const app = express();
@@ -31,6 +32,7 @@ app.use('/api/pantalla', pantallaRoutes);
 app.use('/api/manager/auth', managerAuthRoutes);
 app.use('/api/manager/auth', require('./manager/auth/auth.routes'));
 app.use('/api/manager/menu', require('./manager/src/menu/menu.routes'));
+app.use('/api/manager/dashboard', managerDashboardRoutes);
 app.get('/', (req, res) => res.send('🚀 Servidor Digital Signage: ACTIVO'));
 
 app.get('/api/test-db', async (req, res) => {
