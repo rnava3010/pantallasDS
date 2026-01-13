@@ -1,9 +1,8 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const pool = require('./config/db');
 const pantallaRoutes = require('./routes/pantallasRoutes');
-// [NUEVO] Importamos las rutas de autenticación del Manager
 const managerAuthRoutes = require('./manager/auth/auth.routes');
 const { iniciarCrons } = require('./services/cronService');
 
