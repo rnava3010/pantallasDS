@@ -4,7 +4,7 @@
   "description": "Script de despliegue automatico",
   "scripts": {
     "deploy": "git pull origin main && echo '🚀 1. ACTUALIZANDO BACKEND...' && cd backend && npm install && npx pm2 restart ds-backend && npx pm2 flush && cd .. && echo '🚀 2. RECONSTRUYENDO FRONTEND...' && cd frontend && npm install && npm run build && cd .. && echo '✅ DESPLIEGUE COMPLETADO CON EXITO!'",
-    "dmanager": "git pull origin main && echo '🚀 1. ACTUALIZANDO MANAGER...' && cd manager && npm install && npm run build && cd .. && echo '✅ DESPLIEGUE COMPLETADO CON EXITO!'"
+    "dmanager": "git pull origin main && echo '🚀 1. ACTUALIZANDO MANAGER...' && cd backend && npm install && npx pm2 restart ds-backend && npx pm2 flush && cd .. && echo '🚀 2. RECONSTRUYENDO FRONTEND...' && cd manager && npm install && npm run build && cd .. && echo '✅ DESPLIEGUE COMPLETADO CON EXITO!'"
   },
   "author": "Narabyte",
   "license": "ISC"
