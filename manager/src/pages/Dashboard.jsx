@@ -13,7 +13,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation(); // Para saber en qué ruta estamos y marcarla activa
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [user, setUser] = useState({ name: 'Usuario', role: '0' });
+  const [user, setUser] = useState({ name: 'Usuario', role: '0', roleName: '...' });
   const [menuItems, setMenuItems] = useState([]); // Estado para el menú dinámico
 
   useEffect(() => {
@@ -125,7 +125,9 @@ export default function Dashboard() {
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block leading-tight">
                  <p className="text-sm font-semibold text-white">{user.name}</p>
-                 <p className="text-xs text-blue-400">Rol: {user.role}</p>
+                 <p className="text-xs text-blue-400">
+				  {user.roleName || `Rol: ${user.role}`}
+				</p>
               </div>
               <div className="w-9 h-9 bg-slate-700 rounded-full flex items-center justify-center border border-slate-600 shadow-inner">
                 <User size={18} className="text-slate-300"/>
