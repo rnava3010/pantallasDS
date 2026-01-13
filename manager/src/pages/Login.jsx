@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login } from '../services/authService';
+import apiClient from '../services/apiClient'; // Usamos el cliente directo para asegurar conexión
 import { User, Lock, Loader2 } from 'lucide-react';
 import { cn } from '../utils/cn';
 
@@ -14,8 +14,9 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // 1. EFECTO: Cargar correo guardado si existe
   useEffect(() => {
-    const savedUser = localStorage.getItem('savedUser');
+    const savedUser = localStorage.getItem('savedIdentifier'); // Leemos la llave correcta
     if (savedUser) {
       setIdentifier(savedUser);
       setRememberMe(true);
@@ -28,26 +29,36 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await login({ identifier, password });
+      // Usamos apiClient directo para conectar con tu backend
+      const response = await apiClient.post('/manager/auth/login', { 
+        identifier, 
+        password 
+      });
       
-      if (res.requirePasswordSetup) {
+      const data = response.data;
+      
+      // Si requiere cambio de contraseña (primer login)
+      if (data.requirePasswordSetup) {
         navigate('/primer-login', { state: { identifier } });
         return;
       }
       
-      if (res.token) {
+      if (data.token) {
+        // 2. LÓGICA RECUÉRDAME
         if (rememberMe) {
-          localStorage.setItem('savedUser', identifier);
+          localStorage.setItem('savedIdentifier', identifier); // Guardamos
         } else {
-          localStorage.removeItem('savedUser');
+          localStorage.removeItem('savedIdentifier'); // Borramos si desmarcó
         }
-        // ----------------------------
 
-        localStorage.setItem('token', res.token);
-        localStorage.setItem('user', JSON.stringify(res.user));
+        // 3. GUARDAR SESIÓN (Usamos 'user_data' para coincidir con App.jsx)
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user_data', JSON.stringify(data.user));
+        
         navigate('/');
       }
     } catch (err) {
+      console.error(err);
       setError('Credenciales incorrectas o usuario inactivo.');
     } finally {
       setLoading(false);
