@@ -172,12 +172,11 @@ export default function Login() {
             </div>
           </div>
 
-          {/* MENSAJE DE ERROR (Aquí se mostrará la inactividad o credenciales malas) */}
-          {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-200 text-sm text-center font-medium animate-in fade-in slide-in-from-top-2">
-              {error}
-            </div>
-          )}
+		{error && (
+		  <div className="mb-4 p-3 rounded-lg bg-red-900/50 border border-red-500 text-red-100 text-sm text-center font-bold shadow-lg">
+			{error}
+		  </div>
+		)}
 
           <button
             type="submit"
