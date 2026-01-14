@@ -35,12 +35,19 @@ apiClient.interceptors.response.use(
   (error) => {
     
     // Extraemos info del error para analizarla
-    const { response, code } = error;
+    const { response, config, code } = error;
     const status = response ? response.status : null;
 
-    // CONDICIÓN DE EXPULSIÓN:
+    // 🛑 EXCEPCIÓN IMPORTANTE (EL FIX):
+    // Si el error 401 ocurre JUSTO cuando intentamos loguearnos ('/auth/login'),
+    // NO hacemos redirección. Dejamos que el componente Login muestre la caja roja.
+    if (config && config.url.includes('/auth/login')) {
+      return Promise.reject(error);
+    }
+
+    // CONDICIÓN DE EXPULSIÓN (Para el resto de la app):
     // A) Error de Red (Internet caído, DNS fallando, Servidor apagado)
-    // B) Error 401 (No autorizado / Token vencido)
+    // B) Error 401 (No autorizado / Token vencido) en otras pantallas
     // C) Error 403 (Prohibido)
     if (
         code === 'ERR_NETWORK' || 
@@ -52,13 +59,12 @@ apiClient.interceptors.response.use(
       console.warn("⚠️ Error crítico de sesión o red. Redirigiendo al Login...");
       
       // Solo limpiamos y redirigimos si NO estamos ya en el login
-      // (Para evitar bucles infinitos si falla el login mismo)
-      if (window.location.pathname !== '/manager/login') {
+      if (!window.location.pathname.includes('/manager/login')) {
         localStorage.removeItem('token');
         localStorage.removeItem('user_data');
-        // Usamos window.location para forzar una recarga limpia
+        
+        // Usamos window.location para forzar una recarga limpia y agregamos el mensaje
         window.location.href = '/manager/login?msg=session';
-		
       }
     }
 
