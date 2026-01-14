@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom'; // USAMOS useSearchParams
 import apiClient from '../services/apiClient';
-import { User, Lock, Loader2 } from 'lucide-react';
+import { User, Lock, Loader2, AlertTriangle } from 'lucide-react'; // Agregué icono de alerta
 import { cn } from '../utils/cn';
 
 import logoNarabyte from '../assets/narabyte.png'; 
@@ -14,10 +14,12 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
-  const location = useLocation(); // Hook para leer la URL
+  
+  // HOOK ESPECIAL PARA LEER PARAMETROS (?msg=...)
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // ---------------------------------------------------------
-  // 1. EFECTO INICIAL: Cargar usuario y Leer mensajes de error
+  // 1. EFECTO INICIAL
   // ---------------------------------------------------------
   useEffect(() => {
     // A) Lógica "Recuérdame"
@@ -27,23 +29,25 @@ export default function Login() {
       setRememberMe(true);
     }
 
-    // B) Lógica de Mensajes de Error (Inactividad / Sesión)
-    const params = new URLSearchParams(location.search);
-    const msg = params.get('msg');
+    // B) Lógica de Mensajes (CON LOGS PARA DEPURAR)
+    const msg = searchParams.get('msg');
+    console.log("🔍 Revisando URL... Parametro msg:", msg); // <--- MIRA LA CONSOLA (F12)
 
-    if (msg === 'session') {
-      setError('⚠️ Tu sesión ha caducado. Por favor, ingresa nuevamente.');
-    } else if (msg === 'inactivity') {
-      setError('💤 Sesión cerrada por inactividad.');
-    } else if (msg === 'network') {
-      setError('📡 Error de conexión. Verifica tu internet.');
-    }
-
-    // Limpiar la URL para que el mensaje no persista si recargas
     if (msg) {
-      window.history.replaceState({}, document.title, window.location.pathname);
+        if (msg === 'session') {
+            setError('⚠️ Tu sesión ha caducado. Ingresa nuevamente.');
+        } else if (msg === 'inactivity') {
+            setError('💤 Sesión cerrada por inactividad.');
+        } else if (msg === 'network') {
+            setError('📡 Error de conexión. Verifica tu internet.');
+        } else {
+            setError('⚠️ ' + msg); // Por si mandamos otro mensaje personalizado
+        }
+
+        // Limpiamos la URL usando el método de React Router para evitar recargas
+        setSearchParams({}); 
     }
-  }, [location]);
+  }, []); // Array vacío para que corra solo al montar
 
   // ---------------------------------------------------------
   // 2. ENVÍO DEL FORMULARIO
@@ -54,7 +58,6 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // Usamos apiClient directo
       const response = await apiClient.post('/manager/auth/login', { 
         identifier, 
         password 
@@ -62,31 +65,25 @@ export default function Login() {
       
       const data = response.data;
       
-      // Caso 1: Primer Login (Requiere cambio de pass)
       if (data.requirePasswordSetup) {
         navigate('/primer-login', { state: { identifier } });
         return;
       }
       
-      // Caso 2: Login Exitoso
       if (data.token) {
-        // Guardar o borrar preferencia de "Recuérdame"
         if (rememberMe) {
           localStorage.setItem('savedIdentifier', identifier);
         } else {
           localStorage.removeItem('savedIdentifier');
         }
 
-        // Guardar Sesión
         localStorage.setItem('token', data.token);
         localStorage.setItem('user_data', JSON.stringify(data.user));
         
-        // Redirigir al Dashboard
         navigate('/');
       }
     } catch (err) {
       console.error(err);
-      // Si el backend manda un mensaje específico, úsalo, si no, usa el genérico
       const msg = err.response?.data?.message || 'Credenciales incorrectas o usuario inactivo.';
       setError(msg);
     } finally {
@@ -150,7 +147,6 @@ export default function Login() {
             </div>
           </div>
 
-          {/* CHECKBOX RECUÉRDAME */}
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <input
@@ -172,11 +168,13 @@ export default function Login() {
             </div>
           </div>
 
-		{error && (
-		  <div className="mb-4 p-3 rounded-lg bg-red-900/50 border border-red-500 text-red-100 text-sm text-center font-bold shadow-lg">
-			{error}
-		  </div>
-		)}
+          {/* --- CAJA DE ERROR VISIBLE --- */}
+          {error && (
+            <div className="mb-4 p-4 rounded-lg bg-red-600 border-2 border-red-400 text-white text-sm flex items-center gap-3 shadow-xl animate-bounce-short">
+              <AlertTriangle className="h-6 w-6 shrink-0 text-white" />
+              <span className="font-bold">{error}</span>
+            </div>
+          )}
 
           <button
             type="submit"
