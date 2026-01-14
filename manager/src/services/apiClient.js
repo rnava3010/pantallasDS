@@ -58,6 +58,7 @@ apiClient.interceptors.response.use(
         localStorage.removeItem('user_data');
         // Usamos window.location para forzar una recarga limpia
         window.location.href = '/manager/login';
+		
       }
     }
 
