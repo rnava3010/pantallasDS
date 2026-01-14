@@ -39,8 +39,8 @@ export default function Login() {
         else setError(msg);
 
         // Limpiar URL sin recargar (para que se vea limpio)
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, '', newUrl);
+        //const newUrl = window.location.pathname;
+        //window.history.replaceState({}, '', newUrl);
     }
   }, []);
 
