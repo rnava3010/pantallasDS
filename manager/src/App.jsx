@@ -29,7 +29,7 @@ function App() {
     if (location.pathname === '/login') return;
 
     // Configuración: 30 minutos (en milisegundos)
-    const TIMEOUT_MS = 30 * 60 * 1000; 
+    const TIMEOUT_MS = 2 * 60 * 60 * 1000; 
     let timeoutId;
 
     const logout = () => {
