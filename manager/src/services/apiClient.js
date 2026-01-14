@@ -53,7 +53,7 @@ apiClient.interceptors.response.use(
       
       // Solo limpiamos y redirigimos si NO estamos ya en el login
       // (Para evitar bucles infinitos si falla el login mismo)
-      if (window.location.pathname !== '/login') {
+      if (window.location.pathname !== '/manager/login') {
         localStorage.removeItem('token');
         localStorage.removeItem('user_data');
         // Usamos window.location para forzar una recarga limpia
