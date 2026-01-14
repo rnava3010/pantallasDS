@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom'; // USAMOS useSearchParams
+import { useNavigate } from 'react-router-dom'; // Quitamos useSearchParams para usar Vanilla JS
 import apiClient from '../services/apiClient';
-import { User, Lock, Loader2, AlertTriangle } from 'lucide-react'; // Agregué icono de alerta
+import { User, Lock, Loader2, AlertTriangle, XCircle } from 'lucide-react'; // Iconos nuevos
 import { cn } from '../utils/cn';
 
 import logoNarabyte from '../assets/narabyte.png'; 
@@ -14,48 +14,45 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
-  
-  // HOOK ESPECIAL PARA LEER PARAMETROS (?msg=...)
-  const [searchParams, setSearchParams] = useSearchParams();
 
   // ---------------------------------------------------------
-  // 1. EFECTO INICIAL
+  // 1. EFECTO INICIAL (Lectura de URL y Usuario Guardado)
   // ---------------------------------------------------------
   useEffect(() => {
-    // A) Lógica "Recuérdame"
+    // A) Recuérdame
     const savedUser = localStorage.getItem('savedIdentifier');
     if (savedUser) {
       setIdentifier(savedUser);
       setRememberMe(true);
     }
 
-    // B) Lógica de Mensajes (CON LOGS PARA DEPURAR)
-    const msg = searchParams.get('msg');
-    console.log("🔍 Revisando URL... Parametro msg:", msg); // <--- MIRA LA CONSOLA (F12)
+    // B) Leer URL manualmente (Más robusto)
+    const params = new URLSearchParams(window.location.search);
+    const msg = params.get('msg');
+    
+    console.log("🔍 [Login] Iniciando. Mensaje en URL:", msg);
 
     if (msg) {
-        if (msg === 'session') {
-            setError('⚠️ Tu sesión ha caducado. Ingresa nuevamente.');
-        } else if (msg === 'inactivity') {
-            setError('💤 Sesión cerrada por inactividad.');
-        } else if (msg === 'network') {
-            setError('📡 Error de conexión. Verifica tu internet.');
-        } else {
-            setError('⚠️ ' + msg); // Por si mandamos otro mensaje personalizado
-        }
+        if (msg === 'session') setError('⚠️ Tu sesión ha caducado. Ingresa nuevamente.');
+        else if (msg === 'inactivity') setError('💤 Sesión cerrada por inactividad.');
+        else if (msg === 'network') setError('📡 Error de conexión. Verifica tu internet.');
+        else setError(msg);
 
-        // Limpiamos la URL usando el método de React Router para evitar recargas
-        setSearchParams({}); 
+        // Limpiar URL sin recargar (para que se vea limpio)
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
     }
-  }, []); // Array vacío para que corra solo al montar
+  }, []);
 
   // ---------------------------------------------------------
   // 2. ENVÍO DEL FORMULARIO
   // ---------------------------------------------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError(''); // Limpiamos errores previos
     setLoading(true);
+
+    console.log("🔵 [Login] Intentando ingresar con:", identifier);
 
     try {
       const response = await apiClient.post('/manager/auth/login', { 
@@ -63,6 +60,7 @@ export default function Login() {
         password 
       });
       
+      console.log("🟢 [Login] Respuesta exitosa:", response.data);
       const data = response.data;
       
       if (data.requirePasswordSetup) {
@@ -71,21 +69,30 @@ export default function Login() {
       }
       
       if (data.token) {
-        if (rememberMe) {
-          localStorage.setItem('savedIdentifier', identifier);
-        } else {
-          localStorage.removeItem('savedIdentifier');
-        }
+        if (rememberMe) localStorage.setItem('savedIdentifier', identifier);
+        else localStorage.removeItem('savedIdentifier');
 
         localStorage.setItem('token', data.token);
         localStorage.setItem('user_data', JSON.stringify(data.user));
         
         navigate('/');
       }
+
     } catch (err) {
-      console.error(err);
-      const msg = err.response?.data?.message || 'Credenciales incorrectas o usuario inactivo.';
-      setError(msg);
+      console.error("🔴 [Login] Error atrapado:", err); // <--- BUSCA ESTO EN CONSOLA
+      
+      // Texto por defecto si falla la conexión
+      let mensajeFinal = 'No se pudo conectar con el servidor.';
+
+      if (err.response) {
+        // El servidor respondió con error (ej. 401 Credenciales inválidas)
+        mensajeFinal = err.response.data?.message || 'Error de acceso.';
+      } else if (err.request) {
+        // La petición salió pero no hubo respuesta (Red caída)
+        mensajeFinal = 'Error de red. Verifica tu conexión.';
+      }
+
+      setError(mensajeFinal); // <--- ESTO DEBERÍA MOSTRAR LA CAJA ROJA
     } finally {
       setLoading(false);
     }
@@ -104,11 +111,7 @@ export default function Login() {
         
         <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
-            <img 
-              src={logoNarabyte} 
-              alt="Narabyte Logo" 
-              className="h-24 w-auto object-contain drop-shadow-lg" 
-            />
+            <img src={logoNarabyte} alt="Logo" className="h-24 w-auto object-contain drop-shadow-lg" />
           </div>
           <h1 className="text-3xl font-bold text-white tracking-tight">Digital Signage</h1>
           <p className="text-slate-400 mt-2 text-sm">Panel de Administración</p>
@@ -148,31 +151,33 @@ export default function Login() {
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
+            <label className="flex items-center cursor-pointer">
               <input
-                id="remember-me"
-                name="remember-me"
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 accent-blue-600"
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-300 cursor-pointer select-none">
-                Recuérdame
-              </label>
-            </div>
-            <div className="text-sm">
-              <a href="#" className="font-medium text-blue-400 hover:text-blue-300">
-                ¿Olvidaste tu contraseña?
-              </a>
-            </div>
+              <span className="ml-2 text-sm text-slate-300">Recuérdame</span>
+            </label>
+            <a href="#" className="text-sm font-medium text-blue-400 hover:text-blue-300">
+              ¿Olvidaste tu contraseña?
+            </a>
           </div>
 
-          {/* --- CAJA DE ERROR VISIBLE --- */}
+          {/* --- CAJA DE ERROR (Mejorada y Forzada) --- */}
           {error && (
-            <div className="mb-4 p-4 rounded-lg bg-red-600 border-2 border-red-400 text-white text-sm flex items-center gap-3 shadow-xl animate-bounce-short">
+            <div 
+              className="mb-4 p-4 rounded-lg bg-red-600 text-white text-sm flex items-center gap-3 shadow-xl animate-pulse"
+              style={{ display: 'flex', border: '2px solid #fca5a5' }} 
+            >
               <AlertTriangle className="h-6 w-6 shrink-0 text-white" />
-              <span className="font-bold">{error}</span>
+              <div className="flex-1 font-bold">
+                {error}
+              </div>
+              <button type="button" onClick={() => setError('')} className="text-white/70 hover:text-white">
+                <XCircle size={18} />
+              </button>
             </div>
           )}
 
