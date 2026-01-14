@@ -36,7 +36,7 @@ function App() {
       console.log("Sesión expirada por inactividad");
       localStorage.removeItem('token');
       localStorage.removeItem('user_data');
-      navigate('/login');
+	  navigate('/login?msg=inactivity');
     };
 
     const resetTimer = () => {

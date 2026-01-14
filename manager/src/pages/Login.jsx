@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import apiClient from '../services/apiClient'; // Usamos el cliente directo para asegurar conexión
+import { useNavigate, useLocation } from 'react-router-dom';
+import apiClient from '../services/apiClient';
 import { User, Lock, Loader2 } from 'lucide-react';
 import { cn } from '../utils/cn';
 
@@ -12,24 +12,49 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
   const navigate = useNavigate();
+  const location = useLocation(); // Hook para leer la URL
 
-  // 1. EFECTO: Cargar correo guardado si existe
+  // ---------------------------------------------------------
+  // 1. EFECTO INICIAL: Cargar usuario y Leer mensajes de error
+  // ---------------------------------------------------------
   useEffect(() => {
-    const savedUser = localStorage.getItem('savedIdentifier'); // Leemos la llave correcta
+    // A) Lógica "Recuérdame"
+    const savedUser = localStorage.getItem('savedIdentifier');
     if (savedUser) {
       setIdentifier(savedUser);
       setRememberMe(true);
     }
-  }, []);
 
+    // B) Lógica de Mensajes de Error (Inactividad / Sesión)
+    const params = new URLSearchParams(location.search);
+    const msg = params.get('msg');
+
+    if (msg === 'session') {
+      setError('⚠️ Tu sesión ha caducado. Por favor, ingresa nuevamente.');
+    } else if (msg === 'inactivity') {
+      setError('💤 Sesión cerrada por inactividad.');
+    } else if (msg === 'network') {
+      setError('📡 Error de conexión. Verifica tu internet.');
+    }
+
+    // Limpiar la URL para que el mensaje no persista si recargas
+    if (msg) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [location]);
+
+  // ---------------------------------------------------------
+  // 2. ENVÍO DEL FORMULARIO
+  // ---------------------------------------------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      // Usamos apiClient directo para conectar con tu backend
+      // Usamos apiClient directo
       const response = await apiClient.post('/manager/auth/login', { 
         identifier, 
         password 
@@ -37,29 +62,33 @@ export default function Login() {
       
       const data = response.data;
       
-      // Si requiere cambio de contraseña (primer login)
+      // Caso 1: Primer Login (Requiere cambio de pass)
       if (data.requirePasswordSetup) {
         navigate('/primer-login', { state: { identifier } });
         return;
       }
       
+      // Caso 2: Login Exitoso
       if (data.token) {
-        // 2. LÓGICA RECUÉRDAME
+        // Guardar o borrar preferencia de "Recuérdame"
         if (rememberMe) {
-          localStorage.setItem('savedIdentifier', identifier); // Guardamos
+          localStorage.setItem('savedIdentifier', identifier);
         } else {
-          localStorage.removeItem('savedIdentifier'); // Borramos si desmarcó
+          localStorage.removeItem('savedIdentifier');
         }
 
-        // 3. GUARDAR SESIÓN (Usamos 'user_data' para coincidir con App.jsx)
+        // Guardar Sesión
         localStorage.setItem('token', data.token);
         localStorage.setItem('user_data', JSON.stringify(data.user));
         
+        // Redirigir al Dashboard
         navigate('/');
       }
     } catch (err) {
       console.error(err);
-      setError('Credenciales incorrectas o usuario inactivo.');
+      // Si el backend manda un mensaje específico, úsalo, si no, usa el genérico
+      const msg = err.response?.data?.message || 'Credenciales incorrectas o usuario inactivo.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -143,7 +172,12 @@ export default function Login() {
             </div>
           </div>
 
-          {error && <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-200 text-sm text-center">{error}</div>}
+          {/* MENSAJE DE ERROR (Aquí se mostrará la inactividad o credenciales malas) */}
+          {error && (
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-200 text-sm text-center font-medium animate-in fade-in slide-in-from-top-2">
+              {error}
+            </div>
+          )}
 
           <button
             type="submit"
